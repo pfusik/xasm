@@ -66,7 +66,6 @@ m_lsto	=	8
 m_lsts	=	m_lsto+m_lstl+m_lsti
 
 nhand	=	-1	;null handle
-
 eol	equ	13,10
 eot	equ	13,10,'$'
 
@@ -329,15 +328,15 @@ skip1:	call	get
 	cmp	al, 9
 	jne	skip1
 skip2:	call	space1
-	push	offset sklist
 	lodsd
 	and	eax, 0dfdfdfh
+	cmp	eax, 'DNE'
+	je	filend
+	push	offset lstrem
 	cmp	eax, 'TFI'
 	je	skift
 	cmp	eax, 'SLE'
 	je	skels
-	cmp	eax, 'DNE'
-	je	filend
 	cmp	eax, 'FIE'
 	jne	skret
 	call	p_eif
@@ -353,19 +352,17 @@ skels:	call	btself
 	cmp	[sift], 0
 	jnz	skret
 	jmp	fliski
-sklist:	test	[flist], m_lsts+m_lstc
-	jmp	lstcon
 
-lsteol:	test	[flist], m_lsts
+lsteol:	call	chklst
 	jnz	main
 	mov	di, offset lstspa
 	call	lspeol
-	jmp	lstlnm
-lstrem:	test	[flist], m_lsts
-lstcon:	jnz	main
+	call	putlnm
+	jmp	main
+lstrem:	call	chklst
+	jnz	main
 	mov	di, offset lstspa+1
-	call	putspa
-lstlnm:	call	putlnm
+	call	putlsp
 	jmp	main
 
 nskip:	mov	[labvec], 0
@@ -455,6 +452,11 @@ sfcmd3:	shr	bx, 1
 	je	sfcmd1
 	error	e_inst
 
+skend:	call	chklst
+	jnz	filend
+	mov	di, offset lstspa+1
+	call	putlsp
+
 filend:	and	[flags], not m_eofl
 	call	fclose
 	cmp	bx, offset t_icl
@@ -521,9 +523,11 @@ nlata:	call	lclose
 	call	pridec
 	print	lintxt
 	mov	eax, [bytes]
+	test	eax, eax
+	jz	zrbyt
 	call	pridec
 	print	byttxt
-	mov	ax, [exitcod]
+zrbyt:	mov	ax, [exitcod]
 	dos
 
 linlon:	push	offset e_long
@@ -718,6 +722,13 @@ lstxtr:	ja	lsbpop
 	mov	al, '+'
 	jmp	lstpls
 
+chklst:	mov	al, m_lsts
+	test	[flags], m_skip
+	jz	chkls1
+	mov	al, m_lsts+m_lstc
+chkls1:	test	al, [flist]
+	ret
+
 ; Stwierdza blad, jesli nie spacja, tab lub eol
 linend:	lodsb
 	cmp	al, 0dh
@@ -730,7 +741,7 @@ linend:	lodsb
 linen1:	test	[flist], m_lsts
 	jnz	linret
 	mov	di, [lstidx]
-	call	putspa
+putlsp:	call	putspa
 ; Listuje linie z numerem
 putlnm:	mov	di, offset lstspa
 	mov	bx, [iclen]
@@ -1195,11 +1206,9 @@ mbrack:	error	e_brack
 
 toobig:	error	e_nbig
 
+v_sub:	neg	ecx
 v_add:	add	eax, ecx
-	jmp	v_cov
-
-v_sub:	sub	eax, ecx
-v_cov:	jno	v_ret
+	jno	v_ret
 oflow:	error	e_over
 
 div0:	error	e_div0
@@ -1710,7 +1719,7 @@ opthdr:	inc	cx
 	je	opth1
 	cmp	ah, '-'
 	jne	opter
-	and	[flags], not m_hdr
+	and	[flags], not (m_hdr+m_rqff)
 	jmp	opt1
 opth1:	bts	[word flags], b_hdr
 	jc	opt1
@@ -2273,7 +2282,7 @@ noper1	=	$-opert1
 
 swilet	db	'TSOLIC'
 
-hello	db	'X-Assembler 2.0· by Fox/Taquart',eot
+hello	db	'X-Assembler 2.0·II by Fox/Taquart',eot
 hellen	=	$-hello-1
 usgtxt	db	"Syntax: XASM source [options]",eol
 	db	"/c         List false conditionals",eol
