@@ -1,13 +1,14 @@
-<HTML><HEAD><TITLE>X-Assembler 2.4</TITLE></HEAD>
+<HTML><HEAD><TITLE>X-Assembler 2.4.1</TITLE></HEAD>
 <BODY BACKGROUND="6502proc.gif">
 <CENTER>
-<H1>X-Assembler version 2.4</H1>
+<H1>X-Assembler version 2.4.1</H1>
 <HR>
 <H2>TABLE OF CONTENTS</H2>
-<TABLE><TR><TD>
+<TABLE><TR><TD  VALIGN=top>
 <UL><LI><A HREF="#intro">INTRODUCTION</A>
 <UL><LI><A HREF="#changes">Changes</A>
-<UL><LI><A HREF="#ver24">Version 2.4</A>
+<UL><LI><A HREF="#ver241">Version 2.4.1</A>
+<LI><A HREF="#ver24">Version 2.4</A>
 <LI><A HREF="#ver23">Version 2.3</A>
 <LI><A HREF="#ver22">Version 2.2</A>
 <LI><A HREF="#ver20">Version 2.0</A>
@@ -22,7 +23,8 @@
 <LI><A HREF="#listing">Listing structure</A>
 <LI><A HREF="#labtab">Label table structure</A>
 </UL>
-</TD><TD><UL><LI><A HREF="#syntax">SYNTAX</A>
+</TD><TD VALIGN=top>
+<UL><LI><A HREF="#syntax">SYNTAX</A>
 <UL><LI><A HREF="#fields">Fields</A>
 <UL><LI><A HREF="#label">Label field</A>
 <LI><A HREF="#repeat">Repeat count</A>
@@ -44,6 +46,15 @@ The X-Assembler is a cross-assembler, which generates code for the 6502 processo
 It has been designed to be easy to use for Quick Assembler programmers,
 therefore its syntax is an extension of QA's one.<BR>
 <A NAME="changes"><H3>Changes</H3>
+<A NAME="ver241"><H4>Version 2.4.1</H4>
+<UL>
+<LI> fixed a bug related to label definitions in conditionally skipped code, e.g.
+<PRE> ift 0
+label
+ eif
+</PRE>
+reported <TT>No ORG specified</TT> error for the label definition.
+</UL>
 <A NAME="ver24"><H4>Version 2.4</H4>
 <UL>
 <LI> fixed a bug causing incorrect unary operator precedence
@@ -213,7 +224,7 @@ only if full path is given.<P>
 <A NAME="new_quiet">
 <DT><TT>/q</TT>
 <DD>Suppress info messages.<BR>
-Prevents X-Asm from printing "<TT>X-Assembler 2.4 by Fox/Taquart</TT>"
+Prevents X-Asm from printing "<TT>X-Assembler 2.4.1 by Fox/Taquart</TT>"
 and the summary (how many lines assembled and bytes written).
 Good if you are building a project from many source files and don't want
 tons of messages.<P>
