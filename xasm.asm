@@ -590,7 +590,7 @@ deflp2:	mov	bx, [pslab]	; definicja etykiety w pass 2
 	call	warln
 	pop	si
 labelx:	cmp	[byte si], 0dh
-	je	lstreo
+	je	lstrem
 	call	spaces
 
 nolabl:	lodsb
@@ -617,7 +617,7 @@ nolabl:	lodsb
 
 lstrem:	cmp	[byte high labvec], 0
 	jz	lstre1
-lstreo:	call	chorg
+	call	chorg
 	call	phorg
 
 lstre1:	call	lstlin
@@ -2913,7 +2913,7 @@ cndvec	dw	pofend,0,p_ift,0,p_eli,0,p_els,0,p_eif
 
 swilet	db	'UTSQPONLIEDC'
 
-hello	db	'X-Assembler 2.4'
+hello	db	'X-Assembler 2.4.1'
 	ifdef	SET_WIN_TITLE
 titfin	db	0
 	else
