@@ -1762,6 +1762,10 @@ equret:	ret
 
 nolabl:	error	e_label
 
+chkhon:	test	[flags], m_hdr
+	jnz	equret
+	error	e_hoff
+
 p_org:	call	spaces
 	and	[flags], not m_norg
 	lodsw
@@ -1775,12 +1779,14 @@ p_org:	call	spaces
 	jmp	orget
 orgff:	or	[flags], m_rqff
 orgaf:	or	[flags], m_rorg
+	call	chkhon
 orget:	call	getuns
 	jc	unknow
 	mov	[origin], ax
 	ret
 
-p_rui:	mov	ah, 2
+p_rui:	call	chkhon
+	mov	ah, 2
 	mov	[origin], ax
 	call	spauns
 	jmp	savwor
@@ -2282,7 +2288,7 @@ noper1	=	$-opert1
 
 swilet	db	'TSOLIC'
 
-hello	db	'X-Assembler 2.0·II by Fox/Taquart',eot
+hello	db	'X-Assembler 2.0·3 by Fox/Taquart',eot
 hellen	=	$-hello-1
 usgtxt	db	"Syntax: XASM source [options]",eol
 	db	"/c         List false conditionals",eol
@@ -2345,6 +2351,7 @@ e_mift	db	'Missing IFT',eol
 e_meif	db	'Missing EIF',eol
 e_norg	db	'No ORG specified',eol
 e_fshor	db	'File is too short',eol
+e_hoff	db	'Illegal when headers off',eol
 
 exitcod	dw	4c00h
 ohand	dw	nhand
