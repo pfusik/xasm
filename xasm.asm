@@ -5,10 +5,10 @@
 	MODEL	TINY
 	CODESEG
 
-; comment out to turn off
+; comment out to disable
 SET_WIN_TITLE	=	1
 
-compak	=	1c00h
+compak	=	1d00h
 
 l_icl	=	1024
 l_org	=	4096
@@ -60,6 +60,12 @@ m_skit	=	80h
 b_enve	=	8
 m_enve	=	100h
 m_wobj	=	200h
+m_times	=	400h
+m_first	=	800h
+b_skif	=	12
+m_skif	=	1000h
+b_repl	=	13
+m_repl	=	2000h
 
 ;[swits]
 m_swc	=	1
@@ -558,7 +564,12 @@ s_one:	dec	si
 s_cmd:	cmp	[skflag], 0
 	jnz	skip1
 	mov	[times], cx
-	testfl	m_norg
+	resfl	m_times
+	setfl	m_first
+	cmp	cx, 1
+	je	jone
+	setfl	m_times
+jone:	testfl	m_norg
 	jnz	nlorg
 	call	phorg
 nlorg:	mov	[cmdvec], si
@@ -622,17 +633,17 @@ fncmd:	test	al, 80h
 	jopcod	ntopco		; nie ma opcoda
 ckcmd1:	test	al, 40h
 	jz	ckcmd2
-	cmp	[times], 1	; nie mozna powtarzac ...
-	jne	ntrep
+	testfl	m_times		; nie mozna powtarzac ...
+	jnz	ntrep
 	testfl	m_pair		; ... ani parowac
 	jnz	ntpair
-ckcmd2:	test	al, 20h
+ckcmd2:	test	al, 20h		; dyrektywa?
 	jz	ckcmd3
 	test	al, 10h		; nie mozna generowac skoku przez dyrektywe
-	jz	rncmd2		; (dyrektywa neutralna)
+	jz	rncmd3		; (dyrektywa neutralna)
 	resfl	m_repa		; skok zabroniony
 	testfl	m_skit
-	jz	rncmd2
+	jz	rncmd3
 eskit:	error	e_skit
 ckcmd3:	jopcod	ckcmd4
 	testfl	m_skit
@@ -640,14 +651,17 @@ ckcmd3:	jopcod	ckcmd4
 	inc	[origin]	; robimy miejsce na argument skoku
 	inc	[curorg]
 	inc	[obufpt]
+	mov	cx, m_pair+m_times
+	mov	dx, offset w_skif
+	call	skirew
 ckcmd4:	test	al, 08h
 	jz	ckcmd5
 	testfl	m_repa		; pseudo instrukcja powtarzania
 	jz	ntrepa
-	mov	ax, [origin]
-	xchg	ax, [reporg]
-	call	bra0
-	jmp	encmd1
+	mov	cx, m_repl
+	mov	dx, offset w_repl
+	call	skirew
+	jmp	rncmd2
 
 ckcmd5:	setfl	m_repa
 	test	al, 04h
@@ -660,9 +674,13 @@ ckcmd5:	setfl	m_repa
 	call	savbyt
 	jmp	encmd2
 
-rncmd2:	mov	al, [cod]
+rncmd2:	resfl	m_repl
+	testfl	m_pair+m_times
+	jz	rncmd3
+	setfl	m_repl		; ustaw repl, jesli koniec linii z para lub licznikiem
+rncmd3:	mov	al, [cod]
 	call	[(com di+bx).c_vec]	; wywolaj procedure
-encmd1:	btr	[flags], b_skit
+	btr	[flags], b_skit
 	jnc	encmd2
 	mov	ax, [origin]
 	sub	ax, [reporg]
@@ -670,6 +688,7 @@ encmd1:	btr	[flags], b_skit
 	call	calcbr
 	mov	[obuf], al
 encmd2:	call	oflush
+	resfl	m_first
 	mov	cx, [scdvec]
 	jcxz	encmd3
 	mov	si, cx
@@ -679,6 +698,17 @@ encmd3:	call	linend
 	jz	main
 	mov	si, [cmdvec]
 	jmp	rdcmd1
+
+skirew:	jpass1	skiret
+	testfl	cx
+	jz	skiret
+	testfl	m_first
+	jz	skiret
+	pusha
+	push	dx
+	call	warln
+	popa
+skiret:	ret
 
 ; ERROR
 errln:	call	ppline
@@ -1562,7 +1592,6 @@ v_sal:	test	ecx, ecx	; <<
 v_sl1:	add	eax, eax
 	jo	oflow
 	loop	v_sl1
-p_rep:
 p_skp:
 v_ret:	ret
 
@@ -1897,6 +1926,11 @@ p_cpi:	call	getadr
 	je	putcod
 	mov	al, 4
 	jmp	putcod
+
+p_rep:
+	mov	ax, [origin]
+	xchg	ax, [reporg]
+	jmp	bra0
 
 p_bra:	call	onemod
 	and	al, 0feh
@@ -2701,7 +2735,7 @@ cndvec	dw	pofend,0,p_ift,0,p_eli,0,p_els,0,p_eif
 
 swilet	db	'UTSONLIEC'
 
-hello	db	'X-Assembler 2.4.-8'
+hello	db	'X-Assembler 2.4.-7'
 	ifdef	SET_WIN_TITLE
 titfin	db	0
 	else
@@ -2735,6 +2769,8 @@ wartxt	db	'WARNING: $'
 w_bugjp	db	'Buggy indirect jump',eol
 w_bras	db	'Branch would be sufficient',eol
 w_ulab	db	'Unused label',eol
+w_skif	db	'Skipping only first instruction',eol
+w_repl	db	'Repeating only last instruction',eol
 errtxt	db	'ERROR: $'
 e_open	db	'Can''t open file',cr
 e_read	db	'Disk read error',cr
