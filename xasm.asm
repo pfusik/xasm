@@ -18,8 +18,9 @@ ENDIF
 
 l_icl	=	1024
 l_org	=	4096
+l_def	=	1024
 IFDEF	EXE
-l_lab	=	54000
+l_lab	=	53000
 ELSE
 l_lab	=	48000
 ENDIF
@@ -82,25 +83,28 @@ b_repl	=	13
 m_repl	=	2000h
 b_ski2	=	14
 m_ski2	=	4000h
+b_def	=	15
+m_def	=	8000h
 
 ;[swits]
 m_swc	=	1
-m_swe	=	2
-m_swi	=	4
-m_swl	=	8
-b_swn	=	4
-m_swn	=	10h
-m_swo	=	20h
-m_swp	=	40h
-m_swq	=	80h
-m_sws	=	100h
-m_swt	=	200h
-m_swu	=	400h
+m_swd	=	2
+m_swe	=	4
+m_swi	=	8
+m_swl	=	10h
+b_swn	=	5
+m_swn	=	20h
+m_swo	=	40h
+m_swp	=	80h
+m_swq	=	100h
+m_sws	=	200h
+m_swt	=	400h
+m_swu	=	800h
 
 ;[flist]
-m_lsti	=	4
-m_lstl	=	8
-m_lsto	=	10h
+m_lsti	=	8
+m_lstl	=	10h
+m_lsto	=	20h
 m_lsts	=	m_lsto+m_lstl+m_lsti
 
 nhand	=	-1	;null handle
@@ -248,6 +252,7 @@ lstnam	db	128 dup(?)
 tabnam	db	128 dup(?)
 t_icl	db	l_icl dup(?)
 t_org	db	l_org dup(?)
+t_def	db	l_def dup(?)
 	ENDM
 
 ;*****************************
@@ -318,26 +323,43 @@ usg:	print	hello		; usage - instrukcja
 popt1:	lodsb
 	and	al, 0dfh	; mala litera -> duza
 	mov	di, offset swilet
-	mov	cx, 11
+	mov	cx, 12
 	repne	scasb
 	jne	usg		; nie ma takiego switcha
 	bts	[swits], cx	; sprawdz bit i ustaw
-	jc	usg		; juz byl taki
-	mov	di, offset lstnam
+	jnc	popt2
+	cmp	al, 'D'		; tylko /d dozwolone kilka razy
+	jne	usg
+popt2:	mov	di, offset lstnam
 	cmp	al, 'L'
-	je	popt2
+	je	popt4
 	mov	di, offset tabnam
 	cmp	al, 'T'
-	je	popt2
-	cmp	al, 'O'
-	jne	parg1		; switch bez parametru
-	cmp	[byte si], ':'	; /O wymaga ':'
-	jne	usg
+	je	popt4
 	mov	di, offset objnam
-popt2:	lodsb
+	cmp	al, 'O'
+	je	popt3
+	cmp	al, 'D'
+	jne	parg1
+	mov	di, [defen]
+popt3:	cmp	[byte si], ':'	; /O i /D wymagaja ':'
+	jne	usg
+popt4:	mov	ah, al
+	lodsb
 	cmp	al, ':'
 	jne	parg0
 	call	clfna		; pobierz nazwe
+	cmp	ah, 'D'
+	jne	parg0
+;	mov	[byte di], 0
+	lea	cx, [di-3]
+	sub	cx, [defen]
+	jbe	usg
+	xchg	di, [defen]
+	inc	di
+	mov	al, '='
+	repne	scasb
+	jne	usg
 	jmp	parg0
 
 pargx:
@@ -444,6 +466,7 @@ noswe:	btr	[swits], b_swn
 noswn:	mov	bp, offset var
 
 npass:	mov	[orgvec], offset t_org-2
+	mov	[defvec], offset t_def
 	mov	di, [fslen]
 
 opfile:	call	fopen
@@ -460,12 +483,35 @@ opfile:	call	fopen
 	call	prline
 	dos	4c00h
 
-main:	mov	bx, [iclen]
+main:	mov	di, offset line
+	mov	si, [defvec]
+	cmp	si, [defen]
+	jae	nodef
+mdef1:	movsb
+	cmp	[byte si], '='
+	jne	mdef1
+	inc	si
+	mov	eax, 'uqe '
+	stosd
+	stosb
+mdef2:	movsb
+	cmp	[byte si], 0
+	jne	mdef2
+	inc	si
+	mov	[defvec], si
+	setfl	m_def
+	inc	[(icl t_icl).line]
+	jmp	syntax
+nodef:
+	btr	[flags], b_def
+	jnc	ndef1
+	mov	[(icl t_icl).line], 0
+	mov	[srcen], 0
+ndef1:	mov	bx, [iclen]
 	mov	bx, [(icl bx).prev]
 	test	[(icl bx).flags], m_eofl
 	jnz	filend		; czy byl juz koniec pliku ?
-
-	mov	di, offset line	; ... nie - omin ewentualny LF
+				; ... nie - omin ewentualny LF
 	call	fread1
 	jz	filend
 	cmp	[line], 0ah
@@ -770,15 +816,21 @@ msgenv:	call	prline
 prenvt:	mov	si, offset envtxt
 	jmp	prline
 
+gname:	mov	di, [(icl bx).prev]
+	mov	dx, offset clitxt
+	mov	cx, clitxl
+	testfl	m_def
+	jnz	gnamex
+	lea	cx, [bx-1]
+	lea	dx, [(icl di).nam]
+	sub	cx, dx
+gnamex:	ret
+
 prname:	mov	bx, [iclen]
 	cmp	bx, offset t_icl
 	jna	skiret
-	mov	di, [(icl bx).prev]
+	call	gname
 	push	di
-	lea	dx, [(icl di).nam]
-;	mov	[byte bx-1], '$'
-	lea	cx, [bx-1]
-	sub	cx, dx
 	mov	[envnam], dx
 	sub	bx, dx
 	mov	[envlen], bx
@@ -1162,11 +1214,7 @@ lsrc1:	mov	dx, offset srctxt
 	mov	cx, offset srctxl
 	call	putlad		; komunikat o nowym source'u
 	mov	bx, [iclen]
-	mov	cx, bx
-	mov	bx, [(icl bx).prev]
-	lea	dx, [(icl bx).nam]
-	stc
-	sbb	cx, dx
+	call	gname
 	call	putlad		; nazwa
 	call	plseol
 nlsrc:
@@ -2863,9 +2911,9 @@ optvec	dw	optl0,optl1,opth0,opth1,opto0,opto1
 cndtxt	dd	'DNE','TFI','ILE','SLE','FIE'
 cndvec	dw	pofend,0,p_ift,0,p_eli,0,p_els,0,p_eif
 
-swilet	db	'UTSQPONLIEC'
+swilet	db	'UTSQPONLIEDC'
 
-hello	db	'X-Assembler 2.4.-2'
+hello	db	'X-Assembler 2.4'
 	ifdef	SET_WIN_TITLE
 titfin	db	0
 	else
@@ -2875,7 +2923,7 @@ titfin	db	0
 hellen	=	$-hello
 usgtxt	db	"Syntax: XASM source [options]",eol
 	db	"/c             Include false conditionals in listing",eol
-;	db	"/d:label=value Define a label",eol
+	db	"/d:label=value Define a label",eol
 	db	"/e             Set environment variables ERRFILE and ERRLINE",eol
 	db	"/i             Don't list included files",eol
 	db	"/l[:filename]  Generate listing",eol
@@ -2955,6 +3003,8 @@ e_mopco	db	'Missing ''}''',cr
 e_pair	db	'Can''t pair this directive',cr
 e_skit	db	'Can''t skip over it',cr
 e_repa	db	'No instruction to repeat',cr
+clitxt	db	'command line'
+clitxl	=	$-clitxt
 
 exitcod	dw	4c00h
 ohand	dw	nhand
@@ -2965,6 +3015,7 @@ lines	dd	0
 bytes	dd	0
 srcen	dw	0
 iclen	dw	t_icl
+defen	dw	t_def
 laben	dw	t_lab
 pslab	dw	t_lab
 elflag	dd	1
@@ -2986,6 +3037,7 @@ inslen	dw	?
 origin	dw	?
 curorg	dw	?
 orgvec	dw	?
+defvec	dw	?
 reporg	dw	?
 eolpos	dw	?
 lstidx	dw	?
