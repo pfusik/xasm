@@ -511,7 +511,8 @@ sflabn:	pop	si
 	ret
 
 getval:	call	spaces
-; Czyta wyrazenie i zwraca jego wartosc w [val] (C=1 wartosc nieokreslona)
+; Czyta wyrazenie i zwraca jego wartosc w [val]
+; (C=1 wartosc nieokreslona w pass 1)
 value:	mov	[val], 0
 	mov	[undef], 0
 	lodsb
@@ -1031,14 +1032,12 @@ presin:	finit
 	fldpi
 	fld	st
 	faddp	st(1), st
-	fild	[sinsiz]
-	fdivp	st(1), st
+	fidiv	[sinsiz]
 gensin:	fild	[sinmin]
 	inc	[sinmin]
 	fmul	st, st(1)
 	fsin
-	fild	[sinamp]
-	fmulp	st(1), st
+	fimul	[sinamp]
 	fistp	[val]
 	mov	ax, [sinadd]
 	add	[val], ax
@@ -1046,9 +1045,8 @@ gensin:	fild	[sinmin]
 	
 dtansi:	sub	si, 4
 	call	value
-	jc	dtan3
 dtasto:	cmp	[pass], 1
-	jb	dtan4
+	jb	dtan3
 	mov	al, [cod]
 	cmp	al, 'B'
 	je	dtanb
@@ -1073,10 +1071,7 @@ dtanh:	mov	al, [byte high val]
 dtans:	call	savbyt
 	jmp	dtanx
 
-dtan3:	cmp	[pass], 1
-	jnb	unknow
-
-dtan4:	cmp	[cod], 'A'+1
+dtan3:	cmp	[cod], 'A'+1
 	adc	[origin], 1
 	
 dtanx:	mov	ax, [sinmin]
@@ -1245,7 +1240,7 @@ comtab:	cmd	ADC60p_acc
 	cmd	TYA98p_imp
 comend:
 
-hello	db	'X-Assembler 1.2 by Fox/Taquart',eot
+hello	db	'X-Assembler 1.3 by Fox/Taquart',eot
 usgtxt	db	'Give a source filename. Default extension is .ASX.',eol
 	db	'Destination will have the same name and .COM extension.',eot
 lintxt	db	' lines assembled',eot
