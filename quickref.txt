@@ -1,0 +1,99 @@
+X-ASM 2.0 QUICK REFERENCE
+=========================
+
+6502 commands
+-------------
+ADC - add with carry
+AND - and
+ASL - arithmetic shift left
+BCC - branch if carry clear
+BCS - branch if carry set
+BEQ - branch if equal
+BIT - test bits
+BMI - branch if minus
+BNE - branch if not equal
+BPL - branch if plus
+BRK - break
+BVC - branch if overflow clear
+BVS - branch if overflow set
+CLC - clear carry
+CLD - clear decimal
+CLI - clear interrupts
+CLV - clear overflow
+CMP - compare
+CPX - compare with X
+CPY - compare with Y
+DEC - decrement
+DEX - decrement X
+DEY - decrement Y
+EOR - exclusive or
+INC - increment
+INX - increment X
+INY - increment Y
+JMP - jump
+JSR - jump to subroutine
+LDA - load accumulator
+LDX - load X
+LDY - load Y
+LSR - logical shift right
+NOP - no operation
+ORA - or accumulator
+PHA - push accumulator
+PHP - push flags
+PLA - pull accumulator
+PLP - pull flags
+ROL - rotate left
+ROR - rotate right
+RTI - return from interrupt
+RTS - return from subroutine
+SBC - subtract with carry
+SEC - set carry
+SED - set decimal
+SEI - set interrupts
+STA - store accumulator
+STX - store X
+STY - store Y
+TAX - transfer accumulator to X
+TAY - transfer accumulator to Y
+TSX - transfer stack pointer to X
+TXA - transfer X to accumulator
+TXS - transfer X to stack pointer
+TYA - transfer Y to accumulator
+
+X-Asm 2.0 pseudo-commands
+-------------------------
+ADD - add
+INW - increment word
+JCC - jump if carry clear
+JCS - jump if carry set
+JEQ - jump if equal
+JMI - jump if minus
+JNE - jump if not equal
+JPL - jump if plus
+JVC - jump if overflow clear
+JVS - jump if overflow set
+MVA - move byte using accumulator
+MVX - move byte using X
+MVY - move byte using Y
+MWA - move word using accumulator
+MWX - move word using X
+MWY - move word using Y
+SUB - subtract
+
+X-Asm 2.0 directives
+--------------------
+DTA - define data
+EIF - end if
+ELS - else
+END - end
+EQU - equal
+ERT - error if true
+ICL - include
+IFT - if true
+INI - init
+INS - insert
+OPT - options
+ORG - origin
+RUN - run
+
+===

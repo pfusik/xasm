@@ -1,0 +1,107 @@
+*** GTIA
+HPOSP0	equ ^00 (w)	Horizontal POSition of Player 0
+KOLM0PF	equ ^00 (r)	KOLlision Missile 0 to Play Field
+HPOSP1	equ ^01 (w)	Horizontal POSition of Player 1
+KOLM1PF	equ ^01 (r)	KOLlision Missile 1 to Play Field
+HPOSP2	equ ^02 (w)	Horizontal POSition of Player 2
+KOLM2PF	equ ^02 (r)	KOLlision Missile 2 to Play Field
+HPOSP3	equ ^03 (w)	Horizontal POSition of Player 3
+KOLM3PF	equ ^03 (r)	KOLlision Missile 3 to Play Field
+HPOSM0	equ ^04 (w)	Horizontal POSition of Missile 0
+KOLP0PF	equ ^04 (r)	KOLlision Player 0 to Play Field
+HPOSM1	equ ^05 (w)	Horizontal POSition of Missile 1
+KOLP1PF	equ ^05 (r)	KOLlision Player 1 to Play Field
+HPOSM2	equ ^06 (w)	Horizontal POSition of Missile 2
+KOLP2PF	equ ^06 (r)	KOLlision Player 2 to Play Field
+HPOSM3	equ ^07 (w)	Horizontal POSition of Missile 3
+KOLP3PF	equ ^07 (r)	KOLlision Player 3 to Play Field
+SIZEP0	equ ^08 (w)	SIZE of Player 0
+KOLM0P	equ ^08 (r)	KOLlision Missile 0 to Players
+SIZEP1	equ ^09 (w)	SIZE of Player 1
+KOLM1P	equ ^09 (r)	KOLlision Missile 1 to Players
+SIZEP2	equ ^0a (w)	SIZE of Player 2
+KOLM2P	equ ^0a (r)	KOLlision Missile 2 to Players
+SIZEP3	equ ^0b (w)	SIZE of Player 3
+KOLM3P	equ ^0b (r)	KOLlision Missile 3 to Players
+SIZEM	equ ^0c (w)	SIZE of Missiles
+KOLP0P	equ ^0c (r)	KOLlision Player 0 to Players
+GRAFP0	equ ^0d (w)	GRAphic oF Player 0
+KOLP1P	equ ^0d (r)	KOLlision Player 1 to Players
+GRAFP1	equ ^0e (w)	GRAphic oF Player 1
+KOLP2P	equ ^0e (r)	KOLlision Player 2 to Players
+GRAFP2	equ ^0f (w)	GRAphic oF Player 2
+KOLP3P	equ ^0f (r)	KOLlision Player 3 to Players
+GRAFP3	equ ^10 (w)	GRAphic oF Player 3
+TRIG0	equ ^10 (r)	TRIGger 0
+GRAFM	equ ^11 (w)	GRAphic oF Missiles
+TRIG1	equ ^11 (r)	TRIGger 1
+COLPM0	equ ^12 (w)	COLor of Player/Missile 0
+COLPM1	equ ^13 (w)	COLor of Player/Missile 1
+TRIG3	equ ^13 (r)	TRIGger 3
+COLPM2	equ ^14 (w)	COLor of Player/Missile 2
+PAL	equ ^14 (r)	PAL flag
+COLPM3	equ ^15 (w)	COLor of Player/Missile 3
+COLPF0	equ ^16 (w)	COLor of Play Field 0
+COLPF1	equ ^17 (w)	COLor of Play Field 1
+COLPF2	equ ^18 (w)	COLor of Play Field 2
+COLPF3	equ ^19 (w)	COLor of Play Field 3
+COLBAK	equ ^1a (w)	COLor of BAcKground
+GTIACTL	equ ^1b (w)	GTIA ConTroL
+VDELAY	equ ^1c (w)	Vertical DELAY
+PMCNTL	equ ^1d (w)	Player/Missile CoNTroL
+HITCLR	equ ^1e (w)	HIT CLeaR
+CONSOL	equ ^1f (r/w)	CONSOL
+
+*** POKEY
+AUDF1	equ ^20 (w)	AUDio Frequency 1
+POT0	equ ^20 (r)	POTentiometr 0
+AUDC1	equ ^21 (w)	AUDio Control 1
+POT1	equ ^21 (r)	POTentiometr 1
+AUDF2	equ ^22 (w)	AUDio Frequency 2
+POT2	equ ^22 (r)	POTentiometr 2
+AUDC2	equ ^23 (w)	AUDio Control 2
+POT3	equ ^23 (r)	POTentiometr 3
+AUDF3	equ ^24 (w)	AUDio Frequency 3
+AUDC3	equ ^25 (w)	AUDio Control 3
+AUDF4	equ ^26 (w)	AUDio Frequency 4
+AUDC4	equ ^27 (w)	AUDio Control 4
+AUDCTL	equ ^28 (w)	AUDio ConTroL
+POTST	equ ^28 (r)	POTentiomers STatus
+KBCODE	equ ^29 (r)	KeyBoard CODE
+SKTRES	equ ^2a (w)	Serial and Keyboard RESet
+RANDOM	equ ^2a (r)	RANDOM
+POTGO	equ ^2b (w)	POTentiometr GOes
+SEROUT	equ ^2d (w)	SERial OUT
+SERIN	equ ^2d (r)	SERial IN
+IRQEN	equ ^2e (w)	Interrupt ReQuest ENable
+IRQST	equ ^2e (r)	Interrupt ReQuest STatus
+SKCTL	equ ^2f (w)	Serial and Keyboard ConTroL
+SKSTAT	equ ^2f (r)	Serial and Keyboard STATus
+
+*** PIA
+PORTA	equ ^30 (r/w)	PORT A
+PORTB	equ ^31 (r/w)	PORT B
+PACTL	equ ^32 (r/w)	Port A ConTroL
+PBCTL	equ ^33 (r/w)	Port B ConTroL
+
+*** ANTIC
+DMACTL	equ ^40 (w)	Direct Memory Access ConTroL
+CHRCTL	equ ^41 (w)	CHaRacters ConTroL
+DLPTR	equ ^42 (w)	Display List PoinTeR
+HSCROL	equ ^44 (w)	Horizontal SCROLl
+VSCROL	equ ^45 (w)	Vertical SCROLl
+PMBASE	equ ^47 (w)	Player/Missile BASE
+CHBASE	equ ^49 (w)	CHaracter BASE
+WSYNC	equ ^4a (w)	Wait for SYNChronisation
+VCOUNT	equ ^4b (r)	Vertical COUNT
+LPENH	equ ^4c (r)	Light PEN Horizontal
+LPENV	equ ^4d (r)	Light PEN Vertical
+NMIEN	equ ^4e (w)	Non-Maskable Interrupt ENable
+NMIST	equ ^4f (r)	Non-Maskable Interrupt STatus
+
+*** CPU
+NMIVEC	equ $fffa	Non-Maskable Interrupt VECtor
+RESETVC	equ $fffc	RESET VeCtor
+IRQVEC	equ $fffe	Interrupt ReQuest VECtor
+
+	end

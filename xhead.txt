@@ -1,6 +1,9 @@
-X-Head 1.0 by Fox/Taquart
+X-Head 1.1 by Fox/Taquart
 Some (un)important notes
--------------------------
+=========================
+
+The only change from version 1.0: Now .OBX is default extension.
+---
 This tool prints headers of Atari executable.
 It also shows program init and run addresses.
 Other things displayed:
@@ -10,4 +13,5 @@ xxx inits - number of init blocks (02e2-02e3)
 xxx modules - number of FFFF headers (one at the beginning is required)
 You can redirect output to a file, for example:
 XHEAD TEST.COM >TEST.HDR
----
+
+===

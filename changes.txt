@@ -1,0 +1,26 @@
+Version 2.0
+===========
+- truncating name of object bug fixed
+- EQU & DTA forward reference bugs fixed
+- hex number recognizing bug fixed
+- now .OBX is default extension for Atari executables
+- assembling options (switches and OPT directive)
+- listing generation
+- label table generation
+- conditional assembling
+- user errors
+- warnings
+- improved headers generation
+- improved expressions - 19 operators and brackets, 32-bit arithmetic
+- improved signed numbers
+- 6 new pseudo commands (memory-to-memory move)
+- 8 pseudo addressing modes
+- indirect conditional jumps
+- Atari floating-point numbers generation
+- improved INS: inserting specified part of file
+
+Version 1.2
+===========
+- first release
+
+===

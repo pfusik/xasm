@@ -2,6 +2,7 @@
 * Version for professionals - can load file under ROM.
 * Note interrupts and ROM are disabled when running loaded program.
 
+	opt	h-
 	org	$480
 
 bufr	equ	$400
@@ -14,44 +15,33 @@ boot	equ	*
 rts	rts
 	dta	b(1),a(boot,$e477)
 * Nice blank screen
-	lda	#0
-	sta	$22f
-	lda	#$52
-	sta	$2c8
+	mva	#0	$22f
+	mva	#$52	$2c8
 	lda	20
 	cmp	20
 	beq	*-2
 * Init run vector
-	lda	<rts
-	sta	$2e0
-	lda	>rts
-	sta	$2e1
+	mwa	#rts	$2e0
 	ldy	#$fe
 * Load header
-lhead	lda	<rts
-	sta	$2e2
-	lda	>rts
-	sta	$2e3
+lhead	mwa	#rts	$2e2
 	ldx	<-5
 * Store byte of header
-hput	sta	vc+4,x
-	inx
+hput	sta	vc+4,x+
 	stx	tp
 	jmp	get
 next	inw	vc
 get	iny
 	bpl	getx
 	inw	$30a
-	lda	#$ff
-	sta	^31
+	mva	#$ff	^31
 	lsr	^4e
 	cli
 	jsr	$e453
 	sec
 	bmi	rts
-	ldy	#0
 	sei
-	sty	^4e
+	mvy	#0	^4e
 	dec	^31
 getx	lda	bufr,y
 	ldx	tp
@@ -73,6 +63,7 @@ endseq	tya
 init	jmp	($2e2)
 
 * This will be added at the end of loaded file
+	opt	h+
 	org	endseq
 	jmp	($2e0)
 
