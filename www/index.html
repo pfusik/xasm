@@ -1,50 +1,79 @@
-<HTML>
-<HEAD>
-<TITLE>xasm home page</TITLE>
-<META NAME="Description" CONTENT="xasm is a set of a few tools for developing software
-for Atari 8-bit computers on a PC with MS-DOS or Windows.">
-<META NAME="Keywords" CONTENT="xasm,6502,cross-assembler,atari,fox,taquart">
-<META NAME="Author" CONTENT="Piotr Fusik">
-</HEAD>
-<BODY BGCOLOR="#000000" BACKGROUND="gbak.gif" TEXT="#ffffff" LINK="#00c0ff" VLINK="#ff80ff" ALINK="#d06060">
-<TABLE WIDTH=100% CELLSPACING=0 CELLPADDING=0><TR>
-<TD WIDTH=10% BGCOLOR=#008080><FONT SIZE=6><B>
-<NOBR>&nbsp;&nbsp;xasm home page</NOBR></B></FONT></TD>
-<TD BGCOLOR=#008080><IMG SRC="green64.gif" WIDTH=100% HEIGHT=50></TD></TR></TABLE>
-<CENTER><P>
-<B>xasm</B> is a set of a few tools for developing software for Atari 8-bit computers
-on a PC with MS-DOS or Windows.<P>
-<A HREF="xasm252.zip">Download (38 KB)</A> |
-<A HREF="doc/index.htm">Browse documentation on-line</A> |
-<A HREF="mailto:fox@scene.pl">E-mail me</A>
-<P>
-<TABLE><TR>
-<TD><IMG SRC="cgenie.gif" WIDTH=489 HEIGHT=461 ALT="Some 6502 code in Code-Genie"></TD>
-<TD>
-<HR><P>
-<B>News:</B>
-<UL>
-<LI> 03-10-2002: released version 2.5.2 (fixes bugs introduced in 2.5.1)
-<LI> 21-08-2002: released version 2.5.1 (a small bug fix)
-<LI> 08-07-2002: released version 2.5
-<LI> 27-06-2002: released version 2.4.1 (a small bug fix)
-<LI> 22-05-2002: released version 2.4
-</UL>
-<P><HR><P>
-<B>Features of the assembler:</B>
-<UL>
-<LI> backward compatibility with Quick Assembler
-<LI> pseudo instructions (<TT>add</TT>, <TT>sub</TT>, <TT>inw</TT>, <TT>mva</TT> etc.)
-<LI> pseudo addressing modes (e.g. indexing with autoincrementation)
-<LI> two instructions with same operand may be written in single line
-<LI> full set of arithmetic and logical operators
-<LI> 6502 opcodes may be used in expressions
-<LI> conditional assembly
-<LI> sine lookup-table generator
-<LI> Atari floating-point numbers
-<LI> Atari executable and raw output formats
-</UL>
-</TD>
-</TR></TABLE>
-</CENTER>
-</BODY></HTML>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>xasm</title>
+<meta name="Description" content="xasm is a 6502 cross-assembler for DOS/Windows."/>
+<meta name="Keywords" content="xasm,6502,cross-assembler,atari"/>
+<meta name="Author" content="Piotr Fusik"/>
+</head>
+<body style="background-color: #c0ffc0">
+<h1>xasm.atari.org</h1>
+<p><b>xasm</b> is a 6502 cross-assembler for DOS/Windows.
+It is mainly targeted at Atari 8-bit computers,
+but it can be also used for programming
+Atari 2600/5200/Lynx, Commodore C64, Apple ][ and others.
+<b>xasm</b> is freeware.</p>
+<p><a href="xasm260.zip">Download version 2.6.0
+(22 KB, includes full documentation)</a></p>
+<p><b>xasm</b> no longer includes the tools X-BOOT, X-LOAD and X-HEAD.
+If you really need them,
+<a href="xasm252.zip">download version 2.5.2 (38 KB)</a>.</p>
+<h3>Target audience</h3>
+<p><b>xasm</b> is for people who are fluent in the 6502 assembly language.
+There is no sample code for beginners, no easy-to-use libraries.
+You are warned that programming 8-bit machines in the assembly language
+is a tedious work.</p>
+<p>There are several 6502 cross-assemblers to choose from and new ones
+still appear. Just search the web. Make sure to not overlook
+the <a href="http://www.cc65.org">cc65</a> compiler which includes
+a cross-assembler, portable across many host and target platforms.</p>
+<h3>Features</h3>
+<p>Although <b>xasm</b> does not support user-defined macros, it has a rich
+set of built-in facilities.</p>
+<p>Here is some typical 6502 code (also valid in <b>xasm</b>):</p>
+<pre>
+        lda #&lt;dest
+        sta ptr
+        lda #&gt;dest
+        sta ptr+1
+        ldx #192
+do_line
+        ldy #39
+do_byte
+        lda pattern,y
+        sta (ptr),y
+        dey
+        bpl do_byte
+        lda #40
+        clc
+        adc ptr
+        sta ptr
+        bcc skip
+        inc ptr+1
+skip
+        dex
+        bne do_line
+</pre>
+<p>And here is the same code rewritten in a xasm-specific way:</p>
+<pre>
+        mwa     #dest ptr
+        ldx     #192
+do_line
+        ldy     #39
+        mva:rpl pattern,y (ptr),y-
+        lda #40
+        add:sta ptr
+        scc:inc ptr+1
+        dex:bne do_line
+</pre>
+<h3>Usage</h3>
+<p>Although <b>xasm</b> comes with no editor, the documentation
+describes integration (syntax highlighting and single-keystroke compilation)
+with a few general-purpose text editors. Here is a screenshot
+of the <a href="http://www.code-genie.com">Code-Genie</a> editor:</p>
+<p><img src="cgenie.gif" alt="6502 code in Code-Genie"/></p>
+<hr/>
+<p><i>Hosted by <a href="http://atariarea.histeria.pl">Atari Area</a></i></p>
+</body>
+</html>

@@ -1,8 +1,8 @@
-// X-Assembler highlighter for ConTEXT v0.97.1 (www.fixedsys.com/context)
+// xasm highlighter for ConTEXT v0.97.1 (www.fixedsys.com/context)
 // written by Piotr Fusik <fox@scene.pl>
 
-Language:               X-Assembler
-Filter:                 X-Assembler files (*.asx)|*.asx
+Language:               xasm
+Filter:                 xasm files (*.asx)|*.asx
 HelpFile:
 
 CaseSensitive:          0

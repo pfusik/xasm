@@ -1,5 +1,5 @@
-#TITLE=X-Assembler
-; X-Assembler syntax file for EditPlus 2.11 (www.editplus.com)
+#TITLE=xasm
+; xasm syntax file for EditPlus 2.11 (www.editplus.com)
 ; written by Piotr Fusik <fox@scene.pl>
 
 #DELIMITER=+-*/%&|^!~=<>()[]{},:"#

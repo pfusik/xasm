@@ -1,66 +1,105 @@
-<HTML>
-<HEAD>
-<TITLE>Configuring editors for X-Assembler</TITLE>
-</HEAD>
-<BODY BGCOLOR=black TEXT=white LINK="#c0c0ff" VLINK="#c040c0" ALINK="#d06060">
-<H2>How to configure a text editor for convenient use of X-Assembler</H2>
-This document describes, how to setup a text editor to:
-<UL>
-<LI> highlight X-Assembler mnemonics
-<LI> invoke the assembler with a single keystroke
-<LI> place the cursor where an assembly error occured
-</UL>
-Of course these features are not available in <I>Windows Notepad</I>, so you must
-pick another text editor. Fortunately there are many general-purpose text
-editors for Windows. I'll fucus on three:
-<UL>
-<LI> <I>EditPlus</I> (<A HREF="http://www.editplus.com">www.editplus.com</A>)
-<LI> <I>ConTEXT</I> (<A HREF="http://www.fixedsys.com/context">www.fixedsys.com/context</A>)
-<LI> <I>Code-Genie</I> (<A HREF="http://www.code-genie.com">www.code-genie.com</A>)
-</UL>
-All of these have similar features. <I>EditPlus</I> is very good, unfortunately it is
-shareware (you have to pay $30). The other editors are freeware. Personally
-I prefer <I>Code-Genie</I>, which offers unique feature of editing binary files.<P>
-<H3>Highlighting X-Assembler mnemonics</H3>
-In the <TT>syntax</TT> subdirectory you'll find X-Assembler syntax definitions for all
-these editors.
-<UL>
-<LI> Installation for <I>EditPlus</I>:
-Select <B>Tools/Preferences</B>, then <B>Files/Settings &amp; syntax</B>,
-then <B>Add</B>. Type <B>Description</B> (<TT>X-Assembler</TT>), <B>File extensions</B>
-(<TT>asx</TT>), click <B>...</B> next to <B>Syntax file</B> and locate
-the <TT>xasm.stx</TT> file. Then click <B>Syntax colors</B> and select your
-favourite colors.
-<LI> Installation for <I>ConTEXT</I>: Just copy <TT>X-Assembler.chl</TT>
-to <TT>Highlighters</TT> subdirectory in the <I>ConTEXT</I> directory.
-<LI> Installation for <I>Code-Genie</I>:
-Copy <TT>X-Assembler.cgsyn</TT> to <TT>syn</TT> subdirectory in the <I>Code-Genie</I>
-directory. Edit <TT>cgenie.conf</TT>, you can do it by selecting
-<B>View/Settings</B>. Type:<BR>
-<NOBR><TT>DefaultSyntax x-assembler asx</TT></NOBR><BR>
-near other <TT>DefaultSyntax</TT> lines.
-</UL>
-<H3>Single-keystroke assembly</H3>
-<UL>
-<LI> <I>EditPlus</I>: Select <B>Tools/Configure User Tools</B>.
-Then click <B>Add Tool</B>, type <B>Menu text</B> (<TT>xasm</TT>), <B>command</B>
-(path to <TT>xasm.exe</TT>), <B>Argument</B> (<TT>$(FilePath)</TT>) and <B>Initial directory</B>
-(<TT>$(FileDir)</TT>). Check <B>Capture output</B>.
-<LI> <I>ConTEXT</I>: Select <B>Options/Environment Options</B>, then
-the <B>Execute Keys</B> tab. Click <B>Add</B>, type <TT>asx</TT>, click
-e.g. <B>F9</B>, locate <TT>xasm.exe</TT> by pressing the <TT>...</TT> button
-in the top-right corner. Type <B>Start in</B> (<TT>%p</TT>)
-and <B>parameters</B> (<TT>%n</TT>). Check <B>Use short DOS names</B>
-and <B>Capture console output</B>.
-Type <B>Compiler output parser rule</B> (<TT>%n (%l)</TT>).
-<LI> <I>Code-Genie</I>: Select <B>View/Settings</B>, type:<BR>
-<NOBR><TT>AddUserTool xasm xasm.exe /p\s$FP CaptureOutput $FD</TT></NOBR><BR>
-near other <TT>AddUserTool</TT> lines (if <TT>xasm.exe</TT> is not on your
-<TT>PATH</TT>, then you must type full path to it). 
-</UL>
-<H3>Placing the cursor where an assembly error occured</H3>
-This works same for all these three editors: just double-click the line
-with the error message.
-<P><HR><P><A HREF="index.htm">Back</A>
-</BODY>
-</HTML>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+ "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<title>Configuring editors for xasm</title>
+<meta name="Author" content="Piotr Fusik"/>
+</head>
+<body>
+<h2>How to configure a text editor for a convenient use of xasm</h2>
+<p>This document describes, how to setup a text editor to:</p>
+<ul>
+<li>highlight xasm mnemonics</li>
+<li>invoke the assembler with a single keystroke</li>
+<li>place the cursor where an assembly error occured</li>
+</ul>
+<p>Of course these features are not available in the <i>Windows Notepad</i>,
+so you must pick another text editor. Fortunately there are many
+general-purpose text editors for Windows. I'll fucus on four of them:</p>
+<ul>
+<li><i>EditPlus</i>
+(<a href="http://www.editplus.com">www.editplus.com</a>)</li>
+<li><i>ConTEXT</i>
+(<a href="http://www.fixedsys.com/context">www.fixedsys.com/context</a>)</li>
+<li><i>Code-Genie</i>
+(<a href="http://www.code-genie.com">www.code-genie.com</a>)</li>
+<li><i>PSPad</i>
+(<a href="http://pspad.zde.cz">pspad.zde.cz</a>)</li>
+</ul>
+<p>All of these have similar features. Personally I prefer
+<i>Code-Genie</i>.</p>
+<h3>Highlighting xasm mnemonics</h3>
+<p>In the <tt>syntax</tt> subdirectory you'll find xasm syntax definitions
+for all of these editors.</p>
+<ul>
+<li>Installation for <i>EditPlus</i>:
+Select <b>Tools/Preferences</b>, then <b>Files/Settings &amp; syntax</b>,
+then <b>Add</b>. Type <b>Description</b> (<tt>xasm</tt>),
+<b>File extensions</b> (<tt>asx</tt>), click <b>...</b> next to <b>Syntax
+file</b> and locate the <tt>xasm.stx</tt> file. Then click
+<b>Syntax colors</b> and select your favourite colors.</li>
+<li>Installation for <i>ConTEXT</i>: Just copy <tt>xasm.chl</tt>
+to the <tt>Highlighters</tt> subdirectory of the <i>ConTEXT</i>
+directory.</li>
+<li>Installation for <i>Code-Genie</i>:
+Copy <tt>xasm.cgsyn</tt> to the <tt>syn</tt> subdirectory in the
+<i>Code-Genie</i> directory. Edit <tt>cgenie.conf</tt>, you can do it by
+selecting <b>View/Settings</b>. Type:<br/>
+<tt>DefaultSyntax&nbsp;xasm&nbsp;asx</tt><br/>
+near other <tt>DefaultSyntax</tt> lines.</li>
+<li>Installation for <i>PSPad</i>: Copy <tt>xasm.ini</tt> to the
+<tt>Syntax</tt> subdirectory of the <i>PSPad</i> directory. Edit
+<tt>PSPad.ini</tt>. In the <tt>[Config]</tt> section set:<br/>
+<tt>UserHighLighterName=xasm</tt><br/>
+In the <tt>[General]</tt> section set:
+<pre>Filter=xasm (*.asx)|*.asx
+HLTabWidth=0
+IndentChar= 
+UnIndentChar= 
+Comment=0000800080000005000
+Identifier=8000000880000005000
+Key=00FF000080000005000
+Label=0000000080000005000
+Number=8000000880000005000
+Preprocessor=0080800080000005010
+Reserved word=00FF000080000005000
+Space=0080800080000005000
+String=0080008080000005000
+Symbol=8000000880000005000
+</pre></li>
+</ul>
+<h3>Single-keystroke assembly</h3>
+<ul>
+<li><i>EditPlus</i>: Select <b>Tools/Configure User Tools</b>.
+Then click <b>Add Tool</b>, type <b>Menu text</b> (<tt>xasm</tt>),
+<b>command</b> (path to <tt>xasm.exe</tt>), <b>Argument</b>
+(<tt>$(FilePath)</tt>) and <b>Initial directory</b>
+(<tt>$(FileDir)</tt>). Check <b>Capture output</b>.</li>
+<li> <i>ConTEXT</i>: Select <b>Options/Environment Options</b>, then
+the <b>Execute Keys</b> tab. Click <b>Add</b>, type <tt>asx</tt>, click
+e.g. <b>F9</b>, locate <tt>xasm.exe</tt> by pressing the <tt>...</tt> button
+in the top-right corner. Type <b>Start in</b> (<tt>%p</tt>)
+and <b>parameters</b> (<tt>%n</tt>). Check <b>Use short DOS names</b>
+and <b>Capture console output</b>.
+Type <b>Compiler output parser rule</b> (<tt>%n (%l)</tt>).</li>
+<li><i>Code-Genie</i>: Select <b>View/Settings</b>, type:<br/>
+<tt>AddUserTool&nbsp;xasm&nbsp;xasm.exe&nbsp;/p\s$FP&nbsp;CaptureOutput&nbsp;$FD</tt><br/>
+near other <tt>AddUserTool</tt> lines (if <tt>xasm.exe</tt> is not on your
+<tt>PATH</tt>, then you must type full path to it).</li>
+<li><i>PSPad</i>: Edit the <tt>[General]</tt> section of <tt>PSPad.ini</tt>:
+<pre>Compilator File=C:\U\XASM.EXE
+Compilator Param=/q /o:%Dir%%Name%.xex %File%
+Compilator LOG=
+Compilator Run=C:\Atari\a800win\Atari800Win.exe -run %Dir%%Name%.xex
+Compilator Help=
+Compilator SaveAll=1
+Compilator ParsLog=%F (%L) *
+Compilator Capture=1
+</pre>
+(replace the paths to xasm and the emulator).</li>
+</ul>
+<h3>Placing the cursor where an assembly error occured</h3>
+<p>This works same for all these four editors: just double-click the line
+with the error message.</p>
+</body>
+</html>
