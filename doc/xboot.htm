@@ -1,19 +1,28 @@
 <HTML>
 <HEAD>
-<TITLE>X-BOOT 4.0 Manual</TITLE>
+<TITLE>X-BOOT 5.0 Manual</TITLE>
 </HEAD>
 <BODY BACKGROUND="6502proc.gif">
 <CENTER>
-<H1>X-BOOT version 4.0</H1>
+<H1>X-BOOT version 5.0</H1>
 by <A HREF="mailto:pfusik@elka.pw.edu.pl">Fox/Taquart</A><P>
 <HR>
 </CENTER>
 
 <H2>INTRODUCTION</H2>
-This tool converts Atari executable file (.OBX) into Atari disk image (.ATR),
-which can be used in emulator. For loading executable into real Atari
+This tool converts Atari executable file (.OBX) to Atari disk image (.ATR),
+which can be used in an emulator. For loading executable into real Atari
 you need no .ATR, try using <A HREF="xload.htm">X-LOAD</A>.
 <H3>CHANGES</H3>
+<H4>Version 5.0</H4>
+<UL>
+<LI> long file names support
+<LI> more flexible syntax: <TT>obxmask atrfile</TT>
+and <TT>obxfile atrpath</TT> can be used
+<LI> internal write protection set in generated disk images
+<LI> headers with end address less than start allowed
+<LI> Unix-like <TT>-p</TT> option allowed
+</UL>
 <H4>Version 4.0</H4>
 <UL>
 <LI> wildcards support - now you can convert a set of files
@@ -34,34 +43,49 @@ you need no .ATR, try using <A HREF="xload.htm">X-LOAD</A>.
 
 <HR>
 <H2>USAGE</H2>
-There are two ways of running X-BOOT:
-<UL>
-<LI><TT>XBOOT [/p] obxfile [atrfile]</TT>
-<LI><TT>XBOOT [/p] obxfiles [atrpath]</TT>
-</UL>
-The former converts single file, the latter a set of files.<P>
+This is syntax for running X-BOOT:<P>
+<TT>XBOOT [/p] obxfiles [atrpath][atrfile]</TT><P>
 Parameters in brackets are optional.<P>
-<TT>/p</TT> switch forces writing 'professional loader', which allows you to load
-code/data under ROM and disables ROM and interrupts while starting program.
-By default, standard loader is used, which can load any Atari executable
-not demanding DOS or any special loader.<P>
+If file name extension is omitted, the default .OBX or .ATR is added.
+If no <TT>atrpath</TT> is given, disk images are written by default in
+the directory where executables are.<P>
+If file name contains spaces, you should enclose it in quotation marks.<P>
+<TT>/p</TT> switch (or equivalent <TT>-p</TT>) forces writing 'professional loader',
+which allows you to load code/data under ROM and disables ROM and interrupts
+while starting program. By default, standard loader is used, which can load any
+Atari executable not demanding DOS nor any special loader.<P>
 Both loaders disable Atari Basic, so you needn't hold OPTION key while
 booting.<P>
-
+Below are some examples:<P>
+<DL>
+<DT><TT>XBOOT -p test</TT>
+<DD>Converts <TT>test.obx</TT> to <TT>test.atr</TT> in current directory
+using professional loader.
+<DT><TT>XBOOT d:\games\*.xex \atrs\</TT>
+<DD>Converts all files in <TT>d:\games</TT> with <TT>.xex</TT> extension
+and writes disk images to directory <TT>\atrs</TT> on current drive
+using standard loader.
+<DT><TT>XBOOT "c:\test\Very Long File Name.AtariExecutable" /p</TT>
+<DD>Converts <NOBR><TT>c:\test\Very Long File Name.AtariExecutable</TT></NOBR> to
+<NOBR><TT>c:\test\Very Long File Name.atr</TT></NOBR> using professional loader.
+<DT><TT>XBOOT d:* /p .</TT>
+<DD>Converts all .OBX files in current directory on <TT>d:</TT>
+to current directory on current drive using professional loader.
+</DL>
 <HR>
 <H2>DETAILS</H2>
 Produced ATR is single density and as short as possible.
 Loader occupies one boot sector.<P>
 X-BOOT does not write executable in ATR as Atari file.
-You can't read it from DOS or extract it somehow or other.
+You can't read it from an Atari DOS nor extract it somehow or other.
 You can only run it by booting.<P>
-For more details, view sources of loaders:
+For more details, read sources of loaders:
 <UL>
 <LI>Standard: <A HREF="xbootstd.asx">XBOOTSTD.ASX</A>
 <LI>Professional: <A HREF="xbootpro.asx">XBOOTPRO.ASX</A>
 </UL>
 Loaders are so simple that they even do not detect end of file. Instead,
-they are modified when end of file is reached: disk image contains one
+they are modified when end of file is reached. Disk image contains one
 additional block, which doesn't belong to executable file, but changes
 loader to run program instead of initializing.
 </BODY>

@@ -51,7 +51,7 @@ init	jmp	($2e2)		... and call init routine
 text	dta	d'Loading... '
 txtlen	equ	*-text
 
-	dta	c'4.0'		Unused boot sector space
+	dta	c'5.0'		Unused boot sector space
 	ert	*<>boot+$80	Exactly 128 bytes should be used
 
 * X-BOOT adds this block at the end of loaded file

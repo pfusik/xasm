@@ -1,25 +1,61 @@
-<HTML>
-<HEAD>
-<TITLE>X-Assembler 2.2 Manual</TITLE>
-</HEAD>
+<HTML><HEAD><TITLE>X-Assembler 2.3 Manual</TITLE></HEAD>
 <BODY BACKGROUND="6502proc.gif">
 <CENTER>
-<H1>X-Assembler version 2.2</H1>
+<H1>X-Assembler version 2.3</H1>
 by <A HREF="mailto:pfusik@elka.pw.edu.pl">Fox/Taquart</A><P>
-</CENTER>
-
-<HR></P><A NAME="intro">
-<H2>INTRODUCTION
-&nbsp;<A HREF="#usage">USAGE</A>
-&nbsp;<A HREF="#syntax">SYNTAX</A>
-&nbsp;<A HREF="#faq">FAQ</A>
-&nbsp;<A HREF="index.htm">BACK</A>
-</H2>
-The X-Assembler is an cross-assembler, which generates code for the 6502 processor.
-It is 99% compatible with Quick Assembler on 8-bit Atari.
-<BR>
-<H3>CHANGES</H3>
-<H4>Version 2.2</H4>
+<HR>
+<H2>TABLE OF CONTENTS</H2>
+<TABLE><TR><TD>
+<UL><LI><A HREF="#intro">INTRODUCTION</A>
+<UL><LI><A HREF="#changes">Changes</A>
+<UL><LI><A HREF="#ver23">Version 2.3</A>
+<LI><A HREF="#ver22">Version 2.2</A>
+<LI><A HREF="#ver20">Version 2.0</A>
+<LI><A HREF="#ver12">Version 1.2</A>
+</UL></UL><LI><A HREF="#usage">USAGE</A>
+<UL><LI><A HREF="#sysreq">System requirements</A>
+<LI><A HREF="#srcreq">Source code requirements</A>
+<LI><A HREF="#convqa">Converting Quick Assembler files</A>
+<LI><A HREF="#asm">Assembling a source program</A>
+<LI><A HREF="#opts">Assembling options</A>
+<LI><A HREF="#exitcod">Exit codes</A>
+<LI><A HREF="#listing">Listing structure</A>
+<LI><A HREF="#labtab">Label table structure</A>
+</UL>
+</TD><TD><UL><LI><A HREF="#syntax">SYNTAX</A>
+<UL><LI><A HREF="#fields">Fields</A>
+<UL><LI><A HREF="#label">Label field</A>
+<LI><A HREF="#repeat">Repeat count</A>
+<LI><A HREF="#instr">Instruction field</A>
+<LI><A HREF="#operand">Operand field</A>
+<LI><A HREF="#comment">Comment</A>
+</UL><LI><A HREF="#expr">Expressions</A>
+<UL><LI><A HREF="#numbers">Numbers</A>
+<LI><A HREF="#operators">Operators</A>
+</UL><LI><A HREF="#directives">Directives</A>
+<LI><A HREF="#pseudocom">Pseudo-commands</A>
+<LI><A HREF="#adrmod">Addressing modes</A>
+</UL><LI><A HREF="#faq">FAQ</A>
+</UL>
+</TD></TR></TABLE></CENTER>
+<P><HR>
+<A NAME="intro"><H2>INTRODUCTION</H2>
+The X-Assembler is a cross-assembler generating code for the 6502 processor.
+It has been designed to be easy to use for Quick Assembler programmers,
+therefore its syntax is an extension of QA's one.<BR>
+<A NAME="changes"><H3>Changes</H3>
+<A NAME="ver23"><H4>Version 2.3</H4>
+<UL>
+<LI> double skip (e.g. <TT>SCC:SNE</TT>) bug fixed
+<LI> real number two-digit exponent bug fixed
+<LI> truncating line trailing spaces in listing
+<LI> <A HREF="#new_labdef">label definitions allowed in blank,
+comment and repeated lines</A>
+<LI> <A HREF="#new_unary">unary operators</A>
+<LI> <A HREF="#new_dta"><TT>DTA</TT> implied byte mode</A>
+<LI> <A HREF="#new_op_op">operand can be skipped for some op-codes</A>
+</UL>
+<A NAME="ver22"><H4>Version 2.2</H4>
 <UL>
 <LI> invalid absolute <TT>CPX</TT> and <TT>CPY</TT> op-codes bug fixed
 <LI> branch addressing mode not checking bug fixed
@@ -40,7 +76,7 @@ assembling only if source newer than object option</A>
 <LI> <A HREF="#new_adrmodes">
 <TT>(),0+</TT> and <TT>(),0-</TT> pseudo addressing modes</A>
 </UL>
-<H4>Version 2.0</H4>
+<A NAME="ver20"><H4>Version 2.0</H4>
 <UL>
 <LI> truncating name of object bug fixed
 <LI> <TT>EQU</TT> and <TT>DTA</TT> forward reference bugs fixed
@@ -61,67 +97,64 @@ assembling only if source newer than object option</A>
 <LI> Atari floating-point numbers generation
 <LI> improved <TT>INS</TT>: inserting specified part of file
 </UL>
-<H4>Version 1.2</H4>
+<A NAME="ver12"><H4>Version 1.2</H4>
 <UL>
 <LI> first release
 </UL>
 
-<HR></P><A NAME="usage">
-<H2><A HREF="#intro">INTRODUCTION</A>
-&nbsp;USAGE
-&nbsp;<A HREF="#syntax">SYNTAX</A>
-&nbsp;<A HREF="#faq">FAQ</A>
-&nbsp;<A HREF="index.htm">BACK</A>
-</H2>
-
-<H3>System requirements</H3>
+<HR>
+<A NAME="usage"><H2>USAGE</H2>
+<A NAME="sysreq"><H3>System requirements</H3>
 <UL>
 <LI> a PC compatible computer with 386 or better CPU
+(a numeric coprocessor is required for generating sinus tables)
 <LI> a MS-DOS compatible OS
-<LI> a numeric coprocessor for generating sinus tables.
-Your CPU probably has a built-in coprocessor.
 </UL>
-<H3>Creating a source program</H3>
-Source file should be plain ASCII file. Although different EOLs are supported,
-you would probably prefer CR/LF EOLs because of text editor.<BR>
-Single line of source should not be longer than 256 characters.
-There is no limitation on the length of the file.<BR>
-Source may contain tabulators, which are treated as spaces.<BR>
-Assembler is not case-sensitive.
-<BR>
-<H3>Converting Quick Assembler files</H3>
-You must convert Atari text file into PC text file (EOL's from $9b to $0d/$0a),
-ATASCII 0-31 and 128-255 characters should be replaced with standard ASCII
-characters, using QAsm expressions.<BR>
-You also have to change all <TT>OPT</TT> directives,
-but usually you needn't them at all.
-<BR>
-<H3>Assembling a source program</H3>
-You run assembler from DOS prompt with following syntax:<BR>
+<A NAME="srcreq"><H3>Source code requirements</H3>
+<UL>
+<LI> Source file should be plain ASCII file.
+Although different EOLs are supported,
+CR/LF is recommended because it is standard for text files on PC.
+<LI> No line of source can be longer than 256 characters.
+<LI> There is no limitation on the length of the source.
+<LI> Tabulators can be used in place of spaces.
+<LI> The assembler is not case-sensitive.
+</UL>
+<A NAME="convqa"><H3>Converting Quick Assembler files</H3>
+Because of possible editor-associated problems you had better convert
+an Atari text file to a regular PC text file, i.e. EOLs from $9b to $0d/$0a
+and ATASCII specific characters to their integer representation.<BR>
+You have to change all <TT>OPT</TT> directives,
+but usually you only need to remove them.<BR>
+<A NAME="asm"><H3>Assembling a source program</H3>
+The common syntax of invoking command line is following:<BR>
 <PRE>XASM source [options]
-</PRE><TT>source</TT> is name of source file.
-If no extension given, the .ASX is added by default.<P>
-Optional options are:
+</PRE><TT>source</TT> is the name of source file.
+If no extension is given, the .ASX is implied.<P>
+Default action on invoking without options is to compile
+writing to a file with the .OBX extension.<P>
+<A NAME="opts"><H3>Assembling options</H3>
+Following options are supported:
 <DL>
 <DT><TT>/c</TT>
 <DD>Enable listing false conditionals.<BR>
-By default lines skipped because of false condition are not listed.<P>
+By default lines skipped due to false condition are not listed.<P>
 <A NAME="new_environment">
 <DT><TT>/e</TT>
-<DD>Enable setting environment variables when error occurs.<BR>
-With this option, X-Asm sets two environment variables: ERRFILE and ERRLINE.
-They may be used in a batch file to locate error and set editor on it.
-For example, in my batch file I use such construction:
+<DD>Enable setting environment variables pointing to the error location.<BR>
+With this option, X-Asm sets two environment variables:
+ERRFILE and ERRLINE.
+They may be used in a batch file to locate error and set editor's
+insertion point on it. For example, in my batch file I use such a construction:
 <PRE>XASM %1 /e
 IF NOT ERRORLEVEL 1 GOTO ok
 NCE +%ERRLINE% %ERRFILE%
 </PRE>
 NCE stands for Norton Classic Editor.<P>
-If there was no error, variables point at last warning.
+If there was no error, variables point at last issued warning.
 If no warning occured, they are removed from the environment.<P>
 <DT><TT>/i</TT>
-<DD>Disable listing included source.<BR>
-Only main source file will be listed.<P>
+<DD>Disable listing included source. Only main source file will be listed.<P>
 <DT><TT>/l[:fname]</TT>
 <DD>Enable generating listing.
 If no <TT>fname</TT> given, listing is written to <TT>source.lst.</TT><P>
@@ -138,23 +171,22 @@ Using tabs makes listing file shorter.<BR>
 Tab stops are assumed to be every 8 characters.<P>
 <DT><TT>/t[:fname]</TT>
 <DD>List label table.
-If no <TT>fname</TT> given, table is written at the end of listing.<P>
+If no <TT>fname</TT> given, table is written at the end of listing or to
+<TT>source.tab</TT>.<P>
 </DL>
-
 If source is incorrect, X-Asm stops on first encountered error.<P>
-
-Errorlevels returned by X-Asm:<BR>
+<A NAME="exitcod"><H3>Exit codes</H3>
+Meaning of exit codes returned by X-Asm:<BR>
 3 = bad parameters, assembling not started<BR>
 2 = error occured<BR>
 1 = warning(s) only<BR>
 0 = no errors, no warnings<BR>
-
-<H3>Listing structure</H3>
+<A NAME="listing"><H3>Listing structure</H3>
 Line of listing includes:
 <UL>
 <LI> decimal number of line of source file (if source is different than in
-previous listed line, appropriate message line is generated)
-<LI> hexadecimal origin
+previous listed line, appropriate message line is issued)
+<LI> hexadecimal origin value
 <LI> hexadecimal bytes written to object file<BR>
 Listed are also generated headers. A <TT>xxxx-yyyy&gt;</TT> in place of origin
 represents generated header: <TT>$xxxx</TT> is the first and <TT>$yyyy</TT>
@@ -164,46 +196,120 @@ A plus sign placed after hex numbers stands for more bytes written to object
 in this line, not listed through lack of space.
 <LI> remaining part of listing line is a copy of source line
 </UL>
-
-<H3>Label table structure</H3>
+<A NAME="labtab"><H3>Label table structure</H3>
 Line of label table includes:
 <UL>
 <LI> some label attributes:<BR>
 <TT>n</TT> - label defined but not used elsewhere<BR>
 <TT>2</TT> - label value known in pass 2 only (label definition uses forward
-reference and thus you can't do forward references to that label)
+reference and thus you can't make forward references to that label)
 <LI> hexadecimal value of the label
 <LI> name of the label
 </UL>
 
-<HR></P><A NAME="syntax">
-<H2><A HREF="#intro">INTRODUCTION</A>
-&nbsp;<A HREF="#usage">USAGE</A>
-&nbsp;SYNTAX
-&nbsp;<A HREF="#faq">FAQ</A>
-&nbsp;<A HREF="index.htm">BACK</A>
-</H2>
-Lines of source code may be:
-<UL>
-<LI> empty lines - ignored, of course
-<LI> comments - ignored, too
-<LI> statements - not ignored :-)
-</UL>
-Comment lines must have one of the following characters in the FIRST column
-of the line: <TT>* ; |</TT>
+<HR>
+<A NAME="syntax"><H2>SYNTAX</H2>
 
-</P><A NAME="expressions">
-<H3>Expressions &nbsp;<A HREF="#statements">Statements</A></H3>
+<A NAME="fields"><H3>Fields</H3>
+Source code is line-oriented. Every line of source consists of <I>fields</I>.
+Same sequence of characters used in different fields has completely different meaning.
+Fields are separated with one or more blank characters.
+There can't be any space within a field excluding strings and comments.<P>
+There are following types of fields:
+<UL>
+<LI> <A HREF="#label">label field</A>
+<LI> <A HREF="#repeat">repeat count</A>
+<LI> <A HREF="#instr">instruction field</A>
+<LI> <A HREF="#operand">operand</A>
+<LI> <A HREF="#comment">comment</A>
+</UL>
+<A NAME="new_labdef">Every line of source must match one of two general forms:
+<UL>
+<LI> <TT>LABEL *COMMENT</TT>
+<LI> <TT>LABEL :COUNT CMD:CMD OP1 OP2 COMMENT</TT>
+</UL>
+In the first form, both fields are optional. Blank lines are ignored of course.
+Comment must here start with one of these characters: <TT>; |</TT> or <TT>*</TT>
+(semicolon, pipe or asterisk). Any information in the line following
+such character is ignored.<P>
+In the latter form, you must use a minimum of an instruction field.
+It depends on the instruction, how many operands it takes.
+Every instruction takes constant number of operands, therefore
+there's no need to use a special character at the start of a comment, because after
+succesfully taking operands, X-Asm discards the remaining part of line.<P>
+
+<A NAME="label"><H4>Label field</H4>
+This field is optional. It must start at first character in line, without
+any blank characters before. The purpose of using label field is to define a label.<BR>
+Label is a symbol representing an integer of range -$ffff..$ffff.<BR>
+Name of a label can contain letters, digits and underscores (<TT>_</TT>).
+Digit can not be label's first character.
+Name of a label can be as long as you want and all the characters
+are meaningful. In Quick Assembler only 6 leading characters were recognized
+and some sources may not compile under X-Asm for this reason.<BR>
+Defining a label without using <TT>EQU</TT> makes it equal to current value
+of the origin counter.<BR>
+Label can't be redefined.<P>
+
+<A NAME="new_linerep"><A NAME="repeat"><H4>Repeat count</H4>
+Repeating means assembling single line several times as if
+there were several identical lines. Note it is not just duplicating
+bytes written to object.<BR>
+Repeat count, which can be any valid expression, has to be preceded
+with a colon.<BR>
+Examples:
+<PRE>:4 asl @
+:2 dta a(*)
+</PRE>
+In the latter example each <TT>DTA</TT> has different operand value.<BR>
+If repeat count equals zero, remaining part of line is not assembled.
+This allows conditional assembly on single line to be more compact.
+
+<A NAME="new_pairing"><A NAME="instr"><H4>Instruction field</H4>
+If this is the first field in a line, the line must start with at least
+one blank character. Instruction field consists of one or two instructions.
+The latter case is called instructions pairing, because a pair
+of instructions have shared operand. You separate instructions
+with a colon.<BR>
+Example:
+<PRE> adc:sta $80
+</PRE>is equivalent to
+<PRE> adc $80
+ sta $80
+</PRE>
+Note that
+<PRE> lda:tax $80
+</PRE>is correct, because <TT>$80</TT> is a comment for <TT>TAX</TT>.<P>
+Single instruction always consists of 3 letters. It can be:
+<OL TYPE=a>
+<LI> 6502 command - standard mnemonics are used
+<LI> <A HREF="#directives">directive
+<LI> <A HREF="#pseudocom">pseudo-command
+</OL>
+
+<A NAME="operand"><H4>Operand field</H4>
+Some instructions don't need any operand,
+other need two operands.<BR>
+6502 commands require operand with proper
+<A HREF="#adrmod">addressing mode</A>.<P>
+
+<A NAME="comment"><H4>Comment</H4>
+Comment in a statement does not start from any special character
+like <TT>;</TT> for example. Comment field is implied when appropriate
+number of operands was taken.<P>
+
+<P><HR><P>
+<A NAME="expr"><H3>Expressions</H3>
 Expressions are numbers combined with operators and brackets.
 You should use square brackets, because parentheses are reserved
 for 6502 indirect addressing.
 
-<H4>Numbers</H4>
+<A NAME="numbers"><H4>Numbers</H4>
 Numbers are 32-bit signed integers, in the range of -$7fffffff..$7fffffff.
 A number can be:
 <TABLE>
 <TR><TD WIDTH=300><UL><LI> a decimal number</TD><TD><TT>-12345</TT></TD></TR>
-<TR><TD><UL><LI> a hexadedecimal number</TD><TD><TT>$abcd</TT></TD></TR>
+<TR><TD><UL><LI> a hexadecimal number</TD><TD><TT>$abcd</TT></TD></TR>
 <TR><TD><UL><LI> a binary number</TD><TD><TT>%10100101</TT></TD></TR>
 <TR><TD><UL><LI> an ASCII character</TD><TD><TT>'a'</TT> or <TT>"a"</TT></TD></TR>
 <TR><TD><UL><LI> an origin counter</TD><TD><TT>*</TT></TD></TR>
@@ -226,13 +332,16 @@ where x is a hexadecimal digit.
 Byte op-code of instruction inside braces. Operand is discarded
 and is necessary only for identifying addressing mode.
 Instruction should begin right after left brace and right brace should
-immediately follow the operand or the command in implied addressing mode.
+immediately follow the operand or the command in implied addressing mode.<BR>
+<A NAME="new_op_op">You can skip the operand, if the addressing mode is fixed.
+Examples:<BR>
+<TT>{lda #}</TT>, <TT>{jsr}</TT>, <TT>{bne}</TT>, <TT>{jmp ()}</TT>,
+<TT>{sta a:,x}</TT>.
 </DIV>
 <P>
 
-<H4>Operators</H4>
-Currently there are 19 operators:<P>
-
+<A NAME="operators"><H4>Operators</H4>
+<I>Binary operators:</I><P>
 <TABLE>
 <TR><TD><TT>+  </TT></TD><TD>Addition</TD></TR>
 <TR><TD><TT>-  </TT></TD><TD>Subtraction</TD></TR>
@@ -253,90 +362,39 @@ Currently there are 19 operators:<P>
 <TR><TD><TT>&gt;= </TT></TD><TD>Greater or equal</TD></TR>
 <TR><TD><TT>&& </TT></TD><TD>Logical and</TD></TR>
 <TR><TD><TT>|| </TT></TD><TD>Logical or</TD></TR>
-</TABLE>
-<P>
-Operator precedence:
+</TABLE><P>
+<A NAME="new_unary">
+<I>Unary operators:</I><P>
 <TABLE>
-<TR><TD>first</TD><TD><TT>[]</TT></TD></TR>
-<TR><TD>     </TD><TD><TT>* / % & &lt;&lt; &gt;&gt;</TT></TD></TR>
-<TR><TD>     </TD><TD><TT>+ - | ^</TT></TD></TR>
-<TR><TD>     </TD><TD><TT>= &lt;&gt; != &lt; &gt; &lt;= &gt;=</TT></TD></TR>
-<TR><TD>     </TD><TD><TT>&&</TT></TD></TR>
-<TR><TD>last </TD><TD><TT>||</TT></TD></TR>
-</TABLE>
-<P>
+<TR><TD><TT>+</TT></TD><TD>Plus (does nothing)</TD></TR>
+<TR><TD><TT>-</TT></TD><TD>Minus (changes sign)</TD></TR>
+<TR><TD><TT>~</TT></TD><TD>Bitwise not (complements all bits)</TD></TR>
+<TR><TD><TT>!</TT></TD><TD>Logical not (changes true to false and vice versa)</TD></TR>
+<TR><TD><TT>&lt;</TT></TD><TD>Low (extracts low byte)</TD></TR>
+<TR><TD><TT>&gt;</TT></TD><TD>High (extracts high byte)</TD></TR>
+</TABLE><P>
+<I>Operator precedence:</I><P>
+<TABLE>
+<TR><TD>first</TD><TD><TT>[]</TT><TD>(brackets)</TD></TR>
+<TR><TD>     </TD><TD><TT>+ - ~ &lt; &gt;</TT><TD>(unary)</TD></TR>
+<TR><TD>     </TD><TD><TT>* / % & &lt;&lt; &gt;&gt;</TT><TD>(binary)</TD></TR>
+<TR><TD>     </TD><TD><TT>+ - | ^</TT><TD>(binary)</TD></TR>
+<TR><TD>     </TD><TD><TT>= &lt;&gt; != &lt; &gt; &lt;= &gt;=</TT><TD>(binary)</TD></TR>
+<TR><TD>     </TD><TD><TT>!</TT><TD>(unary)</TD></TR>
+<TR><TD>     </TD><TD><TT>&&</TT><TD>(binary)</TD></TR>
+<TR><TD>last </TD><TD><TT>||</TT><TD>(binary)</TD></TR>
+</TABLE><P>
+Operators are similar to used in C language, but their priorities are different
+than in C.<P>
 Compare and logical operators assume that zero is false and non-zero is true.
 They return 1 for true.<P>
-When calculating expression, 32-bit arithmetic is used. When range of 32 bits
+While calculating expression, signed 32-bit arithmetic is used. When range of 32 bits
 is exceeded, <TT>'Arithmetic overflow'</TT> error is generated.<P>
 
-</P><A NAME="statements">
-<H3><A HREF="#expressions">Expressions</A> &nbsp;Statements</H3>
-A statement is divided into fields:
-<UL>
-<LI> <A HREF="#label">label field</A>
-<LI> <A HREF="#operation">operation field</A>
-<LI> <A HREF="#operand">one or two operand fields</A>
-<LI> <A HREF="#comment">comment field</A>
-</UL>
-There should be at least one space between every two fields
-and there can't be any space within a field excluding strings.
-
-</P><A NAME="label"><H4>Label field</H4>
-This field is optional. It starts from first character of line, without
-any blank characters before. It has two applications:
-<UL>
-<LI> Defining a label.<BR>
-Label is a symbol representing an integer of range -$ffff..$ffff.<BR>
-Name of a label can contain letters, digits and underscores (<TT>_</TT>).
-Digit can't be label's first character.
-Name of a label can be as long as you want and all the characters
-are meaningful. In Quick Assembler only 6 leading characters were recognized
-and some programs may not compile under X-Asm for this reason.<BR>
-Defining a label without using <TT>EQU</TT> makes it equal to current value
-of the origin counter.<BR>
-Label can't be redefined.<P>
-<A NAME="new_linerep">
-<LI> Repeating the line.<BR>
-Repeating means assembling single line several times as if
-there were several identical lines. Note it is not just duplicating
-bytes written to object.<BR>
-Repeat count, which can be any valid expression, has to be preceded
-with a colon.<BR>
-Examples:
-<PRE>:4 asl @
-:2 dta a(*)
-</PRE>
-In the latter example each <TT>DTA</TT> has different operand value.<BR>
-If repeat count equals zero, remaining part of line is not assembled.
-This allows conditional assembly on single line to be more compact.
-</UL>
-You can not define a label in line which you repeat.<P>
-
-<A NAME="new_pairing">
-</P><A NAME="operation"><H4>Operation field</H4>
-Operation field is the only field which is always required.
-You have to put one or more spaces or tab characters between label
-and operation field. If no label is defined, line must start with a blank
-character. Operation field consists of one or two instructions.
-The latter case is called instructions pairing, because a pair
-of instructions have shared operand. You separate instructions
-with a colon.<BR>
-Example:
-<PRE> adc:sta $80
-</PRE>is equivalent to
-<PRE> adc $80
- sta $80
-</PRE>
-Single instruction always consists of 3 letters. It can be:
-<OL TYPE=a>
-<LI><I> 6502 command</I><BR>
-One of 56 well known processor commands.<BR><BR>
-
-<LI><I> compiler directive</I><BR>
-One of the following:<P>
+<P><HR><P>
+<A NAME="directives"><H3>Directives</H3>
 <DL>
-<DT><TT><B>EQU</B></TT> - assign a value of expression to the label
+<DT><TT><B>EQU</B></TT> - assign a value of an expression to the label
 <DD>Note that label represents a number, not a text macro.<BR>
 Examples:
 <PRE>five equ 5
@@ -344,7 +402,7 @@ here equ *
 </PRE>
 
 <DT><TT><B>OPT</B></TT> - set assembling options
-<DD>Currently there are two options: listing generating and headers generating.
+<DD>Currently there are two options: generating listing and generating headers.
 You can turn any of these on or off.<BR>
 Default (if no <TT>OPT</TT> specified) is <TT>opt l+h+</TT>.<BR>
 Examples:
@@ -359,7 +417,7 @@ Examples:
 <LI><TT>a:</TT> tells X-Asm to always make a header, even it is unnecessary,
 like in <TT>ORG *</TT>.
 <LI><TT>f:</TT> works same as <TT>a:</TT>, but additionally tells to generate
-a $ff,$ff prefix before header. X-Asm adds it to the first header in file
+a $ff,$ff prefix before header. X-Asm adds it at the beginning of file
 by default, so use this option only if you want the $ff's somewhere inside.<BR>
 </UL>
 Examples:
@@ -368,18 +426,20 @@ Examples:
 table org *+100
 </PRE>
 In the latter example <TT>table</TT> points to 100 bytes
-of uninitialized data (note label is assigned to <TT>*</TT>
+of uninitialized data (label is assigned to <TT>*</TT>
 before <TT>ORG</TT> directive is executed).<P>
 
+<A NAME="new_dta">
 <DT><TT><B>DTA</B></TT> - define data
 <DD>There are various data types:
 <UL>
-<LI> numbers
+<LI> integers
 <UL>
-<LI> bytes: <TT>b(200)</TT>
+<LI> bytes: <TT>b(200)</TT> or simply <TT>200</TT>
 <LI> words: <TT>a(10000)</TT>
 <LI> low bytes of words: <TT>l(511)</TT> defines byte 255
-<LI> high bytes of words: <TT>h(511)</TT> defines byte 1<BR>
+<LI> high bytes of words: <TT>h(511)</TT> defines byte 1
+</UL>
 You may enter many expressions in parentheses and combine different types
 of data in single line, separating things with commas.<BR>
 You may also define a sinus table. Syntax is:<BR>
@@ -397,7 +457,6 @@ representing a quarter of sinus with amplitude of 1000.<P>
 <LI> real numbers: <TT>r(-1.23456e12)</TT><BR>
 Real numbers are written in 6-byte Atari Floating-Point format. You can't
 combine reals with operators, as you can integers.<P>
-</UL>
 <LI> text strings
 <UL>
 <LI> ASCII strings: <TT>c'Text'</TT> or <TT>c"Text"</TT>
@@ -411,12 +470,12 @@ high bit in every byte of string.<P>
 </UL>
 Examples of <TT>DTA</TT>:
 <PRE>
- dta b(2,5),a(1000,-1),l(12345,sin(0,127,256))
- dta d"ANTIC"*,c'It''s a string',b(155)
+ dta b(1,2),3,a(1000,-1),l(12345,sin(0,127,256))
+ dta d"ANTIC"*,c'It''s a string',$9b
 </PRE>
 
 <DT><TT><B>ICL</B></TT> - include another source file
-<DD>Specifies another file to be included in the assembly as if the contests of
+<DD>Specifies another file to be included in the assembly as if the contents of
 the referenced file appeared in place of the <TT>ICL</TT> statement.
 The included file may contain other <TT>ICL</TT> statements.
 The <TT>.ASX</TT> extension is added if none given.<P>
@@ -437,7 +496,7 @@ Example:
 <DT><TT><B>INS</B></TT> - insert contents of file
 <DD>Copies every byte of specified file into object file and moves origin
 counter, as if these bytes were defined with <TT>DTA</TT>.<BR>
-You may specify range of inserted file. Syntax is:
+You may specify range of inserted file. Syntax is following:
 <PRE>
  ins 'file'[,offset[,length]]
 </PRE>
@@ -495,18 +554,19 @@ Example:
 </PRE>
 Above example can be rewritten using line repeating feature:
 <PRE>noscr equ 1
-:noscr<>0 lda #0
-:noscr=0 lda #$22
+:noscr lda #0
+:!noscr lda #$22
  sta $22f
 </PRE>
 
 </DL>
-<LI><I> pseudo-command</I><BR>
-It is something like built-in macro.
-Note that it is not an illegal instruction and works on typical 6502.<P>
+<HR>
+<A NAME="pseudocom"><H3>Pseudo-commands</H3>
+Pseudo-commands are built-in macros.
+They are not illegal instructions and work on typical 6502.<P>
 <DL>
 <DT><TT><B>ADD</B></TT> - addition without carry
-<DD>If you ever programmed 6502, you must have noticed that you had
+<DD>If you have ever programmed 6502, you must have noticed that you had
 to use a <TT>CLC</TT> before <TT>ADC</TT> for every simple addition.<BR>
 X-Asm can do it for you. <TT>ADD</TT> replaces two instructions:
 <TT>CLC</TT> and <TT>ADC</TT>.<P>
@@ -516,7 +576,7 @@ X-Asm can do it for you. <TT>ADD</TT> replaces two instructions:
 
 <A NAME="new_repskip">
 <DT><TT><B>RCC, RCS, REQ, RMI, RNE, RPL, RVC, RVS</B></TT> - conditional repeat
-<DD>They are branches to the previous instruction.
+<DD>These are branches to the previous instruction.
 They take no operand, because the branch target
 is the address of previously assembled instruction.<BR>
 Example:
@@ -524,7 +584,7 @@ Example:
  mva:rne $500,x $600,x+
 </PRE>
 The example code copies memory $500-$5ff to $600-$6ff.
-With standard 6502 commands only it would be:
+Here is the same written with standard 6502 commands only:
 <PRE> ldx #0
 loop lda $500,x
  sta $600,x
@@ -533,7 +593,7 @@ loop lda $500,x
 </PRE>
 
 <DT><TT><B>SCC, SCS, SEQ, SMI, SNE, SPL, SVC, SVS</B></TT> - conditional skip
-<DD>They are branches over the next instructions. No operand is required,
+<DD>These are branches over the next instructions. No operand is required,
 because the target is the address of instruction following
 the next instruction.<BR>
 Example:
@@ -541,7 +601,7 @@ Example:
  add:sta $80
  scc:inc $81
 </PRE>
-In the above example word variable $80 is incremented by 40.<BR>
+In the above example word-sized variable $80 is incremented by 40.<BR>
 Nor conditional repeat nor skip pseudo-commands require operand,
 thus they can be paired with any other command.<P>
 
@@ -565,7 +625,7 @@ Example:
 </PRE>
 
 <DT><TT><B>MVA, MVX, MVY</B></TT> - move byte using accumulator, X or Y
-<DD>Any of these pseudo-commands requires two operands
+<DD>Each of these pseudo-commands requires two operands
 and substitutes two commands:
 <PRE> mva source dest = lda source : sta dest
  mvx source dest = ldx source : stx dest
@@ -573,16 +633,16 @@ and substitutes two commands:
 </PRE>
 
 <DT><TT><B>MWA, MWX, MWY</B></TT> - move word using accumulator, X or Y
-<DD>They also require two operands
+<DD>These pseudo-commands require two operands
 and are combinations of two <TT>MV*</TT>'s:
 one to move low byte, and the other to move high byte.<BR>
-You can't use indirect nor pseudo addressing modes with <TT>MW*</TT>.
-Destination must be absolute address (indexed or not).<BR>
+You can't use indirect nor pseudo addressing mode with <TT>MW*</TT>.
+Destination must be absolute address (optionally indexed).<BR>
 When source is also absolute, a <TT>MW* SOURCE DEST</TT> will be:
 <PRE> mv* source   dest
  mv* source+1 dest+1
 </PRE>
-When source is immediate, a <TT>MW* #IMMED DEST</TT> will be:
+When source is an immediate, a <TT>MW* #IMMED DEST</TT> will be:
 <PRE> mv* &lt;immed dest
  mv* &gt;immed dest+1
 </PRE>
@@ -594,22 +654,25 @@ is not forward-referenced, X-Asm uses optimization:
 </DL>
 </OL>
 
-</P><A NAME="operand"><H4>Operand</H4>
-It depends on the operation field. Some statements don't need any operand,
-other need two operands.<P>
-
-6502 commands require operand depending on the addressing mode.
-Addressing modes should be entered in standard convention except
+<HR>
+<A NAME="adrmod"><H3>Addressing modes</H3>
+All addressing modes are entered in standard convention except
 the accumulator addressing mode, which should be marked with a
 <TT>@</TT> character (as in Quick Assembler).<P>
 
 There are two extra immediate addressing modes:
 <TT>&lt;</TT> and <TT>&gt;</TT>,
-which use low/high byte of word rather than byte value.<P>
+which use low/high byte of word rather than byte value.
+They are for Quick Assembler compatibility.
+You can use traditional <TT>#&lt;</TT> and <TT>#&gt;</TT>.
+Note <NOBR><TT>lda &gt;$ff+5</TT></NOBR> loads 1 (<TT>&gt;$104</TT>),
+while <NOBR><TT>lda #&gt;$ff+5</TT></NOBR>
+loads 5 (<TT>0+5</TT>) to accumulator, because unary operator <TT>&gt;</TT> has higher
+priority than plus has.<P>
 
 In absolute addressing modes, X-Asm examines expression and uses zero-page
-addressing mode if it thinks it is possible to do it. You may override it
-with <TT>a:</TT> and <TT>z:</TT> prefixes.<P>
+addressing mode if it supposes it is possible. You may override it with
+<TT>a:</TT> and <TT>z:</TT> prefixes.<P>
 
 Examples:
 <PRE>
@@ -623,7 +686,7 @@ Examples:
 </PRE>
 
 There are also pseudo addressing modes, which are similar to
-pseudo-commands. You may use them as standard addressing modes
+pseudo-commands. You may use them just like standard addressing modes
 in all 6502 commands and pseudo-commands excluding
 <TT>MWA</TT>, <TT>MWX</TT> and <TT>MWY</TT> only:
 <PRE> cmd a,x+    =  cmd a,x   : inx
@@ -638,18 +701,8 @@ in all 6502 commands and pseudo-commands excluding
  cmd (z),0-  =  ldy #0    : cmd (z),y : dey
 </PRE>
 
-</P><A NAME="comment"><H4>Comment</H4>
-Comment in a statement does not start from any special character
-like <TT>;</TT> for example. Comment field is implied when appropriate
-number of operands was taken.<P>
-
-<HR></P><A NAME="faq">
-<H2><A HREF="#intro">INTRODUCTION</A>
-&nbsp;<A HREF="#usage">USAGE</A>
-&nbsp;<A HREF="#syntax">SYNTAX</A>
-&nbsp;FAQ
-&nbsp;<A HREF="index.htm">BACK</A>
-</H2>
+<HR>
+<A NAME="faq"><H2>FAQ</H2>
 <UL>
 <LI><B>Q:</B> Why does X-Asm ignore <TT>+2</TT> in following line?
 <PRE>label equ 1 +2
@@ -657,11 +710,12 @@ number of operands was taken.<P>
 <B>A:</B> X-Asm treats space as operand terminator. Remaining part of line
 is a comment. You should write <TT>1+2</TT> without any spaces.<P>
 
-<LI><B>Q:</B> Why does <TT>lda #&lt;table</TT> not work?<P>
-<B>A:</B> <TT>&lt;</TT> and <TT>&gt;</TT> represent addressing modes
-rather than LOW and HIGH operators.<BR>
-You specify <TT>lda &lt;table</TT>, not <TT>lda #&lt;table</TT>
-like in most 6502 assemblers.<P>
+<LI><B>Q:</B> Why does <TT>lda &gt;$abcd</TT> assemble to
+<TT>lda #$ab</TT>?<P>
+<B>A:</B> <TT>&lt;</TT> and <TT>&gt;</TT> are not only 'low' and 'high'
+operators, but also 'low of immediate' and 'high of immediate'
+addressing modes indicators.
+In order to get <TT>lda $ab</TT>, write <TT>lda +&gt;$abcd</TT><P>
 
 <LI><B>Q:</B> What's wrong with <TT>asl a</TT> ?<P>
 <B>A:</B> You should use <TT>@</TT> for accumulator addressing mode.<P>
@@ -705,10 +759,9 @@ the value of <TT>three</TT> in second pass.<P>
 When I fixed it, another error appeared. Why?<P>
 <B>A:</B> X-Asm displays only first error.<BR>
 When you were assembling for the first time, both errors might exist,
-but X-Asm stopped assembling on the first one.<P>
+but X-Asm stopped on the first one.<P>
 
 <LI> If you have other questions/problems,
 <A HREF=mailto:pfusik@elka.pw.edu.pl>write to me</A>.
 </UL>
-</BODY>
-</HTML>
+</BODY></HTML>

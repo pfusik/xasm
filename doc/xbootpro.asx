@@ -52,7 +52,7 @@ bufx	equ	*-2		Buffer index
 	mva	#3	^2f	Yes: Reset POKEY...
 init	jmp	($2e2)		... and call init routine
 
-	dta	c'4.0p'		Unused boot sector space
+	dta	c'5.0p'		Unused boot sector space
 	ert	*<>boot+$80	Exactly 128 bytes should be used
 
 * X-BOOT adds this block at the end of loaded file

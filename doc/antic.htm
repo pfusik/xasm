@@ -1,0 +1,105 @@
+<HTML>
+<HEAD>
+<TITLE>ANTIC Documentation</TITLE>
+</HEAD>
+<BODY BACKGROUND="atari.gif">
+<CENTER>
+<H1>ANTIC Documentation</H1>
+by <A HREF="mailto:pfusik@elka.pw.edu.pl">Fox/Taquart</A><P>
+<HR>
+<P>
+<H2>Registers</H2>
+<TABLE BORDER>
+<TR><TD><I>&nbsp;Address&nbsp;</I></TD><TD><I>&nbsp;Read register&nbsp;</I></TD><TD><I>&nbsp;Write register&nbsp;</I></TD></TR>
+<TR><TD ALIGN=center><TT>^40</TT></TD><TD>unused</TD><TD><A HREF="#dmactl">DMACTL</A></TD></TR>
+<TR><TD ALIGN=center><TT>^41</TT></TD><TD>unused</TD><TD><A HREF="#chrctl">CHRCTL</A></TD></TR>
+<TR><TD ALIGN=center><TT>^42</TT></TD><TD>unused</TD><TD><A HREF="#dlptr">DLPTRL</A></TD></TR>
+<TR><TD ALIGN=center><TT>^43</TT></TD><TD>unused</TD><TD><A HREF="#dlptr">DLPTRH</A></TD></TR>
+<TR><TD ALIGN=center><TT>^44</TT></TD><TD>unused</TD><TD><A HREF="#hscrol">HSCROL</A></TD></TR>
+<TR><TD ALIGN=center><TT>^45</TT></TD><TD>unused</TD><TD><A HREF="#vscrol">VSCROL</A></TD></TR>
+<TR><TD ALIGN=center><TT>^46</TT></TD><TD>unused</TD><TD>unused</TD></TR>
+<TR><TD ALIGN=center><TT>^47</TT></TD><TD>unused</TD><TD><A HREF="#pmbase">PMBASE</A></TD></TR>
+<TR><TD ALIGN=center><TT>^48</TT></TD><TD>unused</TD><TD>unused</TD></TR>
+<TR><TD ALIGN=center><TT>^49</TT></TD><TD>unused</TD><TD><A HREF="#chbase">CHBASE</A></TD></TR>
+<TR><TD ALIGN=center><TT>^4A</TT></TD><TD>unused</TD><TD><A HREF="#wsync">WSYNC</A></TD></TR>
+<TR><TD ALIGN=center><TT>^4B</TT></TD><TD><A HREF="#vcount">VCOUNT</A></TD><TD>unused</TD></TR>
+<TR><TD ALIGN=center><TT>^4C</TT></TD><TD><A HREF="#lpenh">LPENH</A></TD><TD>unused</TD></TR>
+<TR><TD ALIGN=center><TT>^4D</TT></TD><TD><A HREF="#lpenv">LPENV</A></TD><TD>unused</TD></TR>
+<TR><TD ALIGN=center><TT>^4E</TT></TD><TD>unused</TD><TD><A HREF="#nmien">NMIEN</A></TD></TR>
+<TR><TD ALIGN=center><TT>^4F</TT></TD><TD><A HREF="#nmist">NMIST</A></TD><TD>unused</TD></TR>
+</TABLE>
+<P>
+<HR>
+<P>
+<H2>Description</H2>
+</CENTER>
+
+<A NAME="chbase"><U>CHBASE</U>
+- <B>Characters base</B><BR>
+Contains high byte of character set in text modes.<P>
+
+<A NAME="chrctl"><U>CHRCTL</U>
+- <B>Characters control</B><BR>
+bit 0 - display characters 128-255 as spaces<BR>
+bit 1 - display characters 128-255 as inverse<BR>
+bit 2 - display all characters upside down<P>
+
+<A NAME="dlptr"><U>DLPTRL</U> <U>DLPTRH</U>
+- <B>Display List pointer</B><P>
+
+<A NAME="dmactl"><U>DMACTL</U>
+- <B>DMA control</B><BR>
+bits 1,0 - width of screen<BR>
+00 - screen off<BR>
+01 - narrow screen - 256 pixels<BR>
+10 - normal screen - 320 pixels<BR>
+11 - wide screen - 384 pixels<BR>
+bits 3,2 - DMA for Players/Missiles<BR>
+00 - no DMA for P/MG<BR>
+01 - DMA for missiles<BR>
+10 - DMA for players and missiles<BR>
+11 - DMA for players and missiles<BR>
+bit 4 - P/MG resolution<BR>
+0 - 120 lines<BR>
+1 - 240 lines<BR>
+bit 5 - DMA for Display List<BR>
+bits 7-6 - unused<P>
+
+<A NAME="hscrol"><U>HSCROL</U>
+- <B>Horizontal scroll</B><P>
+
+<A NAME="lpenh"><U>LPENH</U>
+- <B>Light pen horizontal position</B><P>
+
+<A NAME="lpenv"><U>LPENV</U>
+- <B>Light pen vertical position</B><P>
+
+<A NAME="nmien"><U>NMIEN</U>
+- <B>NMI enable</B><BR>
+bits 5-0 - unused<BR>
+bit 6 - enable VBLKI<BR>
+bit 7 - enable DLI<P>
+
+<A NAME="nmist"><U>NMIST</U>
+- <B>NMI status</B><BR>
+bits 5-0 - unused<BR>
+bit 6 - VBLKI occured<BR>
+bit 7 - DLI occured<P>
+
+<A NAME="pmbase"><U>PMBASE</U>
+- <B>Player/missile base</B><BR>
+High byte of P/MG data<P>
+
+<A NAME="vcount"><U>VCOUNT</U>
+- <B>Vertical count</B><BR>
+Contains number of scanline divided by 2.<P>
+
+<A NAME="vscrol"><U>VSCROL</U>
+- <B>Vertial scroll</B><P>
+
+<A NAME="wsync"><U>WSYNC</U>
+- <B>Wait for synchronization</B><BR>
+Any value written to this register stops CPU until right border of normal screen is reached.<P>
+
+</BODY>
+</HTML>
