@@ -611,7 +611,7 @@ fopen:	cmp	di, offset t_icl+l_icl-2
 	ret
 
 fread:	mov	ah, 3fh
-freacl:	mov	bx, [iclen]
+fread1:	mov	bx, [iclen]
 	mov	bx, [(icl bx).prev]
 	mov	bx, [(icl bx).handle]
 	mov	bp, offset e_read
@@ -620,7 +620,7 @@ freacl:	mov	bx, [iclen]
 	ret
 
 fclose:	mov	ah, 3eh
-	call	freacl
+	call	fread1
 	mov	bx, [iclen]
 	cmp	bx, [srcen]
 	jne	fclos1
@@ -1048,12 +1048,14 @@ vlabel:	push	bx
 	jnc	vlabfn
 	jpass1	vlukp1
 	error	e_undec
-vlabfn:	test	[(lab bx).flags], m_ukp1
-	jz	vlabkn
-	jpass1	vlukp1
+vlabfn:	jpass1	vlchuk
 	cmp	bx, [pslab]
-	jb	vlukp1
+	jb	vlchuk
+	test	[(lab bx).flags], m_ukp1
+	jz	vlukp1
 	error	e_fref
+vlchuk:	test	[(lab bx).flags], m_ukp1
+	jz	vlabkn
 vlukp1:	mov	[ukp1], 0ffh
 vlabkn:	bt	[word (lab bx).flags], b_sign
 	sbb	eax, eax
@@ -1174,9 +1176,19 @@ brange:	cmp	eax, 100h
 
 spauns:	call	spaces
 getuns:	call	getval
-	jc	v_ret
+	pushf
+	jnc	getun1
+	jpass1	getun2
+getun1:	test	eax, eax
+	js	orange
+getun2:	popf
+unsret:	ret
+
+getpos:	call	getval
+	jc	unknow
 	test	eax, eax
-	jns	v_ret
+	jg	unsret
+
 orange:	error	e_range
 
 mbrack:	error	e_brack
@@ -1805,10 +1817,7 @@ dtan2:	lodsd
 	mov	[sinadd], ax
 	call	valuco
 	mov	[sinamp], ax
-	call	getuns
-	jc	unknow
-	test	ax, ax
-	jz	badsin
+	call	getpos
 	mov	[sinsiz], ax
 	mov	[sinmin], 0
 	dec	ax
@@ -2048,10 +2057,38 @@ p_icl:	call	rfname
 	jmp	opfile
 
 p_ins:	call	rfname
-	call	fopen
+	xor	eax, eax
+	mov	[insofs], eax
+	mov	[inslen], ax
+	lodsb
+	cmp	al, ','
+	jne	p_ii2
+	push	di
+	call	getval
+	jc	unknow
+	mov	[insofs], eax
+	lodsb
+	cmp	al, ','
+	jne	p_ii1
+	call	getpos
+	mov	[inslen], ax
+	inc	si
+p_ii1:	pop	di
+p_ii2:	dec	si
 	push	si
-p_in1:	mov	cx, 256
-	mov	dx, offset tlabel
+	call	fopen
+	mov	dx, [word insofs]
+	mov	cx, [word high insofs]
+	mov	ax, 4200h
+	jcxz	p_ip1
+	mov	al, 2
+p_ip1:	call	fread1
+p_in1:	mov	cx, [inslen]
+	jcxz	p_in2
+	test	ch, ch
+	jz	p_in3
+p_in2:	mov	cx, 256
+p_in3:	mov	dx, offset tlabel
 	call	fread
 	jz	p_inx
 	cwde
@@ -2059,16 +2096,23 @@ p_in1:	mov	cx, 256
 	mov	bx, [(icl bx).prev]
 	add	[(icl bx).line], eax
 	mov	si, offset tlabel
+	push	ax
 	sta	cx
-p_in2:	lodsb
+p_inp:	lodsb
 	push	cx
 	call	savbyt
 	pop	cx
-	loop	p_in2
-	jmp	p_in1
+	loop	p_inp
+	pop	ax
+	cmp	[inslen], 0
+	jz	p_in1
+	sub	[inslen], ax
+	jnz	p_in1
 p_inx:	call	fclose
 	pop	si
-	ret
+	cmp	[inslen], 0
+	jz	rlret
+	error	e_fshor
 
 p_end:	pop	ax
 	call	linend
@@ -2229,7 +2273,7 @@ noper1	=	$-opert1
 
 swilet	db	'TSOLIC'
 
-hello	db	'X-Assembler 2.0à by Fox/Taquart',eot
+hello	db	'X-Assembler 2.0á by Fox/Taquart',eot
 hellen	=	$-hello-1
 usgtxt	db	"Syntax: XASM source [options]",eol
 	db	"/c         List false conditionals",eol
@@ -2291,6 +2335,7 @@ e_eifex	db	'EIF expected',eol
 e_mift	db	'Missing IFT',eol
 e_meif	db	'Missing EIF',eol
 e_norg	db	'No ORG specified',eol
+e_fshor	db	'File is too short',eol
 
 exitcod	dw	4c00h
 ohand	dw	nhand
@@ -2329,6 +2374,8 @@ op1	dd	?
 	dw	?
 op2	dd	?
 	dw	?
+insofs	dd	?
+inslen	dw	?
 
 IFNDEF	compak
 	undata
