@@ -6,11 +6,11 @@
 	CODESEG
 	ORG	100h
 start:
-	db	4096 dup(0)	;for packing
+	db	5*1024 dup(0)	;for packing
 
 l_icl	=	1000
 l_org	=	1000*2
-l_lab	=	50000
+l_lab	=	48000
 
 STRUC	com
 cod	db	?
@@ -28,6 +28,11 @@ nam	db	?
 STRUC	lab
 prev	dw	?
 val	dw	?
+flags	db	?
+b_sign	=	7
+m_sign	=	80h
+m_lnus	=	40h
+m_ukp1	=	20h
 nam	db	?
 	ENDS
 
@@ -42,12 +47,22 @@ m_eofl	=	40h
 eol	equ	13,10
 eot	equ	13,10,'$'
 
-MACRO	lda	_rg
-	xchg	ax, _rg	;shorter than 'mov ax, _rg'
+MACRO	lda	_rg	;shorter than 'mov (e)ax, _rg'
+_rge	SUBSTR	<_rg>, 1, 1
+IFIDNI	_rge, <e>
+	xchg	eax, _rg
+ELSE
+	xchg	ax, _rg
+ENDIF
 	ENDM
 
-MACRO	sta	_rg
-	xchg	_rg, ax	;shorter than 'mov _rg, ax'
+MACRO	sta	_rg	;shorter than 'mov _rg, (e)ax'
+_rge	SUBSTR	<_rg>, 1, 1
+IFIDNI	_rge, <e>
+	xchg	_rg, eax
+ELSE
+	xchg	_rg, ax
+ENDIF
 	ENDM
 
 MACRO	dos	_func
@@ -102,6 +117,14 @@ _tp	SUBSTR	<_oper>, _ct, 1
 %	db	'&_tp'
 	ENDM
 _tp	SUBSTR	<_oper>, 6
+	dw	_tp
+	ENDM
+
+MACRO	opr	_oper
+_tp	SUBSTR	<_oper>, 1, 1
+	db	_tp
+_tp	SUBSTR	<_oper>, 2
+_tp	CATSTR	<v_>, _tp
 	dw	_tp
 	ENDM
 
@@ -180,31 +203,37 @@ syntax:	mov	si, offset line
 	je	s_cmd
 	cmp	al, 9
 	je	s_cmd
-	call	rlabel
-	jc	asilab
-	cmp	bx, [p1laben]
-	jnb	ltwice
-	mov	[pslaben], bx
-	inc	[labvec]	;1
-	jmp	s_cmd
-ltwice:	error	e_twice
-asilab:	push	si
+	jpass2	deflp2
+	call	flabel
+	jnc	ltwice
+	push	si
 	mov	si, offset tlabel
 	mov	di, [laben]
-	scasw
 	mov	[labvec], di
+	scasw	;add di, 2
 	mov	ax, [origin]
 	stosw
-	mov	ax, di
-	add	ax, dx
-	cmp	ax, offset t_lab+l_lab
-	jnb	tmlab
+	mov	al, m_lnus
+	stosb
 	mov	cx, dx
 	rep	movsb
 	mov	ax, di
+	cmp	ax, offset t_lab+l_lab-5
+	jnb	tmlab
 	xchg	ax, [laben]
 	stosw
 	pop	si
+	jmp	s_cmd
+
+ltwice:	error	e_twice
+tmlab:	error	e_tlab
+
+deflp2:	call	rlabel
+	mov	ax, [pslab]
+	mov	[labvec], ax
+	add	ax, offset (lab).nam
+	add	ax, dx
+	mov	[pslab], ax
 
 s_cmd:	lodsb
 	cmp	al, ' '
@@ -277,9 +306,6 @@ adex1:	mov	[byte di-1], '.'
 	mov	[orgvec], offset t_org
 	xor	ax, ax
 	call	pheadr
-	mov	ax, [laben]
-	mov	[p1laben], ax
-	inc	[pslaben]	;0
 	jmp	begin
 
 fin:	mov	bx, [ohand]
@@ -293,8 +319,6 @@ fin:	mov	bx, [ohand]
 	print	byttxt
 	mov	ax, [exitcod]
 	dos
-
-tmlab:	error	e_tlab
 
 linlon:	push	offset e_long
 	jmp	erron
@@ -503,81 +527,95 @@ rstr1:	call	get
 
 strer:	error	e_str
 
-; Przepisuje etykiete do tlabel, szuka w t_lab
-; na wyjsciu: dx-dlugosc etykiety
-; C=0: znaleziona, bx=adres wpisu
-; C=1: nie ma jej
+; Przepisuje etykiete do tlabel (wyj: dx-dl.etykiety)
 rlabel:	mov	di, offset tlabel
 	mov	[byte di], 0
-ldlab1:	lodsb
+rlab1:	lodsb
 	cmp	al, '0'
-	jb	sflab0
+	jb	rlabx
 	cmp	al, '9'
-	jbe	ldlab2
+	jbe	rlab2
 	cmp	al, 'A'
-	jb	sflab0
+	jb	rlabx
 	cmp	al, 'Z'
-	jbe	ldlab2
+	jbe	rlab2
 	cmp	al, '_'
-	je	ldlab2
+	je	rlab2
 	cmp	al, 'a'
-	jb	sflab0
+	jb	rlabx
 	cmp	al, 'z'
-	ja	sflab0
+	ja	rlabx
 	add	al, 'A'-'a'
-ldlab2:	stosb
-	jmp	ldlab1
-sflab0:	mov	dx, di
+rlab2:	stosb
+	jmp	rlab1
+rlabx:	mov	dx, di
 	mov	di, offset tlabel
 	cmp	[byte di], 'A'
 	jb	ilchar
 	sub	dx, di
 	dec	si
+	ret
+
+; Czyta etykiete i szuka w t_lab
+; wyj: dx-dlugosc etykiety
+; C=0: znaleziona, bx=adres wpisu
+; C=1: nie ma jej
+flabel:	call	rlabel
 	push	si
 	mov	bx, [laben]
-sflab1:	cmp	bx, offset (lab t_lab).nam
-	jb	sflabn
-	lea	cx, [bx-4]
+flab1:	cmp	bx, offset t_lab
+	jb	flabx
+	lea	cx, [bx-5]
 	mov	bx, [(lab bx).prev]
 	sub	cx, bx
 	cmp	cx, dx
-	jne	sflab1
+	jne	flab1
 	lea	si, [(lab bx).nam]
 	mov	di, offset tlabel
 	repe	cmpsb
-	jne	sflab1
+	jne	flab1
 	clc
-sflabn:	pop	si
+flabx:	pop	si
 	ret
 
-getval:	call	spaces
+wropar:	error	e_wpar
+
+spaval:	call	spaces
 ; Czyta wyrazenie i zwraca jego wartosc w [val]
 ; (C=1 wartosc nieokreslona w pass 1)
-value:	mov	[val], 0
-	mov	[ukp1], 0
-	lodsb
+getval:	xor	bx, bx
+	mov	[ukp1], bh
+	push	bx
+
+v_lop:
+v_par1:	inc	bh
+	call	get
+	cmp	al, '['
+	je	v_par1
+	cmp	al, '('
+	je	wropar
 	cmp	al, '-'
 	je	valuem
 	dec	si
 	mov	al, '+'
-
-valuem:	mov	[oper], al
+valuem:	mov	bl, al
+	xor	eax, eax
 	call	get
 	cmp	al, '*'
 	je	valorg
-	xor	dx, dx
 	cmp	al, "'"
 	je	valchr
 	cmp	al, '^'
 	je	valreg
-	mov	ch, -1
-	mov	bx, 16
+	mov	bp, -1
+	xor	edx, edx
+	mov	ecx, 16
 	cmp	al, '$'
 	je	rdnum3
-	mov	bl, 2
+	mov	cl, 2
 	cmp	al, '%'
 	je	rdnum3
-	mov	bl, 10
+	mov	cl, 10
 	cmp	al, '0'
 	jb	ilchar
 	cmp	al, '9'
@@ -590,27 +628,39 @@ rdnum1:	cmp	al, '9'
 	jb	value0
 	add	al, '0'+10-'A'
 rdnum2:	sub	al, '0'
-	cmp	al, bl
+	cmp	al, cl
 	jnb	value0
-	movzx	cx, al
-	mov	ax, dx
-	mul	bx
-	add	ax, cx
-	adc	dx, dx
+	movzx	ebp, al
+	lda	edx
+	mul	ecx
+	add	eax, ebp
+	js	toobig
+	adc	edx, edx
 	jnz	toobig
-	sta	dx
+	sta	edx
 rdnum3:	lodsb
 	jmp	rdnum1
 
-vlabel:	dec	si
-	call	rlabel
-	jnc	vlabkn
-	jpass1	vlabun
-	jmp	unknow
-vlabkn:	mov	dx, [(lab bx).val]
-	cmp	bx, [pslaben]
-	jbe	value1
-vlabun:	mov	[ukp1], 0ffh
+vlabel:	push	bx
+	dec	si
+	call	flabel
+	jnc	vlabfn
+	jpass1	vlukp1
+	error	e_undec
+vlabfn:	test	[(lab bx).flags], m_ukp1
+	jz	vlabkn
+	jpass1	vlukp1
+	cmp	bx, [pslab]
+	jb	vlukp1
+	error	e_fref
+vlukp1:	mov	[ukp1], 0ffh
+vlabkn:	bt	[word (lab bx).flags], b_sign
+	sbb	eax, eax
+	mov	ax, [(lab bx).val]
+	pop	bx
+	jmp	value1
+
+valorg:	mov	ax, [origin]
 	jmp	value1
 
 valchr:	call	get
@@ -619,14 +669,13 @@ valchr:	call	get
 	lodsb
 	cmp	al, "'"
 	jne	strer
-valch1:	mov	dl, al
-	lodsb
-	cmp	al, "'"
+valch1:	cmp	[byte si], "'"
 	jne	strer
+	inc	si
 	cmp	[byte si], '*'
 	jne	value1
 	inc	si
-	xor	dl, 80h
+	xor	al, 80h
 	jmp	value1
 
 valreg:	call	get
@@ -647,33 +696,192 @@ valre1:	sub	al, '0'
 	cmp	al, 0fh
 	ja	ilchar	
 	cmp	ah, 0d1h
-	jne	valre2
+	jne	value1
 	sub	ax, 0f0h
-valre2:	sta	dx
-	jmp	value1
-
-valorg:	mov	dx, [origin]
-	jmp	value1
+valre2:	jmp	value1
 
 value0:	dec	si
-	test	ch, ch
-	jnz	ilchar
-value1:	cmp	[oper], '-'
+	test	bp, bp
+	js	ilchar
+	lda	edx
+value1:	cmp	bl, '-'
 	jne	value2
-	neg	dx
-value2:	add	[val], dx
-	
+	neg	eax
+value2:	push	eax
+v_par2:	dec	bh
+	js	mbrack
 	lodsb
-	cmp	al, '+'
-	je	valuem
-	cmp	al, '-'
-	je	valuem
+	cmp	al, ']'
+	je	v_par2
+
+	mov	ah, [si]
+	mov	di, offset opert2
+	mov	cx, noper2
+	repne	scasw
+	je	foper2
+	mov	cx, noper1
+	repne	scasb
+	je	foper1
+	test	bh, bh
+	jnz	mbrack
 	dec	si
-	mov	al, 1
-	cmp	al, [ukp1]
+	mov	di, offset opert1
+foper1:	sub	di, offset opert1
+	jmp	goper
+foper2:	inc	si
+	sub	di, offset opert2
+	shr	di, 1
+	add	di, noper1
+goper:	lea	ax, [di+operpa]
+	add	di, di
+	add	di, ax
+	mov	bl, [di]
+	mov	bp, [di+1]
+	pop	eax
+v_com:	pop	cx
+	cmp	cx, bx
+	jb	v_xcm
+	pop	ecx
+	xchg	eax, ecx
+	pop	dx
+	push	offset v_com
+	push	dx
+	ret
+v_xcm:	cmp	bl, 1
+	jbe	v_xit
+	push	cx bp eax bx
+	jmp	v_lop
+v_xit:	mov	[dword val], eax
+	cmp	[ukp1], 1
+	cmc
+	jc	v_ret
+	cmp	eax, 10000h
+	cmc
+	jnb	v_ret
+	cmp	eax, -0ffffh
+	jb	orange
 	ret
 
+brange:	cmp	eax, 100h
+	jb	v_ret
+	cmp	eax, -0ffh
+	jb	orange
+	ret
+
+spauns:	call	spaces
+getuns:	call	getval
+	jc	v_ret
+	test	eax, eax
+	jns	v_ret
+orange:	error	e_range
+
+mbrack:	error	e_brack
+
 toobig:	error	e_nbig
+
+v_add:	add	eax, ecx
+	jmp	v_cov
+
+v_sub:	sub	eax, ecx
+v_cov:	jno	v_ret
+oflow:	error	e_over
+
+div0:	error	e_div0
+
+v_mul:	mov	edx, ecx
+	xor	ecx, eax
+	imul	edx
+	test	ecx, ecx
+	js	v_mu1
+	test	edx, edx
+	jnz	oflow
+	test	eax, eax
+	js	oflow
+	ret
+v_mu1:	inc	edx
+	jnz	oflow
+	test	eax, eax
+	jns	oflow
+	ret
+
+v_div:	jecxz	div0
+	cdq
+	idiv	ecx
+	ret
+
+v_mod:	jecxz	div0
+	cdq
+	idiv	ecx
+	sta	edx
+v_ret:	ret
+
+v_sln:	neg	ecx
+v_sal:	test	ecx, ecx
+	js	v_srn
+	jz	v_ret
+	cmp	ecx, 20h
+	jb	v_sl1
+	test	eax, eax
+	jnz	oflow
+	ret
+v_sl1:	add	eax, eax
+	jo	oflow
+	loop	v_sl1
+	ret
+
+v_srn:	neg	ecx
+v_sar:	test	ecx, ecx
+	js	v_sln
+	cmp	ecx, 20h
+	jb	v_sr1
+	mov	cl, 1fh
+v_sr1:	sar	eax, cl
+	ret
+
+v_and:	and	eax, ecx
+	ret
+
+v_or:	or	eax, ecx
+	ret
+
+v_xor:	xor	eax, ecx
+	ret
+
+v_equ:	cmp	eax, ecx
+	je	v_one
+v_zer:	xor	eax, eax
+	ret
+v_one:	mov	eax, 1
+	ret
+
+v_neq:	cmp	eax, ecx
+	jne	v_one
+	jmp	v_zer
+
+v_les:	cmp	eax, ecx
+	jl	v_one
+	jmp	v_zer
+
+v_grt:	cmp	eax, ecx
+	jg	v_one
+	jmp	v_zer
+
+v_leq:	cmp	eax, ecx
+	jle	v_one
+	jmp	v_zer
+
+v_geq:	cmp	eax, ecx
+	jge	v_one
+	jmp	v_zer
+
+v_anl:	jecxz	v_zer
+	test	eax, eax
+	jz	v_ret
+	jmp	v_one
+
+v_orl:	or	eax, ecx
+	jz	v_ret
+	jmp	v_one
 
 ; Pobiera operand rozkazu i rozpoznaje tryb adresowania
 getadr:	call	spaces
@@ -681,15 +889,12 @@ getadr:	call	spaces
 	xor	dx, dx
 	cmp	al, '@'
 	je	getadx
-	inc	dx
 	cmp	al, '#'
-	je	getad1
-	mov	dl, 4
+	je	getaim
 	cmp	al, '<'
-	je	getad1
-	inc	dx
+	je	getaim
 	cmp	al, '>'
-	je	getad1
+	je	getaim
 	mov	dl, 8
 	cmp	al, '('
 	je	getad1
@@ -707,18 +912,15 @@ getadr:	call	spaces
 	xor	dx, dx
 	
 getad1:	push	dx
-	call	value
+	call	getuns
 	sbb	al, al
 	jnz	getad2
 	mov	al, [byte high val]
 getad2:	pop	dx
 	cmp	dl, 8
 	jae	getaid
-	cmp	dl, 4
-	jae	getalh
-	cmp	dl, 1
-	je	getadx
-	ja	getad3
+	cmp	dl, 2
+	jae	getad3
 	cmp	al, 1
 	adc	dl, 2
 getad3:	lodsw
@@ -746,19 +948,23 @@ getadx:	lda	dx
 	mov	[word amod], ax
 	ret
 
-getalh:	mov	bx, offset val
-	je	getal1
-	inc	bx
-getal1:	movzx	ax, [bx]
-	mov	[val], ax
-	mov	dl, 1
+getaim:	cmp	al, '<'
+	pushf
+	call	getval
+	popf
+	jb	getai2
+	je	getai1
+	mov	al, ah
+getai1:	movzx	eax, al
+	mov	[dword val], eax
+getai2:	mov	dx, 1
 	jmp	getadx
 
 getaid:	lodsb
 	cmp	al, ','
 	je	getaix
 	cmp	al, ')'
-	jne	mbrack
+	jne	mparen
 	lodsw
 	mov	dx, 709h
 	cmp	ax, '0,'
@@ -875,11 +1081,10 @@ putcmd:	call	savbyt
 	xlat
 	cmp	al, 2
 	jb	putret
-	mov	ax, [val]
+	mov	eax, [dword val]
 	jne	savwor
 	jpass1	putcm1
-	test	ah, ah
-	jnz	toobig
+	call	brange
 putcm1:	jmp	savbyt
 
 p_sti:	call	getadr
@@ -931,7 +1136,7 @@ toofar:	cmp	ax, 8080h
 	sub	ax, 0ffh
 	neg	ax
 toofa1:	neg	ax
-	mov	di, offset brange
+	mov	di, offset brout
 	call	phword
 	error	e_bra
 
@@ -996,13 +1201,13 @@ getops:	call	getadr
 	movzx	bx, [cod]
 	add	bx, offset movtab
 ldop1:	mov	si, offset op1
-ldop:	lodsw
-	mov	[val], ax
+ldop:	lodsd
+	mov	[dword val], eax
 	lodsw
 	mov	[word amod], ax
 	ret
-stop:	mov	ax, [val]
-	stosw
+stop:	mov	eax, [dword val]
+	stosd
 	mov	ax, [word amod]
 	stosw
 	ret
@@ -1036,6 +1241,7 @@ p_mws:	call	getops
 	cmp	al, 1
 	jne	p_mw1
 	mov	[byte high val], 0
+	mov	[word val+2], 0
 p_mw1:	call	mcall1
 	mov	si, offset op2
 	call	ldop
@@ -1047,12 +1253,12 @@ p_mw1:	call	mcall1
 	je	p_mwi
 	inc	[val]
 	jmp	p_mw2
-p_mwi:	movzx	ax, [byte high val]
+p_mwi:	movzx	eax, [byte high val]
 	cmp	[ukp1], ah	;0
 	jnz	p_mwh
 	cmp	al, [byte val]
 	je	p_mw3
-p_mwh:	mov	[val], ax
+p_mwh:	mov	[dword val], eax
 p_mw2:	call	mcall1
 p_mw3:	mov	si, offset op2
 	call	ldop
@@ -1061,26 +1267,30 @@ p_mw3:	mov	si, offset op2
 
 p_opt:	error	e_opt
 
+p_ert:	call	spaval
+	jpass1	equret
+	test	eax, eax
+	jz	equret
+	error	e_user
+
 p_equ:	mov	di, [labvec]
-	cmp	di, 1
-	jb	nolabl
-	je	equret
-	mov	[word di], 0
-	call	getval
+	test	di, di
+	jz	nolabl
+	mov	[(lab di).val], 0
+	and	[(lab di).flags], not m_sign
+	call	spaval
 	mov	di, [labvec]
 	jnc	equ1
-	jpass1	lbund
-equ1:	mov	ax, [val]
-	stosw
+	or	[(lab di).flags], m_ukp1
+equ1:	mov	[(lab di).val], ax
+	test	eax, eax
+	jns	equret
+	or	[(lab di).flags], m_sign
 equret:	ret
-
-lbund:	lea	ax, [di-2]
-	mov	[laben], ax
-	ret
 
 nolabl:	error	e_label
 
-p_org:	call	getval
+p_org:	call	spauns
 	jc	unknow
 p_org1:	jpass2	org1
 	call	putorg
@@ -1111,11 +1321,11 @@ tmorgs:	error	e_orgs
 p_rui:	mov	ah, 2
 	mov	[val], ax
 	call	p_org1
-	call	getval
+	call	spauns
 	mov	ax, [val]
 	jmp	savwor
 
-valuco:	call	value
+valuco:	call	getval
 	jc	unknow
 	call	get
 	cmp	al, ','
@@ -1144,7 +1354,7 @@ dta1:	call	get
 
 dtan1:	lodsb
 	cmp	al, '('
-	jne	mbrack
+	jne	mparen
 
 dtan2:	lodsd
 	and	eax, 0ffdfdfdfh
@@ -1154,11 +1364,10 @@ dtan2:	lodsd
 	mov	[sinadd], ax
 	call	valuco
 	mov	[sinamp], ax
-	call	value
+	call	getuns
 	jc	unknow
 	mov	ax, [val]
 	test	ax, ax
-	js	badsin
 	jz	badsin
 	mov	[sinsiz], ax
 	mov	[sinmin], 0
@@ -1170,20 +1379,18 @@ dtan2:	lodsd
 	cmp	al, ','
 	jne	badsin
 	call	valuco
-	test	ax, ax
+	test	eax, eax
 	js	badsin
 	mov	[sinmin], ax
-	call	value
+	call	getuns
 	jc	unknow
 	mov	ax, [val]
-	test	ax, ax
-	js	badsin
 	cmp	ax, [sinmin]
 	jb	badsin
 	mov	[sinmax], ax
 	lodsb
 	cmp	al, ')'
-	jne	mbrack
+	jne	mparen
 presin:	finit
 	fldpi
 	fld	st
@@ -1200,7 +1407,7 @@ gensin:	fild	[sinmin]
 	jmp	dtasto
 	
 dtansi:	sub	si, 4
-	call	value
+	call	getval
 dtasto:	jpass1	dtan3
 	mov	al, [cod]
 	cmp	al, 'B'
@@ -1213,10 +1420,9 @@ dtasto:	jpass1	dtan3
 	call	savwor
 	jmp	dtanx
 
-dtanb:	mov	ax, [val]
-	test	ah, ah
-	jz	dtans
-	jmp	toobig
+dtanb:	mov	eax, [dword val]
+	call	brange
+	jmp	dtans
 
 dtanl:	mov	al, [byte low val]
 	jmp	dtans
@@ -1238,7 +1444,7 @@ dtanx:	mov	ax, [sinmin]
 	cmp	al, ')'
 	je	dtanxt
 
-mbrack:	error	e_brack
+mparen:	error	e_paren
 
 unknow:	error	e_uknow
 
@@ -1348,6 +1554,7 @@ comtab:	cmd	ADC60p_acc
 	cmd	END00p_end
 	cmd	EOR40p_acc
 	cmd	EQU00p_equ
+	cmd	ERT00p_ert
 	cmd	ICL00p_icl
 	cmd	INCe0p_srt
 	cmd	INIe2p_rui
@@ -1404,7 +1611,33 @@ comtab:	cmd	ADC60p_acc
 	cmd	TYA98p_imp
 comend:
 
-hello	db	'X-Assembler 1.5 by Fox/Taquart',eot
+operpa:	opr	1ret
+	opr	5add
+	opr	5sub
+	opr	6mul
+	opr	6div
+	opr	6mod
+	opr	6and
+	opr	5or
+	opr	5xor
+	opr	4equ
+	opr	4les
+	opr	4grt
+	opr	6sal
+	opr	6sar
+	opr	4leq
+	opr	4geq
+	opr	4neq
+	opr	4neq
+	opr	3anl
+	opr	2orl
+
+opert2	db	'<<>><=>=<>!=&&||'
+noper2	=	($-opert2)/2
+opert1	db	'+-*/%&|^=<>'
+noper1	=	$-opert1
+
+hello	db	'X-Assembler 1.6 by Fox/Taquart',eot
 usgtxt	db	'Give a source filename. Default extension is .ASX.',eol
 	db	'Object file will be written with .COM extension.',eot
 lintxt	db	' lines assembled',eot
@@ -1425,28 +1658,35 @@ e_char	db	'Illegal character',eol
 e_twice	db	'Label declared twice',eol
 e_inst	db	'Illegal instruction',eol
 e_nbig	db	'Number too big',eol
-e_uknow	db	'Unknown value',eol
 e_xtra	db	'Extra characters on line',eol
 e_label	db	'Label name required',eol
 e_str	db	'String error',eol
 e_orgs	db	'Too many ORGs',eol
-e_brack	db	'Need parenthesis',eol
+e_paren	db	'Need parenthesis',eol
 e_tlab	db	'Too many labels',eol
-e_amod	db	'Illegal adressing mode',eol
+e_amod	db	'Illegal addressing mode',eol
 e_bra	db	'Branch out of range by $'
-brange	db	'     bytes',eol
+brout	db	'     bytes',eol
 e_sin	db	'Bad or missing sinus parameter',eol
 e_spac	db	'Space expected',eol
 e_opt	db	'OPT directive not supported',eol
+e_over	db	'Arithmetic overflow',eol
+e_div0	db	'Divide by zero',eol
+e_range	db	'Value out of range',eol
+e_uknow	db	'Label not defined before',eol
+e_undec	db	'Undeclared label',eol
+e_fref	db	'Illegal forward reference',eol
+e_wpar	db	'Use square brackets instead',eol
+e_brack	db	'Not matching brackets',eol
+e_user	db	'User error',eol
 
 exitcod	dw	4c00h
 flags	db	0
 lines	dd	0
 bytes	dd	0
 iclen	dw	t_icl
-laben	dw	t_lab
-p1laben	dw	0
-pslaben	dw	-1
+laben	dw	t_lab-2
+pslab	dw	t_lab-2
 orgvec	dw	t_org
 sinmin	dw	1
 sinmax	dw	0
@@ -1454,7 +1694,7 @@ sinadd	dw	?
 sinamp	dw	?
 sinsiz	dw	?
 ohand	dw	?
-val	dw	?
+val	dw	?,?
 amod	db	?,?
 ukp1	db	?,?
 oper	db	?
@@ -1463,14 +1703,16 @@ origin	dw	?
 labvec	dw	?
 fnad	dw	?
 tempsi	dw	?
-op1	dw	?,?
-op2	dw	?,?
+op1	dd	?
+	dw	?
+op2	dd	?
+	dw	?
 
 line	db	258 dup(?)
 tlabel	db	256 dup(?)
 t_icl	db	l_icl dup(?)
 t_org	db	l_org dup(?)
-t_lab	db	l_lab+4 dup(?)
+t_lab	db	l_lab dup(?)
 
 	ENDS
 	END	start
