@@ -1,14 +1,14 @@
-<HTML><HEAD><TITLE>X-Assembler 2.3 Manual</TITLE></HEAD>
+<HTML><HEAD><TITLE>X-Assembler 2.4</TITLE></HEAD>
 <BODY BACKGROUND="6502proc.gif">
 <CENTER>
-<H1>X-Assembler version 2.3</H1>
-by <A HREF="mailto:pfusik@elka.pw.edu.pl">Fox/Taquart</A><P>
+<H1>X-Assembler version 2.4</H1>
 <HR>
 <H2>TABLE OF CONTENTS</H2>
 <TABLE><TR><TD>
 <UL><LI><A HREF="#intro">INTRODUCTION</A>
 <UL><LI><A HREF="#changes">Changes</A>
-<UL><LI><A HREF="#ver23">Version 2.3</A>
+<UL><LI><A HREF="#ver24">Version 2.4</A>
+<LI><A HREF="#ver23">Version 2.3</A>
 <LI><A HREF="#ver22">Version 2.2</A>
 <LI><A HREF="#ver20">Version 2.0</A>
 <LI><A HREF="#ver12">Version 1.2</A>
@@ -40,10 +40,32 @@ by <A HREF="mailto:pfusik@elka.pw.edu.pl">Fox/Taquart</A><P>
 </TD></TR></TABLE></CENTER>
 <P><HR>
 <A NAME="intro"><H2>INTRODUCTION</H2>
-The X-Assembler is a cross-assembler generating code for the 6502 processor.
+The X-Assembler is a cross-assembler, which generates code for the 6502 processor.
 It has been designed to be easy to use for Quick Assembler programmers,
 therefore its syntax is an extension of QA's one.<BR>
 <A NAME="changes"><H3>Changes</H3>
+<A NAME="ver24"><H4>Version 2.4</H4>
+<UL>
+<LI> fixed a bug causing incorrect unary operator precedence
+<LI> fixed wrong label value after a skip pseudo-command
+<LI> the assembler is .EXE (.COM caused problems with DJGPP make due
+to a bug in DJGPP runtime)
+<LI> the assembler is not compressed (so it occupies less space in the ZIP)
+<LI> improved command-line parsing: options may be used before source file
+name, tab character is a valid separator, <TT>/</TT> may be used as directory
+separator (Unix convention)
+<LI> error and warning messages are written to stderr, not stdout
+<LI> added <TT>==</TT> (equal) operator, which is equivalent to <TT>=</TT>
+(but is more natural for C/C++/Java programmers)
+<LI> <A HREF="#new_deflabel">added <TT>/d:label=value</TT> option: define a label</A>
+<LI> <A HREF="#new_fullpaths">added <TT>/p</TT> option: print full paths in listing and error messages</A>
+<LI> <A HREF="#new_quiet">added <TT>/q</TT> option: quiet mode</A>
+<LI> <A HREF="#new_unlabels">added <TT>/u</TT> option: warn of unused labels</A>
+<LI> <A HREF="#new_opto">writing to the object file may be suppressed with <TT>OPT O-</TT></A>
+<LI> <A HREF="#new_eli">added <TT>ELI</TT> (else if) directive</A>
+<LI> <A HREF="#new_mwinde"><TT>MWX</TT> and <TT>MWY</TT> may use <TT>INX</TT>/<TT>DEX</TT>
+and <TT>INY</TT>/<TT>DEY</TT>, respectively, for generating smaller code</A>
+</UL>
 <A NAME="ver23"><H4>Version 2.3</H4>
 <UL>
 <LI> double skip (e.g. <TT>SCC:SNE</TT>) bug fixed
@@ -107,7 +129,7 @@ assembling only if source newer than object option</A>
 <A NAME="sysreq"><H3>System requirements</H3>
 <UL>
 <LI> a PC compatible computer with 386 or better CPU
-(a numeric coprocessor is required for generating sinus tables)
+(a numeric coprocessor is required for generating sine lookup tables)
 <LI> a MS-DOS compatible OS
 </UL>
 <A NAME="srcreq"><H3>Source code requirements</H3>
@@ -116,7 +138,7 @@ assembling only if source newer than object option</A>
 Although different EOLs are supported,
 CR/LF is recommended because it is standard for text files on PC.
 <LI> No line of source can be longer than 256 characters.
-<LI> There is no limitation on the length of the source.
+<LI> There is no limitation on the length of the source file.
 <LI> Tabulators can be used in place of spaces.
 <LI> The assembler is not case-sensitive.
 </UL>
@@ -139,40 +161,75 @@ Following options are supported:
 <DT><TT>/c</TT>
 <DD>Enable listing false conditionals.<BR>
 By default lines skipped due to false condition are not listed.<P>
+<A NAME="new_deflabel">
+<DT><TT>/d:label=value</TT>
+<DD>Define a label.<BR>
+<TT>label</TT> should be a valid label name.
+<TT>value</TT> may be any expression (it may use forward references
+to labels defined in the source file).
+You may use several <TT>/d</TT> options to define many labels
+from the command line.<P>
 <A NAME="new_environment">
 <DT><TT>/e</TT>
 <DD>Enable setting environment variables pointing to the error location.<BR>
 With this option, X-Asm sets two environment variables:
 ERRFILE and ERRLINE.
 They may be used in a batch file to locate error and set editor's
-insertion point on it. For example, in my batch file I use such a construction:
+insertion point on it. For example, you may create following batch file:
 <PRE>XASM %1 /e
 IF NOT ERRORLEVEL 1 GOTO ok
 NCE +%ERRLINE% %ERRFILE%
+:ok
 </PRE>
 NCE stands for Norton Classic Editor.<P>
-If there was no error, variables point at last issued warning.
+If there was no error, variables point to the last issued warning.
 If no warning occured, they are removed from the environment.<P>
+<B>Note:</B> NCE is an old editor for DOS. To learn about integration with
+modern text editors for Windows <A HREF="editors.htm">read this</A>.
+<P>
 <DT><TT>/i</TT>
 <DD>Disable listing included source. Only main source file will be listed.<P>
-<DT><TT>/l[:fname]</TT>
+<DT><TT>/l[:filename]</TT>
 <DD>Enable generating listing.
-If no <TT>fname</TT> given, listing is written to <TT>source.lst.</TT><P>
+If no <TT>filename</TT> given, listing is written to <TT>source.lst</TT>
+(where <TT>source</TT> is the name of the source file (without extension).<P>
 <A NAME="new_newer">
 <DT><TT>/n</TT>
-<DD>Check source and object modification times and assemble only
+<DD>Check source and object file modification time and assemble only
 if source is newer than object file. X-Asm does NOT check included
 nor inserted files but only main source, so be careful with this option.<P>
-<DT><TT>/o:fname</TT>
-<DD>Specify object name. Default is <TT>source.obx</TT>.<P>
+<B>Note:</B> Much more powerful for this purpose is GNU make utility.
+In DOS and Windows you may use its DJGPP port (available from
+<A HREF="http://www.delorie.com/djgpp">http://www.delorie.com/djgpp</A>).<P>
+<DT><TT>/o:filename</TT>
+<DD>Specify object file name. Default is <TT>source.obx</TT>.
+You may use the null device (<TT>/o:nul</TT>) to generate no object file.<P>
+<A NAME="new_fullpaths">
+<DT><TT>/p</TT>
+<DD>Print fully qualified file names in listing and error messages.<BR>
+This option is useful for the Code-Genie editor (see
+<A HREF="editors.htm">here</A>), which can jump to the error location
+only if full path is given.<P>
+<A NAME="new_quiet">
+<DT><TT>/q</TT>
+<DD>Suppress info messages.<BR>
+Prevents X-Asm from printing "<TT>X-Assembler 2.4 by Fox/Taquart</TT>"
+and the summary (how many lines assembled and bytes written).
+Good if you are building a project from many source files and don't want
+tons of messages.<P>
 <DT><TT>/s</TT>
-<DD>Disable converting spaces to tabs in listing.
-Using tabs makes listing file shorter.<BR>
+<DD>Disable converting spaces to tabs in listing.<BR>
+Using tabs makes listing file shorter.
 Tab stops are assumed to be every 8 characters.<P>
-<DT><TT>/t[:fname]</TT>
-<DD>List label table.
-If no <TT>fname</TT> given, table is written at the end of listing or to
-<TT>source.tab</TT>.<P>
+<DT><TT>/t[:filename]</TT>
+<DD>List label table.<BR>
+If no <TT>filename</TT> given, the table is written at the end of listing
+or to <TT>source.tab</TT>.<P>
+<A NAME="new_unlabels">
+<DT><TT>/u</TT>
+<DD>Warn of unused labels.<BR>
+A warning message will be issued for each label, which value is never
+used.<P>
 </DL>
 If source is incorrect, X-Asm stops on first encountered error.<P>
 <A NAME="exitcod"><H3>Exit codes</H3>
@@ -182,22 +239,22 @@ Meaning of exit codes returned by X-Asm:<BR>
 1 = warning(s) only<BR>
 0 = no errors, no warnings<BR>
 <A NAME="listing"><H3>Listing structure</H3>
-Line of listing includes:
+A line of listing contains:
 <UL>
 <LI> decimal number of line of source file (if source is different than in
 previous listed line, appropriate message line is issued)
-<LI> hexadecimal origin value
-<LI> hexadecimal bytes written to object file<BR>
+<LI> hexadecimal origin counter value
+<LI> hexadecimal values of bytes written to object file<BR>
 Listed are also generated headers. A <TT>xxxx-yyyy&gt;</TT> in place of origin
-represents generated header: <TT>$xxxx</TT> is the first and <TT>$yyyy</TT>
-is the last byte of the block.
+counter represents generated header: <TT>$xxxx</TT> is the first and
+<TT>$yyyy</TT> is the last byte of the block.
 A <TT>FFFF&gt;</TT> represents two $ff bytes written as a header prefix.<BR>
 A plus sign placed after hex numbers stands for more bytes written to object
 in this line, not listed through lack of space.
-<LI> remaining part of listing line is a copy of source line
+<LI> remaining part of listing line is verbatim copy of source line
 </UL>
 <A NAME="labtab"><H3>Label table structure</H3>
-Line of label table includes:
+A line of label table contains:
 <UL>
 <LI> some label attributes:<BR>
 <TT>n</TT> - label defined but not used elsewhere<BR>
@@ -214,7 +271,7 @@ reference and thus you can't make forward references to that label)
 Source code is line-oriented. Every line of source consists of <I>fields</I>.
 Same sequence of characters used in different fields has completely different meaning.
 Fields are separated with one or more blank characters.
-There can't be any space within a field excluding strings and comments.<P>
+There can't be any space within a field, except for strings and comments.<P>
 There are following types of fields:
 <UL>
 <LI> <A HREF="#label">label field</A>
@@ -236,25 +293,28 @@ In the latter form, you must use a minimum of an instruction field.
 It depends on the instruction, how many operands it takes.
 Every instruction takes constant number of operands, therefore
 there's no need to use a special character at the start of a comment, because after
-succesfully taking operands, X-Asm discards the remaining part of line.<P>
+succesfully taking operands, X-Asm discards the remaining part of line.
+However, <A HREF="editors.htm">general purpose text editors</A> may highlight
+the comments only if a special delimiter is used, and for that reason,
+the semicolon is recommended to start a comment.<P>
 
 <A NAME="label"><H4>Label field</H4>
 This field is optional. It must start at first character in line, without
 any blank characters before. The purpose of using label field is to define a label.<BR>
 Label is a symbol representing an integer of range -$ffff..$ffff.<BR>
-Name of a label can contain letters, digits and underscores (<TT>_</TT>).
+Name of a label may contain letters, digits and underscores (<TT>_</TT>).
 Digit can not be label's first character.
-Name of a label can be as long as you want and all the characters
+Name of a label may be as long as you want and all the characters
 are meaningful. In Quick Assembler only 6 leading characters were recognized
 and some sources may not compile under X-Asm for this reason.<BR>
 Defining a label without using <TT>EQU</TT> makes it equal to current value
 of the origin counter.<BR>
-Label can't be redefined.<P>
+Labels can't be redefined.<P>
 
 <A NAME="new_linerep"><A NAME="repeat"><H4>Repeat count</H4>
-Repeating means assembling single line several times as if
+Repeating means here assembling single line several times as if
 there were several identical lines. Note it is not just duplicating
-bytes written to object.<BR>
+bytes written to the object file.<BR>
 Repeat count, which can be any valid expression, has to be preceded
 with a colon.<BR>
 Examples:
@@ -263,7 +323,7 @@ Examples:
 </PRE>
 In the latter example each <TT>DTA</TT> has different operand value.<BR>
 If repeat count equals zero, remaining part of line is not assembled.
-This allows conditional assembly on single line to be more compact.
+This allows compact single-line conditional assembly.
 
 <A NAME="new_pairing"><A NAME="instr"><H4>Instruction field</H4>
 If this is the first field in a line, the line must start with at least
@@ -280,11 +340,11 @@ Example:
 Note that
 <PRE> lda:tax $80
 </PRE>is correct, because <TT>$80</TT> is a comment for <TT>TAX</TT>.<P>
-Single instruction always consists of 3 letters. It can be:
+Single instruction always consists of 3 letters. It may be:
 <OL TYPE=a>
-<LI> 6502 command - standard mnemonics are used
-<LI> <A HREF="#directives">directive
-<LI> <A HREF="#pseudocom">pseudo-command
+<LI> a 6502 command - standard mnemonics are used
+<LI> <A HREF="#directives">a directive</A>
+<LI> <A HREF="#pseudocom">a pseudo-command</A>
 </OL>
 
 <A NAME="operand"><H4>Operand field</H4>
@@ -306,13 +366,13 @@ for 6502 indirect addressing.
 
 <A NAME="numbers"><H4>Numbers</H4>
 Numbers are 32-bit signed integers, in the range of -$7fffffff..$7fffffff.
-A number can be:
+A number may be:
 <TABLE>
 <TR><TD WIDTH=300><UL><LI> a decimal number</TD><TD><TT>-12345</TT></TD></TR>
 <TR><TD><UL><LI> a hexadecimal number</TD><TD><TT>$abcd</TT></TD></TR>
 <TR><TD><UL><LI> a binary number</TD><TD><TT>%10100101</TT></TD></TR>
 <TR><TD><UL><LI> an ASCII character</TD><TD><TT>'a'</TT> or <TT>"a"</TT></TD></TR>
-<TR><TD><UL><LI> an origin counter</TD><TD><TT>*</TT></TD></TR>
+<TR><TD><UL><LI> the origin counter value</TD><TD><TT>*</TT></TD></TR>
 <TR><TD><UL><LI> a hardware register</TD><TD><TT>^31</TT></TD></TR>
 </UL></TABLE>
 <DIV STYLE="MARGIN-LEFT: 54">
@@ -329,9 +389,9 @@ where x is a hexadecimal digit.
 <TR><TD WIDTH=300><UL><LI> an op-code</TD><TD><TT>{lda #0}</TT></TD></TR>
 </UL></TABLE>
 <DIV STYLE="MARGIN-LEFT: 54">
-Byte op-code of instruction inside braces. Operand is discarded
+Single-byte op-code of the instruction inside braces. Operand is discarded
 and is necessary only for identifying addressing mode.
-Instruction should begin right after left brace and right brace should
+Instruction should begin just after the left brace and the right brace should
 immediately follow the operand or the command in implied addressing mode.<BR>
 <A NAME="new_op_op">You can skip the operand, if the addressing mode is fixed.
 Examples:<BR>
@@ -354,6 +414,7 @@ Examples:<BR>
 <TR><TD><TT>&lt;&lt; </TT></TD><TD>Arithmetic shift left</TD></TR>
 <TR><TD><TT>&gt;&gt; </TT></TD><TD>Arithmetic shift right</TD></TR>
 <TR><TD><TT>=  </TT></TD><TD>Equal</TD></TR>
+<TR><TD><TT>== </TT></TD><TD>Equal (same as <TT>=</TT>)</TD></TR>
 <TR><TD><TT>&lt;&gt; </TT></TD><TD>Not equal</TD></TR>
 <TR><TD><TT>!= </TT></TD><TD>Not equal (same as <TT>&lt;&gt;</TT>)</TD></TR>
 <TR><TD><TT>&lt;  </TT></TD><TD>Less than</TD></TR>
@@ -379,14 +440,14 @@ Examples:<BR>
 <TR><TD>     </TD><TD><TT>+ - ~ &lt; &gt;</TT><TD>(unary)</TD></TR>
 <TR><TD>     </TD><TD><TT>* / % & &lt;&lt; &gt;&gt;</TT><TD>(binary)</TD></TR>
 <TR><TD>     </TD><TD><TT>+ - | ^</TT><TD>(binary)</TD></TR>
-<TR><TD>     </TD><TD><TT>= &lt;&gt; != &lt; &gt; &lt;= &gt;=</TT><TD>(binary)</TD></TR>
+<TR><TD>     </TD><TD><TT>= == &lt;&gt; != &lt; &gt; &lt;= &gt;=</TT><TD>(binary)</TD></TR>
 <TR><TD>     </TD><TD><TT>!</TT><TD>(unary)</TD></TR>
 <TR><TD>     </TD><TD><TT>&&</TT><TD>(binary)</TD></TR>
 <TR><TD>last </TD><TD><TT>||</TT><TD>(binary)</TD></TR>
 </TABLE><P>
-Operators are similar to used in C language, but their priorities are different
-than in C.<P>
-Compare and logical operators assume that zero is false and non-zero is true.
+Note that although the operators are similar to these used in C, C++ and Java,
+their priorities are different than in these languages.<P>
+Compare and logical operators assume that zero is false and a non-zero is true.
 They return 1 for true.<P>
 While calculating expression, signed 32-bit arithmetic is used. When range of 32 bits
 is exceeded, <TT>'Arithmetic overflow'</TT> error is generated.<P>
@@ -401,23 +462,30 @@ Examples:
 here equ *
 </PRE>
 
-<DT><TT><B>OPT</B></TT> - set assembling options
-<DD>Currently there are two options: generating listing and generating headers.
+<A NAME="new_opto">
+<DT><TT><B>OPT</B></TT> - set assembly options
+<DD>Three options are available:
+<UL>
+<LI> <TT>H</TT> - generate Atari executable headers
+<LI> <TT>L</TT> - generate listing
+<LI> <TT>O</TT> - generate object file
+</UL>
 You can turn any of these on or off.<BR>
-Default (if no <TT>OPT</TT> specified) is <TT>opt l+h+</TT>.<BR>
+Default (if no <TT>OPT</TT> specified) is <TT>opt h+l+o+</TT>.<BR>
 Examples:
 <PRE> opt l-    listing off
  opt h-    headers off
- opt l+h-  listing on, headers off
+ opt l+o-  listing on, object file off
 </PRE>
 
-<DT><TT><B>ORG</B></TT> - set new origin counter
-<DD>You can set some options applied to new header (if headers are on):
+<DT><TT><B>ORG</B></TT> - change value of the origin counter
+<DD>You can set some options applied to the new header (if headers are
+enabled):
 <UL>
-<LI><TT>a:</TT> tells X-Asm to always make a header, even it is unnecessary,
+<LI> <TT>a:</TT> tells X-Asm to always make a header, even it is unnecessary,
 like in <TT>ORG *</TT>.
-<LI><TT>f:</TT> works same as <TT>a:</TT>, but additionally tells to generate
-a $ff,$ff prefix before header. X-Asm adds it at the beginning of file
+<LI> <TT>f:</TT> works same as <TT>a:</TT>, but additionally tells to generate
+a $ff,$ff prefix before the header. X-Asm adds it at the beginning of the file
 by default, so use this option only if you want the $ff's somewhere inside.<BR>
 </UL>
 Examples:
@@ -442,18 +510,18 @@ before <TT>ORG</TT> directive is executed).<P>
 </UL>
 You may enter many expressions in parentheses and combine different types
 of data in single line, separating things with commas.<BR>
-You may also define a sinus table. Syntax is:<BR>
+You may also define a sine lookup table. Syntax is:<BR>
 <TT>sin(centre,amp,size,first,last)</TT><BR>
 where:
 <UL>
-<LI> <TT>centre</TT> is a number which is added to every sinus value
-<LI> <TT>amp</TT> is the amplitude of sinus
-<LI> <TT>size</TT> is the period of sinus
+<LI> <TT>centre</TT> is a number which is added to every sine value
+<LI> <TT>amp</TT> is the sine amplitude
+<LI> <TT>size</TT> is the sine period
 <LI> <TT>first,last</TT> define range of values in the table.
 They are optional. Default are <TT>0,size-1</TT>.
 </UL>
 Example: <TT>dta a(sin(0,1000,256,0,63))</TT> defines table of 64 words
-representing a quarter of sinus with amplitude of 1000.<P>
+representing a quarter of sine with amplitude of 1000.<P>
 <LI> real numbers: <TT>r(-1.23456e12)</TT><BR>
 Real numbers are written in 6-byte Atari Floating-Point format. You can't
 combine reals with operators, as you can integers.<P>
@@ -494,8 +562,8 @@ Example:
 </PRE>
 
 <DT><TT><B>INS</B></TT> - insert contents of file
-<DD>Copies every byte of specified file into object file and moves origin
-counter, as if these bytes were defined with <TT>DTA</TT>.<BR>
+<DD>Copies every byte of specified file into the object file and updates
+the origin counter, as if these bytes were defined with <TT>DTA</TT>.<BR>
 You may specify range of inserted file. Syntax is following:
 <PRE>
  ins 'file'[,offset[,length]]
@@ -510,7 +578,7 @@ Examples:
 </PRE>
 
 <DT><TT><B>RUN</B></TT> - generate run address
-<DD>The Atari executable program should have run address specified.
+<DD>The Atari executable program should have a run address specified.
 A program may be loaded in many areas of memory and started from any address.
 <PRE> run addr
 </PRE>
@@ -520,7 +588,7 @@ is equivalent to:
 </PRE>
 Examples:
 <PRE> run start
- run program
+ run main
 </PRE>
 
 <DT><TT><B>INI</B></TT> - generate init address
@@ -537,7 +605,9 @@ Examples:
  ert len1&gt;$ff||len2&gt;$ff
 </PRE>
 
+<A NAME="new_eli">
 <DT><TT><B>IFT</B></TT> - assemble if expression is true<BR>
+<TT><B>ELI</B></TT> - else if<BR>
 <TT><B>ELS</B></TT> - else<BR>
 <TT><B>EIF</B></TT> - end if<BR>
 <DD>With these directives you can construct fragments which
@@ -545,8 +615,11 @@ are assembled when a condition is met.
 Conditional constructions can be nested.<BR>
 Example:
 <PRE>noscr equ 1
+widescr equ 1
  ift noscr
  lda #0
+ eli widescr
+ lda #$23
  els
  lda #$22
  eif
@@ -554,8 +627,10 @@ Example:
 </PRE>
 Above example can be rewritten using line repeating feature:
 <PRE>noscr equ 1
+widescr equ 1
 :noscr lda #0
-:!noscr lda #$22
+:!noscr&amp;&amp;widescr lda #$23
+:!noscr&amp;&amp;!widescr lda #$22
  sta $22f
 </PRE>
 
@@ -563,7 +638,7 @@ Above example can be rewritten using line repeating feature:
 <HR>
 <A NAME="pseudocom"><H3>Pseudo-commands</H3>
 Pseudo-commands are built-in macros.
-They are not illegal instructions and work on typical 6502.<P>
+They are not unofficial instructions, so they work on typical 6502.<P>
 <DL>
 <DT><TT><B>ADD</B></TT> - addition without carry
 <DD>If you have ever programmed 6502, you must have noticed that you had
@@ -601,12 +676,12 @@ Example:
  add:sta $80
  scc:inc $81
 </PRE>
-In the above example word-sized variable $80 is incremented by 40.<BR>
+In the above example word-size variable $80 is incremented by 40.<BR>
 Nor conditional repeat nor skip pseudo-commands require operand,
 thus they can be paired with any other command.<P>
 
 <DT><TT><B>JCC, JCS, JEQ, JMI, JNE, JPL, JVC, JVS</B></TT> - conditional jumps
-<DD>They are a kind of 'long' branches. While standard branches
+<DD>These are a kind of 'long' branches. While standard branches
 (<TT>BNE, BEQ</TT>) have range of -128..+127, these jumps have range
 of all 64 kB.<BR>
 Example:
@@ -616,7 +691,7 @@ Example:
 </PRE>
 
 <DT><TT><B>INW</B></TT> - increment word
-<DD>It is a 16-bit memory increment command.<BR>
+<DD>Increments a 16-bit word in the memory.<BR>
 Example:
 <PRE> inw dest
 </PRE>is equivalent to:
@@ -632,17 +707,18 @@ and substitutes two commands:
  mvy source dest = ldy source : sty dest
 </PRE>
 
+<A NAME="new_mwinde">
 <DT><TT><B>MWA, MWX, MWY</B></TT> - move word using accumulator, X or Y
 <DD>These pseudo-commands require two operands
 and are combinations of two <TT>MV*</TT>'s:
 one to move low byte, and the other to move high byte.<BR>
 You can't use indirect nor pseudo addressing mode with <TT>MW*</TT>.
 Destination must be absolute address (optionally indexed).<BR>
-When source is also absolute, a <TT>MW* SOURCE DEST</TT> will be:
+When source is also absolute, a <TT>mw* source dest</TT> will be:
 <PRE> mv* source   dest
  mv* source+1 dest+1
 </PRE>
-When source is an immediate, a <TT>MW* #IMMED DEST</TT> will be:
+When source is an immediate, a <TT>mw* #immed dest</TT> will be:
 <PRE> mv* &lt;immed dest
  mv* &gt;immed dest+1
 </PRE>
@@ -651,6 +727,11 @@ is not forward-referenced, X-Asm uses optimization:
 <PRE> mv* &lt;immed dest
  st* dest+1
 </PRE>
+If possible, <TT>MWX</TT> and <TT>MWY</TT> use increment/decrement
+commands. E.g. <TT>mwx #1 dest</TT> is assembled as:
+<PRE> mvx #1 dest
+ dex
+ stx dest+1
 </DL>
 </OL>
 
@@ -662,16 +743,16 @@ the accumulator addressing mode, which should be marked with a
 
 There are two extra immediate addressing modes:
 <TT>&lt;</TT> and <TT>&gt;</TT>,
-which use low/high byte of word rather than byte value.
+which use low/high byte of 16-bit word constant.
 They are for Quick Assembler compatibility.
 You can use traditional <TT>#&lt;</TT> and <TT>#&gt;</TT>.
 Note <NOBR><TT>lda &gt;$ff+5</TT></NOBR> loads 1 (<TT>&gt;$104</TT>),
 while <NOBR><TT>lda #&gt;$ff+5</TT></NOBR>
-loads 5 (<TT>0+5</TT>) to accumulator, because unary operator <TT>&gt;</TT> has higher
-priority than plus has.<P>
+loads 5 (<TT>0+5</TT>) to accumulator, because unary operator <TT>&gt;</TT>
+has higher priority than the binary plus.<P>
 
-In absolute addressing modes, X-Asm examines expression and uses zero-page
-addressing mode if it supposes it is possible. You may override it with
+In absolute addressing modes, X-Asm examines the expression and uses zero-page
+addressing mode if it supposes it's possible. You may override it with
 <TT>a:</TT> and <TT>z:</TT> prefixes.<P>
 
 Examples:
@@ -687,8 +768,8 @@ Examples:
 
 There are also pseudo addressing modes, which are similar to
 pseudo-commands. You may use them just like standard addressing modes
-in all 6502 commands and pseudo-commands excluding
-<TT>MWA</TT>, <TT>MWX</TT> and <TT>MWY</TT> only:
+in all 6502 commands and pseudo-commands, except for
+<TT>MWA</TT>, <TT>MWX</TT> and <TT>MWY</TT>:
 <PRE> cmd a,x+    =  cmd a,x   : inx
  cmd a,x-    =  cmd a,x   : dex
  cmd a,y+    =  cmd a,y   : iny
@@ -704,7 +785,7 @@ in all 6502 commands and pseudo-commands excluding
 <HR>
 <A NAME="faq"><H2>FAQ</H2>
 <UL>
-<LI><B>Q:</B> Why does X-Asm ignore <TT>+2</TT> in following line?
+<LI><B>Q:</B> Why does X-Asm ignore <TT>+2</TT> in the following line?
 <PRE>label equ 1 +2
 </PRE>
 <B>A:</B> X-Asm treats space as operand terminator. Remaining part of line
@@ -743,7 +824,8 @@ one   equ 1
 <B>A:</B> X-Asm reads source twice (in pass 1 and pass 2)
 from the beginning until the end.<BR>
 This allows forward references, but not too complex.<BR>
-Keep in mind that assembler should know all the values in second pass.<P>
+Keep in mind that the assembler must know all the values in the second
+pass.<P>
 Example:
 <PRE>two   equ one+one   This value is known in 2nd pass only
 one   equ 1         This value is known as early as in 1st pass
@@ -762,6 +844,7 @@ When you were assembling for the first time, both errors might exist,
 but X-Asm stopped on the first one.<P>
 
 <LI> If you have other questions/problems,
-<A HREF=mailto:pfusik@elka.pw.edu.pl>write to me</A>.
+<A HREF=mailto:fox@scene.pl>write to me</A>.
 </UL>
+<P><HR><P><A HREF="index.htm">Back</A>
 </BODY></HTML>

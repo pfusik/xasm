@@ -1,25 +1,29 @@
 <HTML>
 <HEAD>
-<TITLE>X-BOOT 5.0 Manual</TITLE>
+<TITLE>X-BOOT 5.0</TITLE>
 </HEAD>
 <BODY BACKGROUND="6502proc.gif">
 <CENTER>
 <H1>X-BOOT version 5.0</H1>
-by <A HREF="mailto:pfusik@elka.pw.edu.pl">Fox/Taquart</A><P>
 <HR>
 </CENTER>
 
 <H2>INTRODUCTION</H2>
-This tool converts Atari executable file (.OBX) to Atari disk image (.ATR),
-which can be used in an emulator. For loading executable into real Atari
-you need no .ATR, try using <A HREF="xload.htm">X-LOAD</A>.
+This tool converts Atari executable files to disk images (ATR).
+Since its first version, X-BOOT lost significance, because now you
+can load an executable directly to Atari (e.g. using
+<A HREF="xload.htm">X-LOAD</A>), and the emulators (e.g.
+<A HREF="http://www.a800win.atari-area.prv.pl">Atari800Win PLus</A>).
+However, X-BOOT may still be useful, especially when using
+professional loader.
 <H3>CHANGES</H3>
 <H4>Version 5.0</H4>
 <UL>
 <LI> long file names support
-<LI> more flexible syntax: <TT>obxmask atrfile</TT>
+<LI> more flexible syntax: both <TT>obxmask atrfile</TT>
 and <TT>obxfile atrpath</TT> can be used
-<LI> internal write protection set in generated disk images
+<LI> internal write protection flag (supported by APE and Atari800)
+set in generated disk images
 <LI> headers with end address less than start allowed
 <LI> Unix-like <TT>-p</TT> option allowed
 </UL>
@@ -28,7 +32,7 @@ and <TT>obxfile atrpath</TT> can be used
 <LI> wildcards support - now you can convert a set of files
 <LI> .ATR name not required - name can be taken from executable
 <LI> no length limit - files longer than 60k allowed
-<LI> truncated executables handling
+<LI> truncated executables are supported
 <LI> checking for memory conflicts
 <LI> better errors handling
 </UL>
@@ -43,19 +47,20 @@ and <TT>obxfile atrpath</TT> can be used
 
 <HR>
 <H2>USAGE</H2>
-This is syntax for running X-BOOT:<P>
+Syntax for invoking X-BOOT is following:<P>
 <TT>XBOOT [/p] obxfiles [atrpath][atrfile]</TT><P>
 Parameters in brackets are optional.<P>
 If file name extension is omitted, the default .OBX or .ATR is added.
 If no <TT>atrpath</TT> is given, disk images are written by default in
 the directory where executables are.<P>
 If file name contains spaces, you should enclose it in quotation marks.<P>
-<TT>/p</TT> switch (or equivalent <TT>-p</TT>) forces writing 'professional loader',
-which allows you to load code/data under ROM and disables ROM and interrupts
-while starting program. By default, standard loader is used, which can load any
-Atari executable not demanding DOS nor any special loader.<P>
-Both loaders disable Atari Basic, so you needn't hold OPTION key while
-booting.<P>
+<TT>/p</TT> switch (or equivalent <TT>-p</TT>) forces writing 'professional
+loader', which allows you to load code/data intro the RAM under ROM and starts
+the program with disabled ROM and interrupts. By default, standard loader is
+used, which can load any Atari executable not demanding DOS nor any special
+loader.<P>
+Both loaders disable Atari Basic, so you don't need to hold the OPTION key
+while booting.<P>
 Below are some examples:<P>
 <DL>
 <DT><TT>XBOOT -p test</TT>
@@ -76,17 +81,18 @@ to current directory on current drive using professional loader.
 <H2>DETAILS</H2>
 Produced ATR is single density and as short as possible.
 Loader occupies one boot sector.<P>
-X-BOOT does not write executable in ATR as Atari file.
+X-BOOT does not store the executable file in ATR as an Atari file.
 You can't read it from an Atari DOS nor extract it somehow or other.
 You can only run it by booting.<P>
-For more details, read sources of loaders:
+For more details, read source files of the loaders:
 <UL>
 <LI>Standard: <A HREF="xbootstd.asx">XBOOTSTD.ASX</A>
 <LI>Professional: <A HREF="xbootpro.asx">XBOOTPRO.ASX</A>
 </UL>
 Loaders are so simple that they even do not detect end of file. Instead,
-they are modified when end of file is reached. Disk image contains one
-additional block, which doesn't belong to executable file, but changes
-loader to run program instead of initializing.
+they are modified when end of file is reached. The disk image contains one
+additional block, which doesn't belong to the executable file, but alters
+the loader to run the program instead of initializing.
+<P><HR><P><A HREF="index.htm">Back</A>
 </BODY>
 </HTML>
