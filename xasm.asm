@@ -522,36 +522,37 @@ ndef1:	mov	bx, [iclen]
 				; ... nie - omin ewentualny LF
 	call	fread1
 	jz	filend
-	cmp	[line], 0ah
-	je	skiplf
-	inc	di
-skiplf:
+
 	mov	bx, [iclen]
 	mov	bx, [(icl bx).prev]
 	inc	[(icl bx).line]	; zwieksz nr linii w pliku
 	inc	[lines]		; ilosc wszystkich linii
 	testsw	m_swi
-	jz	gline1		; czy /I
+	jz	gline0		; czy /I
 	and	[flist], not m_lsti	; ... tak
 	cmp	bx, offset t_icl
-	jbe	gline1		; czy includowany plik ?
+	jbe	gline0		; czy includowany plik ?
 	or	[flist], m_lsti	; ... tak, nie listuj
 
-gline1:	cmp	di, offset line+256
-	jnb	linlon
-	call	fread1
-	jz	eof
+gline0:
+	cmp	[byte di], 0ah
+	je	gline2
+gline1:
 	mov	al, [di]
 	cmp	al, 0dh		; pc cr
-	je	short syntax
+	je	syntax
 	cmp	al, 0ah		; unix lf
 	je	syntax
 	cmp	al, 9bh		; atari eol
 	je	syntax
 	inc	di
-	jmp	gline1
-
-eof:	mov	bx, [iclen]	; koniec pliku
+	cmp	di, offset line+256
+	jnb	linlon
+gline2:
+	call	fread1
+	jnz	gline0
+; eof
+	mov	bx, [iclen]	; koniec pliku
 	or	[(icl bx).flags], m_eofl
 
 syntax:	mov	[byte di], 0dh
@@ -598,7 +599,7 @@ deflp2:	mov	bx, [pslab]	; definicja etykiety w pass 2
 	call	warln
 	pop	si
 labelx:	cmp	[byte si], 0dh
-	je	lstrem
+	je	lstcnd
 	call	spaces
 
 nolabl:	lodsb
@@ -607,17 +608,17 @@ nolabl:	lodsb
 	cmp	al, 9
 	je	nolabl
 	cmp	al, '*'
-	je	lstrem
+	je	lstcnd
 	cmp	al, ';'
-	je	lstrem
+	je	lstcnd
 	cmp	al, '|'
-	je	lstrem
+	je	lstcnd
 	cmp	al, 0dh
-	je	lstrem
+	je	lstcnd
 	cmp	al, ':'
 	jne	s_one
 	cmp	[skflag], 0
-	jnz	lstrem
+	jnz	lstcnd
 	call	getuns
 	jc	unknow
 	sta	cx
@@ -642,9 +643,9 @@ skip1:	lodsd			; sprawdz komende
 	jne	lstcnd
 	call	[word di-4+cndvec-cndtxt]
 	cmp	[skflag], 0
-	jz	lstre1
+	jz	lstrem
 lstcnd:	testsw	m_swc
-	jnz	lstre1
+	jnz	lstrem
 	jmp	main
 
 s_one:	dec	si
@@ -2979,7 +2980,7 @@ cndvec	dw	pofend,0,p_ift,0,p_eli,0,p_els,0,p_eif
 
 swilet	db	'UTSQPONLIEDC'
 
-hello	db	'X-Assembler 2.5'
+hello	db	'X-Assembler 2.5.1'
 	ifdef	SET_WIN_TITLE
 titfin	db	0
 	else
