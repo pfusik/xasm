@@ -1,13 +1,14 @@
-<HTML><HEAD><TITLE>X-Assembler 2.5.1</TITLE></HEAD>
+<HTML><HEAD><TITLE>X-Assembler 2.5.2</TITLE></HEAD>
 <BODY BACKGROUND="6502proc.gif">
 <CENTER>
-<H1>X-Assembler version 2.5.1</H1>
+<H1>X-Assembler version 2.5.2</H1>
 <HR>
 <H2>TABLE OF CONTENTS</H2>
 <TABLE><TR><TD VALIGN=top>
 <UL><LI><A HREF="#intro">INTRODUCTION</A>
 <UL><LI><A HREF="#changes">Changes</A>
-<UL><LI><A HREF="#ver251">Version 2.5.1</A>
+<UL><LI><A HREF="#ver252">Version 2.5.2</A>
+<LI><A HREF="#ver251">Version 2.5.1</A>
 <LI><A HREF="#ver25">Version 2.5</A>
 <LI><A HREF="#ver241">Version 2.4.1</A>
 <LI><A HREF="#ver24">Version 2.4</A>
@@ -48,6 +49,11 @@ The X-Assembler is a cross-assembler, which generates code for the 6502 processo
 It has been designed to be easy to use for Quick Assembler programmers,
 therefore its syntax is an extension of QA's.<BR>
 <A NAME="changes"><H3>Changes</H3>
+<A NAME="ver252"><H4>Version 2.5.2</H4>
+<UL>
+<LI> version 2.5.1 broke Unix EOLs - fixed
+<LI> version 2.5.1 omitted all blank/comment/label lines, unless <TT>/c</TT> was used
+</UL>
 <A NAME="ver251"><H4>Version 2.5.1</H4>
 <UL>
 <LI> fixed assembling sources with Atari EOLs ($9b)
@@ -243,7 +249,7 @@ only if full path is given.<P>
 <A NAME="new_quiet">
 <DT><TT>/q</TT>
 <DD>Suppress info messages.<BR>
-Prevents X-Asm from printing "<TT>X-Assembler 2.5.1 by Fox/Taquart</TT>"
+Prevents X-Asm from printing "<TT>X-Assembler 2.5.2 by Fox/Taquart</TT>"
 and the summary (how many lines assembled and bytes written).
 Good if you are building a project from many source files and don't want
 tons of messages.<P>
