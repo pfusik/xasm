@@ -266,18 +266,15 @@ skff:
 
 firs:	mov	cx, [head+2]
 	sub	cx, [head]
-	jb	einva
 	inc	cx
 	cmp	cx, blen
-	ja	einva
-	mov	dx, offset blok
+	jbe	okhead
+	mov	cx, blen
+okhead:	mov	dx, offset blok
 	call	xread
 	jb	trunc
 	call	xwrihd
 	jmp	skff
-
-einva:	mov	dx, offset e_head
-	jmp	error
 
 chtrun:	test	ax, ax
 	jnz	trunca
@@ -293,7 +290,7 @@ trunc:	test	ax, ax
 	call	xwrihd
 
 trunca:	mov	dx, offset w_trunc
-	call	warni
+warfin:	call	warni
 finfil:	mov	dx, offset endseq1
 	test	[flags], m_pro
 	jz	endst
@@ -408,7 +405,7 @@ printz:	lodsb
 	jnz	pnam1
 	ret
 
-hello	db	'X-BOOT 4.0 by Fox/Taquart',eot
+hello	db	'X-BOOT 4.1.-9 by Fox/Taquart',eot
 usgtxt	db	'XBOOT [/p] obxfile [atrfile]',eol
 	db	'  Convert single Atari 8-bit executable into .ATR disk image.',eol
 	db	'XBOOT [/p] obxfiles [atrpath]',eol
@@ -423,14 +420,14 @@ w_mem	db	eol,'  WARNING: Memory conflict$'
 w_prof	db	eol,'  WARNING: Professional loader needed$'
 w_trunc	db	eol,'  WARNING: File is truncated$'
 e_nota	db	eol,'  ERROR: Not Atari executable$'
-e_head	db	eol,'  ERROR: Invalid header$'
 e_open	db	eol,'  ERROR: Can''t open file$'
 e_read	db	eol,'  ERROR: Disk read error$'
 e_creat	db	eol,'  ERROR: Can''t create file$'
 e_write	db	eol,'  ERROR: Disk write error$'
 
 ; ATR Header
-begin	dw	296h,0,80h,5 dup(0)
+begin	dw	296h,0,80h,4 dup(0)
+	db	0,1
 beglen	=	$-begin
 
 ; Loader #1 (std)
