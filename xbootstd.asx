@@ -1,0 +1,78 @@
+* Boot executable file loader coded by Fox/Taquart
+* Standard loader - ROM and interrupts enabled.
+
+	org	$780
+
+bufr	equ	$700
+
+tp	equ	$43
+vc	equ	$44
+
+* Boot header
+boot	equ	*
+rts	rts
+	dta	b(1),a(boot,$e477)
+* Print text
+txtpos	equ	215
+	ldy	#txtpos
+print	lda	text-txtpos,y
+	sta	($58),y
+	iny
+	cpy	#txtpos+txtlen
+	bcc	print
+* Init run vector
+	lda	<rts
+	sta	$2e0
+	lda	>rts
+	sta	$2e1
+	lda	>bufr
+	sta	$305
+	ldy	#$ff
+	sty	^31
+	dey	#$fe
+* Load header
+lhead	lda	<rts
+	sta	$2e2
+	lda	>rts
+	sta	$2e3
+	ldx	<-5
+* Store byte of header
+hput	sta	vc+4,x
+	inx
+	stx	tp
+	jmp	get
+next	inw	vc
+get	iny
+	bpl	getx
+	inw	$30a
+	jsr	$e453
+	sec
+	bmi	rts
+	ldy	#0
+getx	lda	bufr,y
+	ldx	tp
+	bne	hput
+	sta	(vc,x)
+	lda	vc
+	cmp	vc+2
+	bne	next
+	lda	vc+1
+	cmp	vc+3
+	bne	next
+endseq	tya
+	pha
+	jsr	init
+	pla
+	tay
+	bpl	lhead	!
+
+init	jmp	($2e2)
+
+text	dta	d'Loading... '
+txtlen	equ	*-text
+
+* This will be added at the end of loaded file
+	org	endseq
+	jmp	($2e0)
+
+	end
