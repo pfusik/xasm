@@ -43,6 +43,7 @@ vec	dw	?
 
 m_pass	=	80h
 m_eofl	=	40h
+m_skip	=	20h
 
 eol	equ	13,10
 eot	equ	13,10,'$'
@@ -198,7 +199,40 @@ syntax:	mov	si, offset line
 	je	main
 	cmp	al, '|'
 	je	main
-	mov	[labvec], 0
+	test	[flags], m_skip
+	jz	nskip
+skip1:	call	get
+	cmp	al, ' '
+	je	skip2
+	cmp	al, 9
+	jne	skip1
+skip2:	call	space1
+	push	offset main
+	lodsd
+	and	eax, 0dfdfdfh
+	cmp	eax, 'TFI'
+	je	skift
+	cmp	eax, 'SLE'
+	je	skels
+	cmp	eax, 'DNE'
+	je	filend
+	cmp	eax, 'FIE'
+	jne	skret
+	call	p_eif
+	dec	[sift]
+	jns	skret
+	and	[flags], not m_skip
+	inc	[sift]	;0
+skret:	ret
+skift:	call	shlelf
+	inc	[sift]
+	ret
+skels:	call	btself
+	cmp	[sift], 0
+	jnz	skret
+	jmp	fliski
+
+nskip:	mov	[labvec], 0
 	cmp	al, ' '
 	je	s_cmd
 	cmp	al, 9
@@ -282,6 +316,8 @@ filend:	and	[flags], not m_eofl
 	ja	main
 	jpass2	fin
 
+	cmp	[elflag], 1
+	jne	miseif
 	or	[flags], m_pass
 	call	putorg
 	call	ldname
@@ -321,6 +357,9 @@ fin:	mov	bx, [ohand]
 	dos
 
 linlon:	push	offset e_long
+	jmp	erron
+
+miseif:	push	offset e_meif
 	jmp	erron
 
 ; ERROR
@@ -510,14 +549,17 @@ rfname:	call	spaces
 ; Czyta lancuch i zapisuje do [di]
 rstr:	call	get
 	cmp	al, "'"
+	je	rstr0
+	cmp	al, '"'
 	jne	strer
-	mov	dx, di
+rstr0:	mov	dx, di
+	mov	ah, al
 rstr1:	call	get
 	stosb
-	cmp	al, "'"
+	cmp	al, ah
 	jne	rstr1
 	lodsb
-	cmp	al, "'"
+	cmp	al, ah
 	je	rstr1
 	dec	si
 	mov	[byte di-1], 0
@@ -605,6 +647,8 @@ valuem:	mov	bl, al
 	je	valorg
 	cmp	al, "'"
 	je	valchr
+	cmp	al, '"'
+	je	valchr
 	cmp	al, '^'
 	je	valreg
 	mov	bp, -1
@@ -663,13 +707,14 @@ vlabkn:	bt	[word (lab bx).flags], b_sign
 valorg:	mov	ax, [origin]
 	jmp	value1
 
-valchr:	call	get
-	cmp	al, "'"
+valchr:	mov	dl, al
+	call	get
+	cmp	al, dl
 	jne	valch1
 	lodsb
-	cmp	al, "'"
+	cmp	al, dl
 	jne	strer
-valch1:	cmp	[byte si], "'"
+valch1:	cmp	dl, [si]
 	jne	strer
 	inc	si
 	cmp	[byte si], '*'
@@ -1350,6 +1395,8 @@ dta1:	call	get
 	je	dtat1
 	cmp	al, 'D'
 	je	dtat1
+	cmp	al, 'R'
+	je	dtar1
 	jmp	ilchar
 
 dtan1:	lodsb
@@ -1480,6 +1527,129 @@ dtanxt:	lodsb
 	dec	si
 	ret
 
+dtar1:	lodsb
+	cmp	al, '('
+	jne	mparen
+dtar2:	xor	bx, bx
+	xor	edx, edx
+	xor	cx, cx
+	call	getsgn
+dreal1:	call	getdig
+	jnc	dreal2
+	cmp	al, '.'
+	je	drealp
+	test	bh, bh
+	jnz	drealz
+	jmp	ilchar
+dreal2:	mov	bh, 1
+	test	al, al
+	jz	dreal1
+	dec	cx
+dreal3:	inc	cx
+	call	putdig
+	call	getdig
+	jnc	dreal3
+	cmp	al, '.'
+	je	drealp
+	and	al, 0dfh
+	cmp	al, 'E'
+	jne	drealf
+dreale:	call	getsgn
+	call	getdig
+	jc	ilchar
+	mov	ah, al
+	call	getdig
+	jnc	dreal4
+	shr	ax, 8
+dreal4:	aad
+	add	di, di
+	jnc	drealn
+	neg	ax
+drealn:	add	cx, ax
+	jmp	drealf
+dreal5:	test	edx, edx
+	jnz	dreal9
+	test	bl, bl
+	jnz	dreal9
+	dec	cx
+dreal9:	call	putdig
+drealp:	call	getdig
+	jnc	dreal5
+	and	al, 0dfh
+	cmp	al, 'E'
+	je	dreale
+drealf:	test	edx, edx
+	jnz	drealx
+	test	bl, bl
+	jnz	drealx
+drealz:	xor	ax, ax
+	xor	edx, edx
+	jmp	dreals
+drealx:	add	cx, 80h
+	cmp	cx, 20h
+	js	drealz
+	cmp	cx, 0e2h
+	jnb	toobig
+	add	di, di
+	rcr	cl, 1
+	mov	al, 10h
+	jc	dreal7
+	cmp	bl, al
+	mov	al, 1
+	jb	dreal7
+	shrd	edx, ebx, 4
+	shr	bl, 4
+	jmp	dreal8
+dreal6:	shld	ebx, edx, 4
+	shl	edx, 4
+dreal7:	cmp	bl, al
+	jb	dreal6
+dreal8:	lda	cx
+	mov	ah, bl
+dreals:	rol	edx, 16
+	push	edx
+	call	savwor
+	pop	ax
+	xchg	ah, al
+	call	savwor
+	pop	ax
+	xchg	ah, al
+	call	savwor
+	dec	si
+	lodsb
+	cmp	al, ','
+	je	dtar2
+	cmp	al, ')'
+	jne	mparen
+	jmp	dtanxt
+
+putdig:	cmp	bl, 10h
+	jnb	rlret
+	shld	ebx, edx, 4
+	shl	edx, 4
+	add	dl, al
+	ret
+
+getsgn:	call	get
+	cmp	al, '-'
+	stc
+	je	sgnret
+	cmp	al, '+'
+	clc
+	je	sgnret
+	dec	si
+sgnret:	rcr	di, 1
+rlret:	ret
+
+getdig:	call	get
+	cmp	al, '0'
+	jb	rlret
+	cmp	al, '9'+1
+	cmc
+	jb	rlret
+	sub	al, '0'
+	ret
+
 p_icl:	call	rfname
 	pop	ax
 	call	linend
@@ -1511,6 +1681,31 @@ p_in2:	call	fclose
 p_end:	pop	ax
 	call	linend
 	jmp	filend
+
+shlelf:	shl	[elflag], 1
+	jnc	cndret
+	error	e_tmift
+
+btself:	bts	[elflag], 0
+	jnc	cndret
+	error	e_eifex
+
+p_ift:	call	spaval
+	jc	unknow
+	call	shlelf
+	test	eax, eax
+	jz	fliski
+cndret:	ret
+
+p_els:	cmp	[elflag], 1
+	je	misift
+	call	btself
+fliski:	xor	[flags], m_skip
+	ret
+
+p_eif:	shr	[elflag], 1
+	jnz	cndret
+misift:	error	e_mift
 
 ; addressing modes:
 ; 0-@ 1-# 2-A 3-Z 4-A,X 5-Z,X 6-A,Y 7-Z,Y 8-(Z,X) 9-(Z),Y 10-(A)
@@ -1551,11 +1746,14 @@ comtab:	cmd	ADC60p_acc
 	cmd	DEXcap_imp
 	cmd	DEY88p_imp
 	cmd	DTA00p_dta
+	cmd	EIF00p_eif
+	cmd	ELS00p_els
 	cmd	END00p_end
 	cmd	EOR40p_acc
 	cmd	EQU00p_equ
 	cmd	ERT00p_ert
 	cmd	ICL00p_icl
+	cmd	IFT00p_ift
 	cmd	INCe0p_srt
 	cmd	INIe2p_rui
 	cmd	INS00p_ins
@@ -1637,7 +1835,7 @@ noper2	=	($-opert2)/2
 opert1	db	'+-*/%&|^=<>'
 noper1	=	$-opert1
 
-hello	db	'X-Assembler 1.6 by Fox/Taquart',eot
+hello	db	'X-Assembler 1.7 by Fox/Taquart',eot
 usgtxt	db	'Give a source filename. Default extension is .ASX.',eol
 	db	'Object file will be written with .COM extension.',eot
 lintxt	db	' lines assembled',eot
@@ -1679,6 +1877,10 @@ e_fref	db	'Illegal forward reference',eol
 e_wpar	db	'Use square brackets instead',eol
 e_brack	db	'Not matching brackets',eol
 e_user	db	'User error',eol
+e_tmift	db	'Too many IFTs nested',eol
+e_eifex	db	'EIF expected',eol
+e_mift	db	'Missing IFT',eol
+e_meif	db	'Missing EIF',eol
 
 exitcod	dw	4c00h
 flags	db	0
@@ -1688,6 +1890,8 @@ iclen	dw	t_icl
 laben	dw	t_lab-2
 pslab	dw	t_lab-2
 orgvec	dw	t_org
+sift	dw	0
+elflag	dd	1
 sinmin	dw	1
 sinmax	dw	0
 sinadd	dw	?
