@@ -1,0 +1,13 @@
+X-Head 1.0 by Fox/Taquart
+Some (un)important notes
+-------------------------
+This tool prints headers of Atari executable.
+It also shows program init and run addresses.
+Other things displayed:
+xxx bytes - length of file, including headers
+xxx blocks - number of headers
+xxx inits - number of init blocks (02e2-02e3)
+xxx modules - number of FFFF headers (one at the beginning is required)
+You can redirect output to a file, for example:
+XHEAD TEST.COM >TEST.HDR
+---

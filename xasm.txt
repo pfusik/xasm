@@ -1,0 +1,322 @@
+X-Assembler version 1.2
+=======================
+coded by Fox/Taquart
+
+INTRODUCTION
+============
+The X-Assembler is an assembler, which generates code for the 6502 processor.
+Currently it generates files only in standard 8-bit Atari executable format.
+It is designed to be used with Atari Peripheral Emulator. You can now write
+and assemble programs on PC and load into Atari using APE.
+The X-Assembler is 100% compatible with Quick Assembler on Atari.
+
+System requirements
+-------------------
+- a PC compatible computer with 386 or better CPU
+- a MS-DOS compatible OS
+- a numeric coprocessor for generating sinus tables
+  Your CPU probably has a built-in coprocessor.
+
+Creating a source program
+-------------------------
+Source file should be standard text file with IBM-style EOLs: CR/LF. You can
+use any text editor on PC to prepare your source code.
+No line of source file should be longer than 256 characters.
+There is absolutely no limitation on the length of the file.
+Source may contain TAB characters - there are treated as spaces.
+Assembler is NOT case-sensitive.
+
+Converting Quick Assembler files
+--------------------------------
+The X-Asm recognizes all Quick Assembler directives, symbols and expressions.
+The only one problem with converting is that Atari text files are bit
+different from PC text files. Firstly, EOL's must be converted from $9b to
+$0d/$0a. Secondly, some of editors do not like Atari's special characters:
+ASCII 0-31 and 128-255. You must replace these characters with its ATASCII
+codes, using QAsm-style expressions.
+Once you have converted source to PC-style text file, you may write your
+programs using only QAsm features, so you don't have to learn anything more.
+Note that QAsm's OPT directive is ignored by X-Asm.
+
+Assembling a source program
+---------------------------
+If you have written source code, just enter it's path\filename as a parameter
+and it will be assembled. Currently there are no switches. You don't even
+specify object filename - it will have same path\name, but the .COM extension.
+Remember it is an Atari executable, so don't run it on PC!
+It's a good idea to give the .ASX extension to your source, because
+it is default, so you don't have to specify it.
+If assembling is successful, X-Asm displays number of lines assembled
+and bytes written and returns exitcode 0.
+If source is incorrect, X-Asm displays ONLY FIRST encountered error
+and returns exitcode 1.
+
+
+X-ASM LANGUAGE STRUCTURE
+========================
+Lines of source code may be:
+- empty lines - ignored, of course
+- comments - ignored, too
+- statements - not ignored :-)
+Comment lines must have one of the following characters in the FIRST column
+of the line: * ; |
+Note that spaces at the beginning of comment line are NOT allowed.
+
+Numbers
+-------
+A number can be:
+- a 16-bit decimal number          -12345
+- a 16-bit hexadedecimal number    $abcd
+- a 16-bit binary number           %10100101
+- a character                      'a'
+- a hardware register              ^31
+- an origin counter                *
+I think only 'a hardware register' should be explained. It is a short way
+of accessing Atari hardware registers:
+^0x means $d00x
+^1x means $d01x
+^2x means $d20x
+^3x means $d30x
+^4x means $d40x
+where x is a hexadecimal digit.
+
+Expressions
+-----------
+Expressions are numbers combined with operators. Currently there are only
+two operators: '+' for addition and '-' for subtraction. You can't use
+brackets in expressions.
+Some valid expressions:
+5
+-1+2+3-4
+*+4
+'a'-'A'
+17-$10+label
+
+Statements
+----------
+A statement is divided into four fields: a label field, an operation field,
+an operand field, and a comment field. There should be at least one space
+between every two fields and there can't be any space within a field.
+
+1. label field
+This field is optional. It is required only by the EQU directive.
+Specyfying this field definies a label. Defined label represents a 16-bit
+signed or unsigned integer.
+Label's name must begin in column 1 and can contain letters, digits
+and underscores (_). Digit can't be label's first character. Label's name
+can be as long as you want and all the characters are meaningful!
+Defining a label without using EQU makes it equal to current value
+of the origin counter.
+Every label can be defined only once.
+Note that in Quick Assembler only 6 leading characters are recognized.
+It means that label12 and label13 are the same label! They are not the same
+for X-Asm and thus some programs may not compile well for this reason.
+
+2. operation field
+Operation field is the only field which is always required.
+You have to put one or more spaces or tab characters between label
+and operation field. If no label is defined, line must start with a blank.
+Operation field is always 3 letters long. It can be:
+a. a 6502 processor command
+b. a compiler directive
+c. a pseudo-command
+
+a. 6502 command
+One of 56 well known processor commands.
+
+b. compiler directive
+One of the following:
+
+EQU - define a label by assigning a value of an expression to the label.
+Note that label represents a number, not a text macro.
+Examples:
+five equ 5
+ten  equ five+five
+
+ORG - set new origin counter
+Example:
+      org $600    code will be located starting from $0600
+table org *+100   'table' points to 100 bytes of uninitialized data
+
+DTA - define data
+You may define:
+* numbers
+  - bytes: b(200)
+  - words: a(10000)
+  - low bytes of words: l(511) defines byte 255
+  - high bytes of words: h(511) defines byte 1
+  You may enter many numbers in parentheses and combine different types of data
+  in single line.
+  You may also define a sinus table. Enter this expression inside brackets:
+  sin(centre,amp,size,first,last)
+  where:
+  - centre is a number which is added to every value of sinus
+  - amp is the amplitude of sinus
+  - size is the period of sinus
+  - first,last define range of values in the table.
+    They are optional. Default are 0,size-1.
+  Example: dta a(sin(0,1000,256,0,63)) defines table of 64 words representing
+  a quarter of sinus with amplitude of 1000.
+* text strings
+  - ASCII strings: c'Text'
+  - ANTIC strings: d'Text'
+  A character string consists of any of characters surrounded by single
+  quotation marks. Within a string, a single quotation mark character is
+  represented by two succesive single quotation marks.
+  Placing a '*' character after a string inverts bit 7 in every byte of string.
+Examples of DTA:
+ dta b(2,5),a(1000,-1),l(12345,sin(0,127,256))
+ dta d'ANTIC'*,c'It''s a string',b(155)
+
+ICL - include another source file
+Specifies another file to be included in the assembly as if the contests of
+the referenced file appeared in place of the ICL statement. The included file
+may contain other ICL statements.
+Examples:
+ icl 'macros.asx'
+ icl 'c:\atari\xasm\fileio.asx'
+
+END - end assembling of file
+Remaining part of the file is not assembled. If this statement does not occur,
+assembler stops assembling when encounters end of file.
+Example:
+ end
+
+OPT - set assembling options
+This directive is implemented only for compatibility with Quick Assembler.
+It is ignored by X-Asm, so don't use it in your programs.
+
+INS - insert contents of file
+Copies every byte of specified file into object file and moves origin counter,
+as if these bytes were defined with DTA.
+Examples:
+ ins 'picture.raw'
+ ins 'tables.dat'
+
+RUN - generate run address
+The Atari executable program should have run address specified. Remember that
+a program may be loaded in many areas of memory and started from any address.
+ run addr
+is equivalent to:
+ org $2e0
+ dta a(addr)
+Examples:
+ run start
+ run program
+
+INI - generate init address
+The Atari executable program may have some routines which are executed during
+loading process. There may be many init blocks in one file.
+Examples:
+ ini init
+ ini showpic
+
+c. pseudo-command
+It is something like built-in macro. It replaces two or more standard
+processor command. Note that it is not an illegal instruction and works
+on typical 6502.
+
+ADD - addition without carry
+If you have some experience with programming 6502, you must have noticed that
+you had to use a CLC before ADC. X-Asm does it for you. ADD is simply two
+instructions: CLC and ADC.
+
+SUB - subtraction
+It is SEC and SBC.
+
+JNE, JEQ, JCC, JCS, JPL, JMI, JVC, JVS - conditional jumps
+These are a kind of 'long' branches. While standard branches (BNE, BEQ) have
+range of -128..+127, these jumps have range of all 64 kB.
+For example: a JNE DEST is replaced with:
+ BEQ *+5
+ JMP DEST
+As you see these pseudo-instructions are 5 bytes long.
+
+INW - increment word
+It is a 16-bit memory increment command. An INW DEST will be replaced by:
+ INC DEST
+ BNE _skip
+ INC DEST+1
+_skip equ *
+The '_skip' label is not declared of course.
+
+3. Operand
+It depends on the operation field. Some statements don't need an operand and
+thus there is no operand field there. Other statements require some special
+kind of operand, for example DTA and ICL.
+
+6502 commands require operand depending on the addressing mode.
+Addressing modes should be entered in standard convention except
+the accumulator addressing mode, which should be marked with a '@' character.
+
+There are two extra addressing modes: < and >. They are assembled to
+immediate addressing mode (#), but low/high byte of word is used rather than
+byte value.
+
+In absolute addressing modes, X-Asm examines expression and uses zero-page
+addressing mode if it thinks it is possible to do it. You may also specify
+the mode by yourself, using 'a:' and 'z:' prefixes.
+
+Examples:
+ nop
+ asl @
+ lda >$1234	assembled to lda #$12
+ lda $100,x
+ lda a:0	generates 16-bit address
+ jmp ($0a)
+ lda ($80),y
+
+4. Comment
+Does not need a comment :-)
+
+Problems
+--------
+These notes may help you:
+
+* No spaces are allowed within a field.
+label equ 1 + 2
+causes label to be equal 1 ('+ 2' is treated as a comment).
+
+* Only addition and subtraction can be used as operators in expressions
+
+* < and > represent addressing modes rather than LOW and HIGH operators.
+You specify 'lda <table', not 'lda #<table' like in most 6502 assemblers.
+
+* Label definition does not include a colon
+label: lda ^4b     ERROR - colon after label name
+
+* Signed bytes are not supported, only signed words.
+For example: if you want to define byte -5, use 'dta l(-5)'
+
+* Be careful when specifying ORGs
+You may have not specified ORG at all or specified address is invalid.
+You may have located your code where it shouldn't be. You can't use:
+- memory under ROM unless ROM is disabled
+- memory reserved for OS if it is in use
+- memory occupied by other parts of program
+- memory where program places data, tables, variables
+
+* Exactly one run address should be specified
+Remember that unlike in other assemblers
+ end start
+does not tell the assembler that 'start' is the run address (it is a comment).
+You must specify the run address with RUN directive.
+
+* X-Asm reads source twice (in pass 1 and pass 2)
+This allows forward references, but not too complex.
+Keep in mind that assembler should know all the values in second pass.
+Example:
+two   equ one+one   This value is known in 2nd pass only
+one   equ 1         This value is known as early as in 1st pass
+These values could be fixed in 2 passes.
+But if you insert following statement as first line
+three equ one+two
+X-Asm will generate an error because it doesn't know the value of 'three' in
+second pass.
+
+* X-Asm displays only first error
+When you correct an error don't be surpised if you get another one.
+
+* If you encounter X-Asm works improperly, please let me know.
+
+===
