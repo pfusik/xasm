@@ -39,7 +39,17 @@ nousg:	lea	dx, [di-1]
 	repne	scasb
 	jne	okend
 	dec	di
-okend:	mov	[byte di], 0
+okend:	mov	si, di
+	mov	cx, di
+	sub	cx, dx
+adex1:	dec	si
+	cmp	[byte si], '.'
+	je	adexn
+	cmp	[byte si], '\'
+	loopne	adex1
+adex2:	mov	eax, 'XBO.'
+	stosd
+adexn:	mov	[byte di], 0
 	fopen
 
 	call	read
@@ -122,9 +132,9 @@ pdig:	d2a
 	popa
 	ret
 
-hello	db	'X-HEAD 1.0 by Fox/Taquart',eot
-usgtxt	db	'You must specify a file to analyze.',eot
-notbin	db	'File is not Atari executable!',eot
+hello	db	'X-HEAD 1.1 by Fox/Taquart',eot
+usgtxt	db	'Syntax: XHEAD obxfile',eot
+notbin	db	'File is not an Atari executable!',eot
 	smarterr
 byttxt	db	' bytes',eot
 blotxt	db	' blocks',eot
