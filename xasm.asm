@@ -5,6 +5,9 @@
 	MODEL	TINY
 	CODESEG
 
+; comment out to turn off
+SET_WIN_TITLE	=	1
+
 compak	=	1c00h
 
 l_icl	=	1024
@@ -45,18 +48,18 @@ m_vec	dw	?
 
 ;[flags]
 m_pass	=	1
-m_skip	=	4
-m_norg	=	8
-m_rorg	=	10h
-m_rqff	=	20h
-b_hdr	=	6
-m_hdr	=	40h
-m_pair	=	80h
-m_repa	=	100h
-b_skit	=	9
-m_skit	=	200h
-b_enve	=	10
-m_enve	=	400h
+m_norg	=	2
+m_rorg	=	4
+m_rqff	=	8
+b_hdr	=	4
+m_hdr	=	10h
+m_pair	=	20h
+m_repa	=	40h
+b_skit	=	7
+m_skit	=	80h
+b_enve	=	8
+m_enve	=	100h
+m_wobj	=	200h
 
 ;[swits]
 m_swc	=	1
@@ -68,15 +71,16 @@ m_swn	=	10h
 m_swo	=	20h
 m_sws	=	40h
 m_swt	=	80h
+m_swu	=	100h
 
 ;[flist]
-m_lstc	=	1
 m_lsti	=	4
 m_lstl	=	8
 m_lsto	=	10h
 m_lsts	=	m_lsto+m_lstl+m_lsti
 
 nhand	=	-1	;null handle
+cr	equ	13
 eol	equ	13,10
 eot	equ	13,10,'$'
 
@@ -157,17 +161,21 @@ MACRO	setfl	_mask
 	setflag	[flags], _mask
 	ENDM
 
-MACRO	xorfl	_mask
-	flipflag [flags], _mask
+MACRO	testsw	_mask
+	testflag [swits], _mask
+	ENDM
+
+MACRO	setsw	_mask
+	setflag	[swits], _mask
 	ENDM
 
 MACRO	jpass1	_dest
-	testflag	[flags], m_pass
+	testflag [flags], m_pass
 	jz	_dest
 	ENDM
 
 MACRO	jpass2	_dest
-	testflag	[flags], m_pass
+	testflag [flags], m_pass
 	jnz	_dest
 	ENDM
 
@@ -226,6 +234,13 @@ IFDEF	compak
 	db	compak+start-$ dup(?)
 ENDIF
 
+	ifdef	SET_WIN_TITLE
+	mov	di, offset hello
+	mov	ax, 168eh
+	xor	dx, dx
+	int	2fh
+	mov	[titfin], ' '
+	endif
 	print	hello
 	mov	di, 81h
 	movzx	cx, [di-1]
@@ -283,10 +298,10 @@ gsw1:	lodsb			; pobierz switche
 	lodsb
 	and	al,0dfh		; mala litera -> duza
 	mov	di, offset swilet
-	mov	cx, 8
+	mov	cx, 9
 	repne	scasb
 neusg:	jne	usg		; nie ma takiego switcha
-	bts	[word swits], cx	; sprawdz bit i ustaw
+	bts	[swits], cx	; sprawdz bit i ustaw
 	jc	usg		; juz byl taki
 	mov	di, offset lstnam
 	mov	ecx, 'TSL'
@@ -319,13 +334,12 @@ gsw4:	mov	[byte di-1], 0
 	lda	ecx		; doczep ecx
 	call	adext
 	jmp	gsw0
-gswx:	mov	al, [swits]
-	not	al
-	and	al, m_lstl+m_lstc
-	or	al, m_lsto
+gswx:	mov	al, [byte swits]
+	and	al, m_lstl
+	xor	al, m_lstl+m_lsto
 	mov	[flist], al
 
-	test	[swits], m_swe
+	testsw	m_swe
 	jz	noswe
 
 prpsp:	mov	ax, [16h]
@@ -377,7 +391,7 @@ renvx:	push	cs
 	push	ds
 	pop	es
 
-noswe:	btr	[word swits], b_swn
+noswe:	btr	[swits], b_swn
 	jnc	noswn
 
 	mov	dx, offset objnam	; sprawdz czas modyfikacji object'a
@@ -388,7 +402,7 @@ noswe:	btr	[word swits], b_swn
 	mov	[word objmod], cx	; zapisz czas
 	mov	[word high objmod], dx	; zapisz date
 	dos	3eh
-	or	[swits], m_swn		; sprawdzimy czas modyfikacji source'a
+	setsw	m_swn		; sprawdzimy czas modyfikacji source'a
 
 noswn:	mov	bp, offset var
 
@@ -396,7 +410,7 @@ npass:	mov	[orgvec], offset t_org-2
 	mov	di, [fslen]
 
 opfile:	call	fopen
-	btr	[word swits], b_swn
+	btr	[swits], b_swn
 	jnc	main
 	sta	bx
 	dos	5700h			; sprawdz czas modyfikacji
@@ -424,7 +438,7 @@ skiplf:
 	mov	bx, [(icl bx).prev]
 	inc	[(icl bx).line]	; zwieksz nr linii w pliku
 	inc	[lines]		; ilosc wszystkich linii
-	test	[swits], m_swi
+	testsw	m_swi
 	jz	gline1		; czy /I
 	and	[flist], not m_lsti	; ... tak
 	cmp	bx, offset t_icl
@@ -445,82 +459,20 @@ gline1:	cmp	di, offset line+256
 	inc	di
 	jmp	gline1
 
-skip1:	call	get		; falszywy warunek - omin etykiete ...
-	cmp	al, ' '
-	je	skip2
-	cmp	al, 9
-	jne	skip1
-skip2:	call	space1		; omin spacje
-	lodsd			; sprawdz komende
-	and	eax, 0dfdfdfh
-	cmp	eax, 'DNE'
-	je	filend
-	push	offset lstrem
-	cmp	eax, 'TFI'	; IFT
-	je	skift
-	cmp	eax, 'SLE'	; ELS
-	je	skels
-	cmp	eax, 'FIE'	; EIF
-	jne	skret
-	call	p_eif
-	dec	[sift]
-	jns	skret
-	resfl	m_skip
-	inc	[sift]	;0
-skret:	ret
-skift:	inc	[sift]
-shlelf:	shl	[elflag], 1
-	jnc	skret
-	error	e_tmift
-
-skels:	call	btself
-	cmp	[sift], 0
-	jnz	skret
-	jmp	fliski
-
 eof:	mov	bx, [iclen]	; koniec pliku
 	or	[(icl bx).flags], m_eofl
 
-syntax:	call	lspeol		; zapisz CR/LF i zapamietaj dlugosc linii
+syntax:	mov	[byte di], 0dh
+	mov	[eolpos], di
+	mov	[lstidx], offset lstorg
+	mov	[labvec], 0
 	mov	si, offset line	; asembluj linie
-	mov	al, [si]
-	cmp	al, '*'
-	je	lstrem
-	cmp	al, ';'
-	je	lstrem
-	cmp	al, '|'
-	je	lstrem
-	cmp	al, 0dh
-	je	lsteol
-	testfl	m_skip
-	jnz	skip1		; czy byl falszywy warunek ?
-	mov	[labvec], 0	; ... nie
-	cmp	al, ' '
-	je	s_one
-	cmp	al, 9
-	je	s_one
-	cmp	al, ':'		; linia powtarzana
-	jne	labdef
-	inc	si
-	call	getuns
-	jc	unknow
-	test	ax, ax
-	jnz	s_cmd
-
-lstrem:	call	chklst
-	jnz	jmain
-	mov	di, offset lstspa+1
-	call	putlsp
-jmain:	jmp	main
-lsteol:	call	chklst
-	jnz	jmain
-	mov	di, offset lstspa
-	call	lspeol
-	call	putlnm
-	jmp	main
-
-labdef:	jpass2	deflp2		; jest etykieta
-	call	flabel		; definicja etykiety w pass 1
+	call	rlabel
+	jb	nolabl
+	cmp	[skflag], 0
+	jnz	labelx
+	jpass2	deflp2		; jest etykieta
+	call	flab0		; definicja etykiety w pass 1
 	jnc	ltwice
 	mov	di, [laben]
 	mov	[labvec], di
@@ -537,40 +489,79 @@ labdef:	jpass2	deflp2		; jest etykieta
 	sta	si
 	mov	[laben], di
 	cmp	di, offset t_lab+l_lab-4
-	jb	s_one
+	jb	labelx
 	error	e_tlab
 
 ltwice:	error	e_twice
 
-deflp2:	call	rlabel		; definicja etykiety w pass 2
-	mov	ax, [pslab]
-	mov	[labvec], ax
+deflp2:	mov	bx, [pslab]	; definicja etykiety w pass 2
+	mov	[labvec], bx
 	add	[pslab], dx	; oznacz jako minieta
+	test	[(lab bx).flags], m_lnus
+	jz	labelx
+	testsw	m_swu
+	jz	labelx
+	push	si
+	push	offset w_ulab
+	call	warln
+	pop	si
+labelx:	cmp	[byte si], 0dh
+	je	lstreo
+	call	spaces
 
-s_one:	mov	ax, 1
-s_cmd:	mov	[times], ax
-s_cmd0:	lodsb
+nolabl:	lodsb
 	cmp	al, ' '
-	je	s_cmd0
+	je	nolabl
 	cmp	al, 9
-	je	s_cmd0
+	je	nolabl
+	cmp	al, '*'
+	je	lstrem
+	cmp	al, ';'
+	je	lstrem
+	cmp	al, '|'
+	je	lstrem
 	cmp	al, 0dh
-	jne	s_cmd1
-	cmp	[byte high labvec], 0
-	jne	uneol		; niedozwolona linia z sama etykieta
-	cmp	[times], 1
-	jne	uneol		; niedozwolona linia z samym licznikiem
-	jmp	lsteol
-s_cmd1:	dec	si
-	mov	di, offset lstorg
+	je	lstrem
+	cmp	al, ':'
+	jne	s_one
+	call	getuns
+	jc	unknow
+	sta	cx
+	jcxz	lstrem
+	call	spaces
+	jmp	s_cmd
+
+lstrem:	cmp	[byte high labvec], 0
+	jz	lstre1
+lstreo:	call	chorg
+	call	phorg
+
+lstre1:	call	lstlin
+	jmp	main
+
+skip1:	lodsd			; sprawdz komende
+	dec	si
+	and	eax, 0dfdfdfh
+	mov	di, offset cndtxt
+	mov	cx, 5
+	repne	scasd
+	jne	lstcnd
+	call	[word di-4+cndvec-cndtxt]
+	cmp	[skflag], 0
+	jz	lstre1
+lstcnd:	testsw	m_swc
+	jnz	lstre1
+	jmp	main
+
+s_one:	dec	si
+	mov	cx, 1
+s_cmd:	cmp	[skflag], 0
+	jnz	skip1
+	mov	[times], cx
 	testfl	m_norg
 	jnz	nlorg
-	mov	ax, [origin]
-	call	phword		; listuj * hex
-	mov	al, ' '
-	stosb
-nlorg:	mov	[lstidx], di
-	mov	[cmdvec], si
+	call	phorg
+nlorg:	mov	[cmdvec], si
 
 rdcmd1:	resfl	m_pair
 
@@ -733,7 +724,7 @@ prname:	mov	bx, [iclen]
 	dos	2
 	mov	dl, ' '
 	dos	2
-	test	[swits], m_swe
+	testsw	m_swe
 	jz	msgenx
 	les	di, [dword envofs]
 	mov	ax, [es:3]
@@ -775,8 +766,10 @@ ppline:	mov	si, offset line
 prline:	mov	dl, [si]
 	dos	2
 	inc	si
-	cmp	[byte si-1], 0ah
+	cmp	[byte si-1], 0dh
 	jne	prline
+	mov	dl, 0ah
+	dos	2
 	ret
 
 miseif:	push	offset e_meif
@@ -786,11 +779,7 @@ skiten:	push	offset e_skit
 	jmp	erron
 
 ; End of file
-skend:	call	chklst
-	jnz	filend
-	mov	di, offset lstspa+1
-	call	putlsp
-
+pofend:	pop	ax
 filend:	call	fclose
 	cmp	bx, offset t_icl
 	ja	main
@@ -800,14 +789,14 @@ filend:	call	fclose
 	jne	miseif
 	testfl	m_skit
 	jnz	skiten
-	setfl	m_pass+m_norg+m_rorg+m_rqff+m_hdr
+	setfl	m_pass+m_norg+m_rorg+m_rqff+m_hdr+m_wobj
 	and	[flist], not m_lsto
 	jmp	npass
 
 fin:	mov	bx, [ohand]
 	mov	[errmsg], offset e_wrobj
 	call	hclose
-	test	[swits], m_swt
+	testsw	m_swt
 	jz	nlata			; czy /T ?
 	cmp	[laben], offset t_lab	; ... tak
 	jbe	nlata			; czy tablica pusta ?
@@ -847,7 +836,6 @@ lata4:	call	phword
 	add	cl, [(lab si).len]
 	add	si, offset (lab).nam
 	rep	movsb
-	call	lspeol
 	call	putlst
 	cmp	si, [laben]
 	jb	lata1
@@ -917,9 +905,7 @@ fclos1:	mov	bx, [(icl bx).prev]
 	ret
 
 putwor:	mov	cx, 2		; zapisz slowo do pliku
-	jmp	putowo
-putbyt:	mov	cx, 1		; zapisz bajt
-putowo:	mov	dx, offset oword
+	mov	dx, offset oword
 	mov	[oword], ax
 putblk:	jpass1	putx		; zapisz blok
 	cmp	[ohand], nhand
@@ -948,12 +934,17 @@ nenorg:	jz	putx
 
 tmorgs:	error	e_orgs
 
+incorg:	inc	[origin]
+	ret
+
 savwor:	push	ax
 	call	savbyt
 	pop	ax
 	mov	al, ah
 
 savbyt:	jopcod	xopco
+	testfl	m_wobj
+	jz	incorg
 	mov	di, [obufpt]
 	stosb
 	mov	[obufpt], di
@@ -966,6 +957,8 @@ savbyt:	jopcod	xopco
 	cmp	ax, [curorg]
 	je	borg3
 borg1:	add	[orgvec], 2
+	cmp	[orgvec], offset t_org+l_org
+	jae	tmorgs
 	jpass1	borg2
 	mov	di, offset lstorg
 	testfl	m_rqff
@@ -1023,13 +1016,6 @@ lstxtr:	cmp	di, offset line-1
 	mov	ax, ' +'
 	stosw
 	mov	[lstidx], di
-	ret
-
-chklst:	mov	al, m_lsts
-	testfl	m_skip
-	jz	chkls1
-	mov	al, m_lsts+m_lstc
-chkls1:	test	al, [flist]
 linret:	ret
 
 ; Stwierdza blad, jesli nie spacja, tab lub eol
@@ -1041,22 +1027,27 @@ linend:	lodsb
 	cmp	al, 9
 	je	linen1
 	error	e_xtra
-linen1:	test	[flist], m_lsts
-	jnz	linret
-	cmp	[times], 1
+; Listuje linie po ostatnim przebiegu
+linen1:	cmp	[times], 1
 	jne	linret
-	mov	di, [lstidx]
-putlsp:	call	putspa
-; Listuje linie z numerem
-putlnm:	mov	di, offset lstspa
+; Listuje linie
+lstlin:	test	[flist], m_lsts
+	jnz	linret
+	mov	di, offset lstspa
 	mov	bx, [iclen]
 	mov	bx, [(icl bx).prev]
 	mov	eax, [(icl bx).line]
 	call	numdec
-lstlsp:	dec	di
-	mov	[byte di], ' '
+	mov	al, ' '
+lstl1:	dec	di
+	mov	[di], al
 	cmp	di, offset lstnum
-	ja	lstlsp
+	ja	lstl1
+	mov	di, [lstidx]
+	mov	cx, offset line
+	sub	cx, di
+	rep	stosb
+	mov	[lstspa], al
 
 	mov	bx, [iclen]
 	cmp	bx, [srcen]
@@ -1077,15 +1068,16 @@ lsrc1:	mov	dx, offset srctxt
 	call	putlad		; nazwa
 	call	plseol
 nlsrc:
-	test	[swits], m_sws
-	jnz	putlst		; jezeli nie ma /S ...
+	mov	di, [eolpos]
+	testsw	m_sws
+	jnz	ctrail		; jezeli nie ma /S ...
 	mov	si, offset lstnum
 	mov	di, si		; ... zamien spacje na taby
 spata1:	xor	dl, dl
 spata2:	lodsb
+	cmp	al, 0dh
+	je	ctrail
 	stosb
-	cmp	al, 0ah
-	je	spatax
 	cmp	al, 9
 	je	spata1
 	dec	dx
@@ -1102,11 +1094,16 @@ spata3:	cmp	al, [bx]
 	mov	[byte di-1], 9
 	mov	si, bx
 	jmp	spata1
-spatax:	call	lsplen
 
-; Zapis linii lstnum o dlug. linlen
-putlst:	mov	dx, offset lstnum
-	mov	cx, [linlen]
+strail:	dec	di
+ctrail:	cmp	[byte di-1], ' '
+	je	strail
+	cmp	[byte di-1], 9
+	je	strail
+putlst:	mov	ax, 0a0dh
+	stosw
+	lea	cx, [di+zero-lstnum]
+	mov	dx, offset lstnum
 putlad:	mov	bx, [lhand]
 	jfile	40h, e_wrlst
 
@@ -1122,12 +1119,6 @@ opntab:	xor	cx, cx
 plseol:	mov	dx, offset eoltxt
 	mov	cx, 2
 	jmp	putlad
-
-lspeol:	mov	ax, 0a0dh
-	stosw
-lsplen:	lea	ax, [di+zero-lstnum]
-	mov	[linlen], ax
-	ret
 
 adasx:	mov	eax, 'XSA'
 ; Dodaj rozszerzenie nazwy, gdy go nie ma
@@ -1163,6 +1154,15 @@ pridec:	mov	di, offset dectxt+10
 	print
 	ret
 
+; Zapisz hex origin
+phorg:	mov	di, offset lstorg
+	mov	ax, [origin]
+	call	phword		; listuj * hex
+	mov	al, ' '
+	stosb
+	mov	[lstidx], di
+	ret
+
 ; Zapisz hex ax od [di]
 phword:	push	ax
 	mov	al, ah
@@ -1186,8 +1186,6 @@ get:	lodsb
 	ret
 uneol:	error	e_uneol
 
-ilchar:	error	e_char
-
 ; Omin spacje i tabulatory
 spaces:	call	get
 	cmp	al, ' '
@@ -1202,14 +1200,6 @@ space1:	call	get
 	je	space1
 	dec	si
 rstret:	ret
-
-; Zapisz spacje od di do line
-putspa:	mov	cx, offset line
-	sub	cx, di
-	mov	al, ' '
-	rep	stosb
-	mov	[lstspa], al
-	ret
 
 ; Pobierz nazwe pliku
 rfname:	call	spaces
@@ -1258,10 +1248,9 @@ rlab2:	stosb
 	jb	rlab1
 linlon:	push	offset e_long
 	jmp	erron
-rlabx:	cmp	[byte tlabel], 'A'
-	jb	ilchar
-	lea	dx, [di+zero-tlabel+lab.nam]
+rlabx:	lea	dx, [di+zero-tlabel+lab.nam]
 	dec	si
+	cmp	[byte tlabel], 'A'
 	ret
 
 ; Czytaj etykiete i szukaj w t_lab
@@ -1269,7 +1258,8 @@ rlabx:	cmp	[byte tlabel], 'A'
 ; C=0: znaleziona, bx=adres wpisu
 ; C=1: nie ma jej
 flabel:	call	rlabel
-	push	si
+	jb	ilchar
+flab0:	push	si
 	xor	cx, cx
 	mov	si, offset t_lab
 	mov	ax, [laben]
@@ -1315,9 +1305,7 @@ v_par0:	call	get
 
 v_n1a:	cmp	al, '('
 	je	wropar
-	dec	si
-	xor	eax, eax
-	call	get
+	movzx	eax, al
 	cmp	al, '*'
 	je	valorg
 	cmp	al, "'"
@@ -1329,7 +1317,7 @@ v_n1a:	cmp	al, '('
 	cmp	al, '{'
 	je	valquo
 	mov	di, -1
-	xor	edx, edx
+	cdq		; xor edx, edx
 	mov	ecx, 16
 	cmp	al, '$'
 	je	rdnum3
@@ -1366,8 +1354,8 @@ vlabel:	push	bx
 	jnc	vlabfn
 	jpass1	vlukp1
 	error	e_undec
-vlabfn:	jpass1	vlchuk
-	and	[(lab bx).flags], not m_lnus
+vlabfn:	and	[(lab bx).flags], not m_lnus
+	jpass1	vlchuk
 	cmp	bx, [pslab]
 	jb	vlchuk
 	test	[(lab bx).flags], m_ukp1
@@ -1428,8 +1416,8 @@ valquo:	jopcod	rcopco
 	mov	[opcosp], sp
 	mov	bp, offset var2
 	jmp	rdcmd3
-xopco:	mov	bp, offset var
-	mov	sp, [opcosp]
+xopco:	mov	sp, [opcosp]
+	mov	bp, offset var
 	mov	ah, al
 	call	get
 	cmp	al, '}'
@@ -1656,6 +1644,26 @@ goprpa:	lea	ax, [di+operpa]
 	mov	di, [di+1]
 	ret
 
+onemod:	jnopcod	getadr
+	cmp	[byte si], '}'
+	jne	getadr
+	jmp	xopco
+
+getaim:	jnopcod	getai0
+	cmp	[byte si], '}'
+	je	getai2
+getai0:	cmp	al, '<'
+	pushf
+	call	getval
+	popf
+	jb	getai2
+	je	getai1
+	mov	al, ah
+getai1:	movzx	eax, al
+	mov	[dword val], eax
+getai2:	mov	dx, 1
+	jmp	getadx
+
 ; Pobierz operand rozkazu i rozpoznaj tryb adresowania
 getadr:	call	spaces
 	lodsb
@@ -1670,27 +1678,27 @@ getadr:	call	spaces
 	je	getaim
 	mov	dl, 8
 	cmp	al, '('
-	je	getad1
+	je	getao1
 	dec	si
 	lodsw
 	and	al, 0dfh
 	mov	dl, 2
 	cmp	ax, ':A'
-	je	getad1
+	je	getao2
 	inc	dx
 	cmp	ax, ':Z'
-	je	getad1
+	je	getao2
 	dec	si
 	dec	si
 	xor	dx, dx
-	
+
 getad1:	push	dx
 	call	getuns
 	sbb	al, al
 	jnz	getad2
 	mov	al, [byte high val]
 getad2:	pop	dx
-	cmp	dl, 8
+getad9:	cmp	dl, 8
 	jae	getaid
 	cmp	dl, 2
 	jae	getad3
@@ -1721,18 +1729,16 @@ getadx:	lda	dx
 	mov	[word amod], ax
 	ret
 
-getaim:	cmp	al, '<'
-	pushf
-	call	getval
-	popf
-	jb	getai2
-	je	getai1
-	mov	al, ah
-getai1:	movzx	eax, al
-	mov	[dword val], eax
-getai2:	mov	dx, 1
-	jmp	getadx
-
+getao1:	jnopcod	getad1
+	cmp	[byte si], ')'
+	je	getaid
+getao2:	jnopcod	getad1
+	cmp	[byte si], ','
+	je	getad9
+	cmp	[byte si], '}'
+	je	getad9
+	jmp	getad1
+	
 getaid:	lodsb
 	cmp	al, ','
 	je	getaix
@@ -1790,7 +1796,7 @@ acc3:	mov	al, [amod]
 	test	al, al
 	jz	ilamod
 	or	al, [cod]
-	cmp	al, 89h
+	cmp	al, 89h	; sta #
 	jne	putsfx
 ilamod:	error	e_amod
 
@@ -1892,7 +1898,7 @@ p_cpi:	call	getadr
 	mov	al, 4
 	jmp	putcod
 
-p_bra:	call	getadr
+p_bra:	call	onemod
 	and	al, 0feh
 	cmp	al, 2
 	jne	ilamod
@@ -1922,7 +1928,7 @@ toofa1:	neg	ax
 	call	phword
 	error	e_bra
 
-p_jsr:	call	getadr
+p_jsr:	call	onemod
 	mov	al, 20h
 	jmp	p_abs
 
@@ -2050,41 +2056,41 @@ p_mw3:	lea	si, [op2]
 	jmp	p_mvx
 
 p_opt:	call	spaces
-	xor	cx, cx
+	xor	dx, dx
+	jmp	opt0
+opt1:	shr	cx, 1
+	bts	dx, cx
+	jc	opter
+	call	[word di-2+optvec-opttxt]
 opt0:	lodsw
 	and	al, 0dfh
-	cmp	al, 'L'
-	je	optlst
-	cmp	al, 'H'
-	je	opthdr
-	jcxz	opter
+	mov	cx, 6
+	mov	di, offset opttxt
+	repne	scasw
+	je	opt1
+	test	dx, dx
+	jz	opter
 	dec	si
 	dec	si
 	ret
-optlst:	inc	cx
-	cmp	ah, '+'
-	je	optl1
-	cmp	ah, '-'
-	jne	opter
-	or	[flist], m_lsto
-opt1:	xor	al, [si]
-	and	al, 0dfh
-	jne	opt0
+
 opter:	error	e_opt
-optl1:	jpass1	opt1
+
+optl0:	or	[flist], m_lsto
+	ret
+optl1:	jpass1	optr
 	and	[flist], not m_lsto
-	jmp	opt1
-opthdr:	inc	cx
-	cmp	ah, '+'
-	je	opth1
-	cmp	ah, '-'
-	jne	opter
-	resfl	m_hdr+m_rqff
-	jmp	opt1
+optr:	ret
+opth0:	resfl	m_hdr+m_rqff
+	ret
 opth1:	bts	[flags], b_hdr
-	jc	opt1
+	jc	optr
 	setfl	m_rorg
-	jmp	opt1
+	ret
+opto0:	resfl	m_wobj
+	ret
+opto1:	setfl	m_wobj
+	ret
 
 p_ert:	call	spaval
 	jpass1	equret
@@ -2094,7 +2100,7 @@ p_ert:	call	spaval
 
 p_equ:	mov	di, [labvec]
 	test	di, di
-	jz	nolabl
+	jz	nolabd
 	mov	[(lab di).l_val], 0
 	and	[(lab di).flags], not m_sign
 	call	spaval
@@ -2120,7 +2126,7 @@ equ3:	stosw
 	mov	[lstidx], di
 equret:	ret
 
-nolabl:	error	e_label
+nolabd:	error	e_label
 
 chkhon:	testfl	m_hdr
 	jnz	equret
@@ -2177,6 +2183,7 @@ dtat0:	cmp	al, 'C'
 	cmp	al, 'D'
 	jne	dtab1
 dtat1j:	dec	si
+	mov	[cod], al
 	jmp	dtat1
 
 p_dta:	call	spaces
@@ -2321,7 +2328,7 @@ dreal1:	call	getdig
 	je	drealp
 	test	bh, bh
 	jnz	drealz
-	jmp	ilchar
+ilchar:	error	e_char
 dreal2:	mov	bh, 1
 	test	al, al
 	jz	dreal1
@@ -2499,26 +2506,37 @@ p_end:	pop	ax
 	call	linend
 	jmp	filend
 
-btself:	bts	[elflag], 0
-	jnc	cndret
-	error	e_eifex
-
-p_ift:	call	spaval
+p_ift:	shl	[elflag], 1
+	jc	etmift
+	shl	[cmflag], 1
+	shl	[skflag], 1
+ift1:	call	spaval
 	jc	unknow
-	call	shlelf
 	test	eax, eax
-	jz	fliski
-cndret:	ret
-
-p_els:	cmp	[elflag], 1
-	je	misift
-	call	btself
-fliski:	xorfl	m_skip
+	jnz	ift2
+ift0:	setflag	[skflag], 1
 	ret
 
-p_eif:	shr	[elflag], 1
+p_els:	bts	[elflag], 0
+	jc	cnderr
+ift2:	bts	[cmflag], 0
+	jc	ift0
+	maskflag [skflag], not 1
+cndret:	ret
+
+p_eli:	testflag [elflag], 1
+	jz	ift1
+cnderr:	cmp	[elflag], 1
+	je	emift
+	error	e_eifex
+
+p_eif:	shr	[skflag], 1
+	shr	[cmflag], 1
+	shr	[elflag], 1
 	jnz	cndret
-misift:	error	e_mift
+emift:	error	e_mift
+
+etmift:	error	e_tmift
 
 ; addressing modes:
 ; 0-@ 1-# 2-A 3-Z 4-A,X 5-Z,X 6-A,Y 7-Z,Y 8-(Z,X) 9-(Z),Y 10-(A)
@@ -2561,6 +2579,7 @@ comtab:	cmd	ADC0060p_acc
 	cmd	DEY0088p_imp
 	cmd	DTA8000p_dta
 	cmd	EIFe000p_eif
+	cmd	ELIe000p_eli
 	cmd	ELSe000p_els
 	cmd	ENDe000p_end
 	cmd	EOR0040p_acc
@@ -2657,6 +2676,7 @@ operpa:	opr	1ret
 	opr	5geq
 	opr	5neq
 	opr	5neq
+	opr	5equ
 	opr	3anl
 	opr	2orl
 	opr	8plu
@@ -2666,16 +2686,28 @@ operpa:	opr	1ret
 	opr	4nol
 	opr	8not
 
-opert2	db	'<<>><=>=<>!=&&||'
+opert2	db	'<<>><=>=<>!===&&||'
 noper2	=	($-opert2)/2
 opert1	db	'+-*/%&|^=<>'
 noper1	=	$-opert1
 opert0	db	'+-<>!~'
 noper0	=	$-opert0
 
-swilet	db	'TSONLIEC'
+opttxt	db	'L-L+H-H+O-O+'
+optvec	dw	optl0,optl1,opth0,opth1,opto0,opto1
 
-hello	db	'X-Assembler 2.3.-5 by Fox/Taquart',eot
+cndtxt	dd	'DNE','TFI','ILE','SLE','FIE'
+cndvec	dw	pofend,0,p_ift,0,p_eli,0,p_els,0,p_eif
+
+swilet	db	'UTSONLIEC'
+
+hello	db	'X-Assembler 2.4.-8'
+	ifdef	SET_WIN_TITLE
+titfin	db	0
+	else
+	db	' '
+	endif
+	db	'by Fox/Taquart',eot
 hellen	=	$-hello-1
 usgtxt	db	"Syntax: XASM source [options]",eol
 	db	"/c         List false conditionals",eol
@@ -2685,7 +2717,8 @@ usgtxt	db	"Syntax: XASM source [options]",eol
 	db	"/n         Assemble only if source newer than object",eol
 	db	"/o:fname   Write object as 'fname'",eol
 	db	"/s         Don't convert spaces to tabs in listing",eol
-	db	"/t[:fname] List label table",eot
+	db	"/t[:fname] List label table",eol
+	db	"/u         Warn of unused labels",eot
 oldtxt	db	'Source is older than object - not assembling',eot
 envtxt	db	'Can''t change environment',eot
 objtxt	db	'Writing object...',eot
@@ -2701,62 +2734,62 @@ dectxt	db	10 dup(' '),'$'
 wartxt	db	'WARNING: $'
 w_bugjp	db	'Buggy indirect jump',eol
 w_bras	db	'Branch would be sufficient',eol
+w_ulab	db	'Unused label',eol
 errtxt	db	'ERROR: $'
-e_open	db	'Can''t open file',eol
-e_read	db	'Disk read error',eol
-e_crobj	db	'Can''t write object',eol
-e_wrobj	db	'Error writing object',eol
-e_crlst	db	'Can''t write listing',eol
-e_wrlst	db	'Error writing listing',eol
-e_icl	db	'Too many files nested',eol
-e_long	db	'Line too long',eol
-e_uneol	db	'Unexpected eol',eol
-e_char	db	'Illegal character',eol
-e_twice	db	'Label declared twice',eol
-e_inst	db	'Illegal instruction',eol
-e_nbig	db	'Number too big',eol
-e_xtra	db	'Extra characters on line',eol
-e_label	db	'Label name required',eol
-e_str	db	'String error',eol
-e_orgs	db	'Too many ORGs',eol
-e_paren	db	'Need parenthesis',eol
-e_tlab	db	'Too many labels',eol
-e_amod	db	'Illegal addressing mode',eol
+e_open	db	'Can''t open file',cr
+e_read	db	'Disk read error',cr
+e_crobj	db	'Can''t write object',cr
+e_wrobj	db	'Error writing object',cr
+e_crlst	db	'Can''t write listing',cr
+e_wrlst	db	'Error writing listing',cr
+e_icl	db	'Too many files nested',cr
+e_long	db	'Line too long',cr
+e_uneol	db	'Unexpected eol',cr
+e_char	db	'Illegal character',cr
+e_twice	db	'Label declared twice',cr
+e_inst	db	'Illegal instruction',cr
+e_nbig	db	'Number too big',cr
+e_xtra	db	'Extra characters on line',cr
+e_label	db	'Label name required',cr
+e_str	db	'String error',cr
+e_orgs	db	'Too many ORGs',cr
+e_paren	db	'Need parenthesis',cr
+e_tlab	db	'Too many labels',cr
+e_amod	db	'Illegal addressing mode',cr
 e_bra	db	'Branch out of range by $'
-brout	db	'     bytes',eol
-e_sin	db	'Bad or missing sinus parameter',eol
-e_spac	db	'Space expected',eol
-e_opt	db	'Invalid options',eol
-e_over	db	'Arithmetic overflow',eol
-e_div0	db	'Divide by zero',eol
-e_range	db	'Value out of range',eol
-e_uknow	db	'Label not defined before',eol
-e_undec	db	'Undeclared label',eol
-e_fref	db	'Illegal forward reference',eol
-e_wpar	db	'Use square brackets instead',eol
-e_brack	db	'No matching bracket',eol
-e_user	db	'User error',eol
-e_tmift	db	'Too many IFTs nested',eol
-e_eifex	db	'EIF expected',eol
-e_mift	db	'Missing IFT',eol
-e_meif	db	'Missing EIF',eol
-e_norg	db	'No ORG specified',eol
-e_fshor	db	'File is too short',eol
-e_hoff	db	'Illegal when headers off',eol
-e_crep	db	'Can''t repeat this directive',eol
-e_opcod	db	'Can''t get op-code of this',eol
-e_ropco	db	'Nested op-codes not supported',eol
-e_mopco	db	'Missing ''}''',eol
-e_pair	db	'Can''t pair this directive',eol
-e_skit	db	'Can''t skip over it',eol
-e_repa	db	'No instruction to repeat',eol
+brout	db	'     bytes',cr
+e_sin	db	'Bad or missing sinus parameter',cr
+e_spac	db	'Space expected',cr
+e_opt	db	'Invalid options',cr
+e_over	db	'Arithmetic overflow',cr
+e_div0	db	'Divide by zero',cr
+e_range	db	'Value out of range',cr
+e_uknow	db	'Label not defined before',cr
+e_undec	db	'Undeclared label',cr
+e_fref	db	'Illegal forward reference',cr
+e_wpar	db	'Use square brackets instead',cr
+e_brack	db	'No matching bracket',cr
+e_user	db	'User error',cr
+e_tmift	db	'Too many IFTs nested',cr
+e_eifex	db	'EIF expected',cr
+e_mift	db	'Missing IFT',cr
+e_meif	db	'Missing EIF',cr
+e_norg	db	'No ORG specified',cr
+e_fshor	db	'File is too short',cr
+e_hoff	db	'Illegal when headers off',cr
+e_crep	db	'Can''t repeat this directive',cr
+e_opcod	db	'Can''t get op-code of this',cr
+e_ropco	db	'Nested op-codes not supported',cr
+e_mopco	db	'Missing ''}''',cr
+e_pair	db	'Can''t pair this directive',cr
+e_skit	db	'Can''t skip over it',cr
+e_repa	db	'No instruction to repeat',cr
 
 exitcod	dw	4c00h
 ohand	dw	nhand
 lhand	dw	nhand
-flags	dw	m_norg+m_rorg+m_rqff+m_hdr
-swits	db	0
-sift	db	0
+flags	dw	m_norg+m_rorg+m_rqff+m_hdr+m_wobj
+swits	dw	0
 lines	dd	0
 bytes	dd	0
 srcen	dw	0
@@ -2764,6 +2797,8 @@ iclen	dw	t_icl
 laben	dw	t_lab
 pslab	dw	t_lab
 elflag	dd	1
+cmflag	dd	0
+skflag	dd	0
 sinmin	dw	1
 sinmax	dw	0
 sinadd	dd	?
@@ -2781,7 +2816,7 @@ origin	dw	?
 curorg	dw	?
 orgvec	dw	?
 reporg	dw	?
-linlen	dw	?
+eolpos	dw	?
 lstidx	dw	?
 labvec	dw	?
 obufpt	dw	?
