@@ -4,7 +4,7 @@
 	P386
 	MODEL	TINY
 	CODESEG
-	ORG	100h
+zero	db	100h dup(?)
 start:
 	db	5*1024 dup(0)	;for packing
 
@@ -26,13 +26,13 @@ nam	db	?
 	ENDS
 
 STRUC	lab
-prev	dw	?
 val	dw	?
 flags	db	?
 b_sign	=	7
 m_sign	=	80h
 m_lnus	=	40h
 m_ukp1	=	20h
+len	db	?
 nam	db	?
 	ENDS
 
@@ -240,34 +240,30 @@ nskip:	mov	[labvec], 0
 	jpass2	deflp2
 	call	flabel
 	jnc	ltwice
-	push	si
-	mov	si, offset tlabel
 	mov	di, [laben]
 	mov	[labvec], di
-	scasw	;add di, 2
 	mov	ax, [origin]
 	stosw
 	mov	al, m_lnus
-	stosb
-	mov	cx, dx
-	rep	movsb
-	mov	ax, di
-	cmp	ax, offset t_lab+l_lab-5
-	jnb	tmlab
-	xchg	ax, [laben]
+	mov	ah, dl
 	stosw
-	pop	si
-	jmp	s_cmd
+	mov	cx, dx
+	sub	cl, 4
+	lda	si
+	mov	si, offset tlabel
+	rep	movsb
+	sta	si
+	mov	[laben], di
+	cmp	di, offset t_lab+l_lab-4
+	jb	s_cmd
+	error	e_tlab
 
 ltwice:	error	e_twice
-tmlab:	error	e_tlab
 
 deflp2:	call	rlabel
 	mov	ax, [pslab]
 	mov	[labvec], ax
-	add	ax, offset (lab).nam
-	add	ax, dx
-	mov	[pslab], ax
+	add	[pslab], dx
 
 s_cmd:	lodsb
 	cmp	al, ' '
@@ -569,7 +565,7 @@ rstr1:	call	get
 
 strer:	error	e_str
 
-; Przepisuje etykiete do tlabel (wyj: dx-dl.etykiety)
+; Przepisuje etykiete do tlabel (wyj: dx-dl.etykiety+4)
 rlabel:	mov	di, offset tlabel
 	mov	[byte di], 0
 rlab1:	lodsb
@@ -589,34 +585,38 @@ rlab1:	lodsb
 	ja	rlabx
 	add	al, 'A'-'a'
 rlab2:	stosb
-	jmp	rlab1
-rlabx:	mov	dx, di
-	mov	di, offset tlabel
-	cmp	[byte di], 'A'
+	cmp	di, offset tlabel+252
+	jb	rlab1
+	jmp	linlon
+rlabx:	cmp	[byte tlabel], 'A'
 	jb	ilchar
-	sub	dx, di
+	lea	dx, [di+zero-tlabel+lab.nam]
 	dec	si
 	ret
 
 ; Czyta etykiete i szuka w t_lab
-; wyj: dx-dlugosc etykiety
+; wyj: dx-dlugosc etykiety+4
 ; C=0: znaleziona, bx=adres wpisu
 ; C=1: nie ma jej
 flabel:	call	rlabel
 	push	si
-	mov	bx, [laben]
-flab1:	cmp	bx, offset t_lab
+	xor	cx, cx
+	mov	si, offset t_lab
+	mov	ax, [laben]
+	dec	ax
+flab1:	add	si, cx
+	cmp	ax, si
 	jb	flabx
-	lea	cx, [bx-5]
-	mov	bx, [(lab bx).prev]
-	sub	cx, bx
-	cmp	cx, dx
+	mov	cl, [(lab si).len]
+	cmp	cl, dl
 	jne	flab1
-	lea	si, [(lab bx).nam]
+	add	si, offset (lab).nam
+	sub	cl, offset (lab).nam
 	mov	di, offset tlabel
 	repe	cmpsb
 	jne	flab1
-	clc
+	lea	bx, [si+tlabel-offset (lab).nam]
+	sub	bx, di	;c=0
 flabx:	pop	si
 	ret
 
@@ -1835,7 +1835,7 @@ noper2	=	($-opert2)/2
 opert1	db	'+-*/%&|^=<>'
 noper1	=	$-opert1
 
-hello	db	'X-Assembler 1.7 by Fox/Taquart',eot
+hello	db	'X-Assembler 1.8 by Fox/Taquart',eot
 usgtxt	db	'Give a source filename. Default extension is .ASX.',eol
 	db	'Object file will be written with .COM extension.',eot
 lintxt	db	' lines assembled',eot
@@ -1887,8 +1887,8 @@ flags	db	0
 lines	dd	0
 bytes	dd	0
 iclen	dw	t_icl
-laben	dw	t_lab-2
-pslab	dw	t_lab-2
+laben	dw	t_lab
+pslab	dw	t_lab
 orgvec	dw	t_org
 sift	dw	0
 elflag	dd	1
