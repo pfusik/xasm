@@ -528,31 +528,33 @@ ndef1:	mov	bx, [iclen]
 	inc	[(icl bx).line]	; zwieksz nr linii w pliku
 	inc	[lines]		; ilosc wszystkich linii
 	testsw	m_swi
-	jz	gline0		; czy /I
+	jz	gline1		; czy /I
 	and	[flist], not m_lsti	; ... tak
 	cmp	bx, offset t_icl
-	jbe	gline0		; czy includowany plik ?
+	jbe	gline1		; czy includowany plik ?
 	or	[flist], m_lsti	; ... tak, nie listuj
 
-gline0:
-	cmp	[byte di], 0ah
-	je	gline2
 gline1:
 	mov	al, [di]
 	cmp	al, 0dh		; pc cr
+	jne	gline2
+	call	fread1
+	jz	eof
+	cmp	[byte di], 0ah
 	je	syntax
-	cmp	al, 0ah		; unix lf
+	push	offset e_nomac
+	jmp	erron
+gline2:	cmp	al, 0ah		; unix lf
 	je	syntax
 	cmp	al, 9bh		; atari eol
 	je	syntax
 	inc	di
 	cmp	di, offset line+256
 	jnb	linlon
-gline2:
 	call	fread1
-	jnz	gline0
+	jnz	gline1
 ; eof
-	mov	bx, [iclen]	; koniec pliku
+eof:	mov	bx, [iclen]	; koniec pliku
 	or	[(icl bx).flags], m_eofl
 
 syntax:	mov	[byte di], 0dh
@@ -599,7 +601,7 @@ deflp2:	mov	bx, [pslab]	; definicja etykiety w pass 2
 	call	warln
 	pop	si
 labelx:	cmp	[byte si], 0dh
-	je	lstcnd
+	je	lstrem
 	call	spaces
 
 nolabl:	lodsb
@@ -608,13 +610,13 @@ nolabl:	lodsb
 	cmp	al, 9
 	je	nolabl
 	cmp	al, '*'
-	je	lstcnd
+	je	lstrem
 	cmp	al, ';'
-	je	lstcnd
+	je	lstrem
 	cmp	al, '|'
-	je	lstcnd
+	je	lstrem
 	cmp	al, 0dh
-	je	lstcnd
+	je	lstrem
 	cmp	al, ':'
 	jne	s_one
 	cmp	[skflag], 0
@@ -622,17 +624,9 @@ nolabl:	lodsb
 	call	getuns
 	jc	unknow
 	sta	cx
-	jcxz	lstrem
+	jcxz	lstre1
 	call	spaces
 	jmp	s_cmd
-
-lstrem:	cmp	[byte high labvec], 0
-	jz	lstre1
-	call	chorg
-	call	phorg
-
-lstre1:	call	lstlin
-	jmp	main
 
 skip1:	lodsd			; sprawdz komende
 	dec	si
@@ -642,10 +636,16 @@ skip1:	lodsd			; sprawdz komende
 	repne	scasd
 	jne	lstcnd
 	call	[word di-4+cndvec-cndtxt]
-	cmp	[skflag], 0
-	jz	lstrem
+lstrem:	cmp	[skflag], 0
+	jz	lstre1
 lstcnd:	testsw	m_swc
-	jnz	lstrem
+	jz	main
+
+lstre1:	cmp	[byte high labvec], 0
+	jz	lstre2
+	call	chorg
+	call	phorg
+lstre2:	call	lstlin
 	jmp	main
 
 s_one:	dec	si
@@ -2980,7 +2980,7 @@ cndvec	dw	pofend,0,p_ift,0,p_eli,0,p_els,0,p_eif
 
 swilet	db	'UTSQPONLIEDC'
 
-hello	db	'X-Assembler 2.5.1'
+hello	db	'X-Assembler 2.5.2'
 	ifdef	SET_WIN_TITLE
 titfin	db	0
 	else
@@ -3072,6 +3072,7 @@ e_skit	db	'Can''t skip over it',cr
 e_repa	db	'No instruction to repeat',cr
 e_5200	db	'There''s no PIA chip in Atari 5200',cr
 e_fill	db	'Can''t fill from higher to lower memory location',cr
+e_nomac	db	'Sorry, Mac EOLs are no longer supported',cr
 ;;e_fatal	db	'Internal error. Please report to fox@scene.pl',cr
 clitxt	db	'command line'
 clitxl	=	$-clitxt
