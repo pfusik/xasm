@@ -129,16 +129,14 @@ nobin:	mov	dx, offset e_nota
 xdisk:	push	bp
 	dos
 	pop	dx
-	jc	panic
-	ret
-
+	jnc	xdret
 panic:	print
 	dos	4c02h
 
 xread:	mov	bp, offset e_read
 	file	3fh
 	cmp	ax, cx
-	ret
+xdret:	ret
 
 argx:	cmp	di, offset obxnam
 	jbe	usg
@@ -185,7 +183,7 @@ argx:	cmp	di, offset obxnam
 
 main:	mov	dx, [port]
 	in	al, 60h
-	cmp	al, 1
+	cmp	al, 1	; ESC key
 	je	byebye
 
 	add	dl, 5
@@ -248,7 +246,13 @@ ffff:	mov	cx, 2
 	mov	cx, 2
 	fread	head+2
 	jb	kpliq
-	mov	di, offset hexnum
+	shr	[sdefrun], 1
+	jnc	nodefr
+	mov	si, offset defrun
+	mov	cx, 5
+	call	send
+	call	wtblok
+nodefr:	mov	di, offset hexnum
 	mov	ax, [head]
 	call	hexw
 	inc	di
@@ -388,8 +392,8 @@ ackdat:	dw	timeAnswer
 	dw	timeSending
 
 statdat	db	098h,0FFh,001h,000h,099h
-bankdat	db	0D2h,002h,0FFh,0FEh
 
+bankdat	db	0D2h,002h,0FFh,0FEh
 runstd	db	006h,060h,0FFh,0E0h
 runpro	db	003h,05Fh,0FFh,0E0h
 
@@ -417,7 +421,7 @@ bootpro:
  db 0AEh
 	dw	timeBefore
 
-hello	db	'X-LOAD 1.0 by Fox/Taquart',eot
+hello	db	'X-LOAD 1.1 by Fox/Taquart',eot
 usgtxt	db	'Syntax: XLOAD obxfile [options]',eol
 	db	'/1 - /4  Specify COM port (default COM2)',eol
 	db	'/p       Professional loader',eot
@@ -434,10 +438,12 @@ e_open	db	'ERROR: Can''t open file',eot
 e_read	db	'ERROR: Disk read error',eot
 
 prof	db	0
+sdefrun	db	1	; send default run address
 port	dw	1
 trtime	dw	timeNormal
 bttime	dw	timeBetween
 dcb	db	5 dup(0),5 dup(?)
+defrun	db	1,0e2h,0feh	; head is next !!!
 head	dw	?,?
 buf	db	103h dup(?)
 obxnam:
