@@ -1,13 +1,14 @@
-<HTML><HEAD><TITLE>X-Assembler 2.5</TITLE></HEAD>
+<HTML><HEAD><TITLE>X-Assembler 2.5.1</TITLE></HEAD>
 <BODY BACKGROUND="6502proc.gif">
 <CENTER>
-<H1>X-Assembler version 2.5</H1>
+<H1>X-Assembler version 2.5.1</H1>
 <HR>
 <H2>TABLE OF CONTENTS</H2>
 <TABLE><TR><TD VALIGN=top>
 <UL><LI><A HREF="#intro">INTRODUCTION</A>
 <UL><LI><A HREF="#changes">Changes</A>
-<UL><LI><A HREF="#ver25">Version 2.5</A>
+<UL><LI><A HREF="#ver251">Version 2.5.1</A>
+<LI><A HREF="#ver25">Version 2.5</A>
 <LI><A HREF="#ver241">Version 2.4.1</A>
 <LI><A HREF="#ver24">Version 2.4</A>
 <LI><A HREF="#ver23">Version 2.3</A>
@@ -45,8 +46,13 @@
 <A NAME="intro"><H2>INTRODUCTION</H2>
 The X-Assembler is a cross-assembler, which generates code for the 6502 processor.
 It has been designed to be easy to use for Quick Assembler programmers,
-therefore its syntax is an extension of QA's one.<BR>
+therefore its syntax is an extension of QA's.<BR>
 <A NAME="changes"><H3>Changes</H3>
+<A NAME="ver251"><H4>Version 2.5.1</H4>
+<UL>
+<LI> fixed assembling sources with Atari EOLs ($9b)
+<LI> blank/comment/label lines in false conditionals are now correctly omitted in listing
+</UL>
 <A NAME="ver25"><H4>Version 2.5</H4>
 <UL>
 <LI> fixed another bug, very similar to previous one, e.g.
@@ -237,7 +243,7 @@ only if full path is given.<P>
 <A NAME="new_quiet">
 <DT><TT>/q</TT>
 <DD>Suppress info messages.<BR>
-Prevents X-Asm from printing "<TT>X-Assembler 2.5 by Fox/Taquart</TT>"
+Prevents X-Asm from printing "<TT>X-Assembler 2.5.1 by Fox/Taquart</TT>"
 and the summary (how many lines assembled and bytes written).
 Good if you are building a project from many source files and don't want
 tons of messages.<P>
@@ -824,6 +830,8 @@ in all 6502 commands and pseudo-commands, except for
 
 <HR>
 <A NAME="faq"><H2>FAQ</H2>
+<B>Note:</B> All the following things, which may be odd for you,
+are familiar to Quick Assembler users.
 <UL>
 <LI><B>Q:</B> Why does X-Asm ignore <TT>+2</TT> in the following line?
 <PRE>label equ 1 +2
@@ -838,8 +846,8 @@ operators, but also 'low of immediate' and 'high of immediate'
 addressing modes indicators.
 In order to get <TT>lda $ab</TT>, write <TT>lda +&gt;$abcd</TT><P>
 
-<LI><B>Q:</B> What's wrong with <TT>asl a</TT> ?<P>
-<B>A:</B> You should use <TT>@</TT> for accumulator addressing mode.<P>
+<LI><B>Q:</B> What's wrong with <TT>asl a</TT> or just <TT>asl</TT> ?<P>
+<B>A:</B> You must use <TT>@</TT> for accumulator addressing mode.<P>
 
 <LI><B>Q:</B> What's wrong in following line?
 <PRE>label: lda #0
@@ -883,8 +891,8 @@ When I fixed it, another error appeared. Why?<P>
 When you were assembling for the first time, both errors might exist,
 but X-Asm stopped on the first one.<P>
 
-<LI> If you have other questions/problems,
-<A HREF=mailto:fox@scene.pl>write to me</A>.
 </UL>
+If you have other questions/problems,
+<A HREF=mailto:fox@scene.pl>contact me</A>.
 <P><HR><P><A HREF="index.htm">Back</A>
 </BODY></HTML>
