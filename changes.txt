@@ -1,3 +1,11 @@
+Version 2.1
+===========
+- ICL-in-last-line bug fixed
+- now 1 rather than -1 is true
+- line repeating
+- op-code extracting
+- Unix and Atari eols support
+
 Version 2.0
 ===========
 - truncating name of object bug fixed

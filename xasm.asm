@@ -133,12 +133,12 @@ MACRO	jpass2	_dest
 	jnz	_dest
 	ENDM
 
-MACRO	jquote	_dest
+MACRO	jopcod	_dest
 	cmp	bp, offset var
 	jne	_dest
 	ENDM
 
-MACRO	jnquote	_dest
+MACRO	jnopcod	_dest
 	cmp	bp, offset var
 	je	_dest
 	ENDM
@@ -318,11 +318,15 @@ gline1:	cmp	di, offset line+256
 	jnb	linlon
 	call	fread1
 	jz	eof
-	mov	al, 0dh
-	scasb
-	jne	gline1		; czytaj do CR
-	dec	di
-	jmp	syntax
+	mov	al, [di]
+	cmp	al, 0dh		; pc cr
+	je	syntax
+	cmp	al, 0ah		; unix lf
+	je	syntax
+	cmp	al, 9bh		; atari eol
+	je	syntax
+	inc	di
+	jmp	gline1
 
 eof:	mov	bx, [iclen]	; koniec pliku
 	or	[(icl bx).flags], m_eofl
@@ -456,7 +460,7 @@ rdcmd:	lodsw			; wez trzy litery
 	shl	eax, 16
 	mov	ah, 0dfh
 	and	ah, [si]
-	jquote	lbnox		; jezeli nie cytujemy ...
+	jopcod	lbnox		; jezeli nie cytujemy ...
 	test	[flags], m_norg
 	jz	lbnox		; ... i nie bylo ORG ...
 	cmp	[byte high labvec], 0
@@ -477,7 +481,7 @@ sfcmd1:	mov	al, [(com di+bx).c_code]
 	jne	ntrep
 rncmd1:	btr	ax, 0		; czy dyrektywa, ktorej nie wolno cytowac ?
 	jnc	rncmd2
-	jquote	ntquot		; a cytujemy ?
+	jopcod	ntopco		; a cytujemy ?
 rncmd2:	mov	[cod], al
 	call	[(com di+bx).c_vec]	; wywolaj procedure
 	call	linend
@@ -498,7 +502,7 @@ sfcmd3:	shr	bx, 1
 
 ntrep:	error	e_crep
 
-ntquot:	error	e_quote
+ntopco:	error	e_opcod
 
 skend:	call	chklst
 	jnz	filend
@@ -718,7 +722,7 @@ savwor:	push	ax
 	pop	ax
 	mov	al, ah
 
-savbyt:	jquote	xquot
+savbyt:	jopcod	xopco
 	mov	[sbyte], al
 	call	chorg
 	test	[flags], m_hdr
@@ -1171,26 +1175,26 @@ valre1:	sub	al, '0'
 	sub	ax, 0f0h
 	jmp	value1
 
-valquo:	jquote	rcquot
+valquo:	jopcod	rcopco
 	push	bx
-	mov	[quotsp], sp
+	mov	[opcosp], sp
 	mov	bp, offset var2
 	jmp	rdcmd
-xquot:	mov	bp, offset var
-	mov	sp, [quotsp]
+xopco:	mov	bp, offset var
+	mov	sp, [opcosp]
 	push	ax
 	call	get
 	cmp	al, '}'
-	jne	msquot
+	jne	msopco
 	pop	ax
 	xor	ah, ah
 	cwde
 	pop	bx
 	jmp	value1
 
-rcquot:	error	e_rquot
+rcopco:	error	e_ropco
 
-msquot:	error	e_mquot
+msopco:	error	e_mopco
 
 value0:	dec	si
 	test	di, di
@@ -2366,7 +2370,7 @@ noper1	=	$-opert1
 
 swilet	db	'TSOLIC'
 
-hello	db	'X-Assembler 2.1á by Fox/Taquart',eot
+hello	db	'X-Assembler 2.1 by Fox/Taquart',eot
 hellen	=	$-hello-1
 usgtxt	db	"Syntax: XASM source [options]",eol
 	db	"/c         List false conditionals",eol
@@ -2431,9 +2435,9 @@ e_norg	db	'No ORG specified',eol
 e_fshor	db	'File is too short',eol
 e_hoff	db	'Illegal when headers off',eol
 e_crep	db	'Can''t repeat this directive',eol
-e_quote	db	'Only simple command can be quoted',eol
-e_rquot	db	'Recursive quote not supported',eol
-e_mquot	db	'Missing ''}''',eol
+e_opcod	db	'Can''t get op-code of this',eol
+e_ropco	db	'Nested op-codes not supported',eol
+e_mopco	db	'Missing ''}''',eol
 
 exitcod	dw	4c00h
 ohand	dw	nhand
@@ -2457,7 +2461,7 @@ flist	db	?
 fslen	dw	?
 times	dw	?
 cmdvec	dw	?
-quotsp	dw	?
+opcosp	dw	?
 insofs	dd	?
 inslen	dw	?
 origin	dw	?
