@@ -66,6 +66,8 @@ b_skif	=	12
 m_skif	=	1000h
 b_repl	=	13
 m_repl	=	2000h
+b_ski2	=	14
+m_ski2	=	4000h
 
 ;[swits]
 m_swc	=	1
@@ -646,9 +648,9 @@ ckcmd2:	test	al, 20h		; dyrektywa?
 	jz	rncmd3
 eskit:	error	e_skit
 ckcmd3:	jopcod	ckcmd4
-	testfl	m_skit
-	jz	ckcmd4
-	inc	[origin]	; robimy miejsce na argument skoku
+	btr	[flags], b_skit
+	jnc	ckcmd4
+	setfl	m_ski2
 	inc	[curorg]
 	inc	[obufpt]
 	mov	cx, m_pair+m_times
@@ -668,10 +670,12 @@ ckcmd5:	setfl	m_repa
 	mov	ax, [origin]
 	mov	[reporg], ax
 	jz	rncmd2
+	resfl	m_ski2
 	setfl	m_skit		; pseudo instrukcja omijania
 	mov	[obuf], 2
 	mov	al, [(com di+bx).c_code]
 	call	savbyt
+	inc	[origin]	; robimy miejsce na argument skoku
 	jmp	encmd2
 
 rncmd2:	resfl	m_repl
@@ -680,7 +684,7 @@ rncmd2:	resfl	m_repl
 	setfl	m_repl		; ustaw repl, jesli koniec linii z para lub licznikiem
 rncmd3:	mov	al, [cod]
 	call	[(com di+bx).c_vec]	; wywolaj procedure
-	btr	[flags], b_skit
+	btr	[flags], b_ski2
 	jnc	encmd2
 	mov	ax, [origin]
 	sub	ax, [reporg]
@@ -1577,7 +1581,7 @@ v_div:	jecxz	div0		; /
 v_mod:	jecxz	div0		; %
 	cdq
 	idiv	ecx
-	sta	edx
+	lda	edx
 	ret
 
 v_sln:	neg	ecx
@@ -2735,7 +2739,7 @@ cndvec	dw	pofend,0,p_ift,0,p_eli,0,p_els,0,p_eif
 
 swilet	db	'UTSONLIEC'
 
-hello	db	'X-Assembler 2.4.-7'
+hello	db	'X-Assembler 2.4.-6'
 	ifdef	SET_WIN_TITLE
 titfin	db	0
 	else
