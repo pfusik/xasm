@@ -1,0 +1,63 @@
+* Boot executable file loader coded by Fox/Taquart
+* Reads file from ATR prepared with X-BOOT.
+* Standard loader - ROM and interrupts enabled.
+
+	opt	h-
+	org	$780
+
+bufr	equ	$700		128-byte buffer
+
+tp	equ	$43		Temporary byte
+vc	equ	$44		Start and end vectors (4 bytes)
+
+* Boot code
+boot	dta	b(0,1),a(boot,$e477)	Boot header
+txtpos	equ	215
+	ldy	#txtpos		Print text
+print	mva	text-txtpos,y	($58),y+
+	cpy	#txtpos+txtlen
+	bcc	print
+	mwa	#rts	$2e0	Set default run vector
+	mva	>bufr	$305	Set buffer address
+	mva	#$ff	^31	Turn BASIC off
+	dta	b({lda a:0})	Skip two bytes
+secrts	sec			Return with error
+rts	rts
+	mva:pha	>rts	$2e3	Set init address...
+	mva:pha	<rts	$2e2	... and put return address on stack
+	ldx	#-5		Load header
+hput	sta	vc+4,x+		Store byte of header
+	stx	tp
+next	inc	bufx		Increment buffer index
+	bpl	getx		Branch if within buffer
+	inw	$30a		Increment sector number
+	jsr	$e453		Read sector
+	bmi	secrts		Exit on error
+	asl	bufx		Change $80 to $00
+getx	lda	bufr+$7f	Get byte from buffer
+bufx	equ	*-2		Buffer index
+	ldx	tp		Check if header or block data
+	bne	hput		Branch to store header
+	sta	(vc,x)		Store block data
+	inw	vc		Increment vector
+	lda	vc+2		Check if end of block reached
+	cmp	vc
+	lda	vc+3
+	sbc	vc+1
+	bcs	next		No: read next byte
+	mva	#3	^2f	Yes: Reset POKEY...
+init	jmp	($2e2)		... and call init routine
+
+text	dta	d'Loading... '
+txtlen	equ	*-text
+
+	dta	c'4.0'		Unused boot sector space
+	ert	*<>boot+$80	Exactly 128 bytes should be used
+
+* X-BOOT adds this block at the end of loaded file
+* It changes jmp ($2e2) to jmp ($2e0)
+	opt	h+
+	org	init+1
+	dta	l($2e0)
+
+	end

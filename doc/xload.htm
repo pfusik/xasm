@@ -1,0 +1,81 @@
+<HTML>
+<HEAD>
+<TITLE>X-LOAD 1.0 Manual</TITLE>
+</HEAD>
+<BODY BACKGROUND="6502proc.gif">
+<CENTER>
+<H1>X-LOAD version 1.0</H1>
+by <A HREF="mailto:pfusik@elka.pw.edu.pl">Fox/Taquart</A><P>
+<HR>
+</CENTER>
+
+<H2>INTRODUCTION</H2>
+This tool can be used for loading executable files from PC into real
+Atari computer via SIO2PC interface. Only input and output lines are
+used, so that X-LOAD should work with all types of interface.<P>
+However, it is experimental version. I'm not sure if it will work
+with every hardware. I've noticed it is not stable and sometimes
+transmission can hang or distortions in loaded data may appear.
+The reason is that there is no error-checking, while transmission is
+fast (57.6 kbits/sec).<P>
+<H3>CHANGES</H3>
+<H4>Version 1.0</H4>
+<UL>
+<LI> first release
+</UL>
+
+<HR>
+<H2>USAGE</H2>
+You run X-LOAD from DOS prompt with executable filename and optional
+options:<P>
+<DL>
+<DT><TT>/1</TT> - <TT>/4</TT>
+<DD>Specify COM port number, which interface is attached to.
+Default is COM2.<P>
+<DT><TT>/p</TT>
+<DD>Force using 'professional loader', which allows you to load
+code/data under ROM and disables ROM and interrupts while starting program.
+By default, standard loader is used, which can load any Atari executable
+not demanding DOS or any special loader.<P>
+</DL>
+After you run X-LOAD, you only have to boot your Atari and the program
+will be loaded and run.<P>
+While loading, you can watch on your PC memory locations, which program
+loads to.<P>
+After program was loaded and run, X-LOAD terminates. You may exit it
+earlier at any time by pressing ESC key.<P>
+
+<HR>
+<H2>DETAILS</H2>
+First X-LOAD sends a byte to Atari and then waits until Atari is booted.
+That byte can be used to detect from Atari, that PC is ready for transmission.
+When you are testing your program, you may code periodic checking
+if a byte was received, and performing cold reset in that case.
+So that you needn't touch your Atari to run program on it.<P>
+While booting, X-LOAD accepts two commands for disk drive 1:<P>
+<UL>
+<LI> <TT>'S'</TT> - read status. Used for checking presence of disk drive.
+<LI> <TT>'R'</TT> - read sector (only first). Used for reading boot program.
+</UL>
+After Atari receives and runs its loader, the transmission runs at 57600
+bits/sec. You can not hear any transmission sound, because the frequency
+is too high for a human.<P>
+Transmission protocol is very simple: Atari sends a byte to inform that
+it is ready for receiving data. Then PC sends a 3-byte header and a block
+of data. First two bytes of header are high and low byte of address
+of last block byte minus $ff. Third byte equals low byte of
+($100-block_length). Then come block data, which are loaded directly
+into their memory location.
+For more details, view sources of loaders:
+<UL>
+<LI>Standard: <A HREF="xloadstd.asx">XLOADSTD.ASX</A>
+<LI>Professional: <A HREF="xloadpro.asx">XLOADPRO.ASX</A>
+</UL>
+You may have noticed that X-LOAD is somehow similar to X-BOOT, which also
+has two loaders. The main difference is that X-BOOT loaders use system
+routines to get sectors at regular speed of 19200 bits/sec.
+They use sector buffer and require some low memory locations not to be changed
+because of operating system. In this respect X-LOAD loaders are better, because
+allow loading into whole memory except for loader code.
+</BODY>
+</HTML>

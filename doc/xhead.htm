@@ -1,0 +1,42 @@
+<HTML>
+<HEAD>
+<TITLE>X-HEAD 1.1 Manual</TITLE>
+</HEAD>
+<BODY BACKGROUND="6502proc.gif">
+<CENTER>
+<H1>X-HEAD version 1.1</H1>
+by <A HREF="mailto:pfusik@elka.pw.edu.pl">Fox/Taquart</A><P>
+<HR>
+</CENTER>
+
+<H2>INTRODUCTION</H2>
+This tool prints headers of Atari executable.
+You can examine which memory locations file loads into.
+X-HEAD also shows init and run addresses.
+<H3>CHANGES</H3>
+<H4>Version 1.1</H4>
+<UL>
+<LI> .OBX is default extension of Atari executable
+</UL>
+<H4>Version 1.0</H4>
+<UL>
+<LI> first release
+</UL> 
+
+<HR>
+<H2>USAGE</H2>
+Simply run X-HEAD with executable filename. No options are supported yet.<P>
+X-HEAD will read the file and display its headers in following format:
+<PRE> bbbb-eeee xxxx</PRE>
+where <TT>bbbb</TT> is the begin, <TT>eeee</TT> - the end of the block,
+and <TT>xxxx</TT> is the execution address (init or run vector).<P>
+The summary includes:<BR>
+<TT>xxxx bytes</TT> - length of file, including headers<BR>
+<TT>xxxx blocks</TT> - number of headers<BR>
+<TT>xxxx inits</TT> - number of init blocks (<TT>02e2-02e3</TT>)<BR>
+<TT>xxxx modules</TT> - number of <TT>FFFF</TT> headers (one at the beginning is required)<P>
+All displayed numbers are hexadecimal, of course.<P>
+You can redirect output to a file, for example:
+<PRE>XHEAD TEST &gt;TEST.HDR
+</BODY>
+</HTML>

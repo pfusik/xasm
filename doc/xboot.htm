@@ -1,0 +1,68 @@
+<HTML>
+<HEAD>
+<TITLE>X-BOOT 4.0 Manual</TITLE>
+</HEAD>
+<BODY BACKGROUND="6502proc.gif">
+<CENTER>
+<H1>X-BOOT version 4.0</H1>
+by <A HREF="mailto:pfusik@elka.pw.edu.pl">Fox/Taquart</A><P>
+<HR>
+</CENTER>
+
+<H2>INTRODUCTION</H2>
+This tool converts Atari executable file (.OBX) into Atari disk image (.ATR),
+which can be used in emulator. For loading executable into real Atari
+you need no .ATR, try using <A HREF="xload.htm">X-LOAD</A>.
+<H3>CHANGES</H3>
+<H4>Version 4.0</H4>
+<UL>
+<LI> wildcards support - now you can convert a set of files
+<LI> .ATR name not required - name can be taken from executable
+<LI> no length limit - files longer than 60k allowed
+<LI> truncated executables handling
+<LI> checking for memory conflicts
+<LI> better errors handling
+</UL>
+<H4>Version 3.2</H4>
+<UL>
+<LI> .OBX is default extension of Atari executable
+</UL>
+<H4>Version 3.1</H4>
+<UL>
+<LI> first release
+</UL>
+
+<HR>
+<H2>USAGE</H2>
+There are two ways of running X-BOOT:
+<UL>
+<LI><TT>XBOOT [/p] obxfile [atrfile]</TT>
+<LI><TT>XBOOT [/p] obxfiles [atrpath]</TT>
+</UL>
+The former converts single file, the latter a set of files.<P>
+Parameters in brackets are optional.<P>
+<TT>/p</TT> switch forces writing 'professional loader', which allows you to load
+code/data under ROM and disables ROM and interrupts while starting program.
+By default, standard loader is used, which can load any Atari executable
+not demanding DOS or any special loader.<P>
+Both loaders disable Atari Basic, so you needn't hold OPTION key while
+booting.<P>
+
+<HR>
+<H2>DETAILS</H2>
+Produced ATR is single density and as short as possible.
+Loader occupies one boot sector.<P>
+X-BOOT does not write executable in ATR as Atari file.
+You can't read it from DOS or extract it somehow or other.
+You can only run it by booting.<P>
+For more details, view sources of loaders:
+<UL>
+<LI>Standard: <A HREF="xbootstd.asx">XBOOTSTD.ASX</A>
+<LI>Professional: <A HREF="xbootpro.asx">XBOOTPRO.ASX</A>
+</UL>
+Loaders are so simple that they even do not detect end of file. Instead,
+they are modified when end of file is reached: disk image contains one
+additional block, which doesn't belong to executable file, but changes
+loader to run program instead of initializing.
+</BODY>
+</HTML>

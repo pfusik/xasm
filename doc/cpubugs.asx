@@ -1,4 +1,4 @@
-* This program examines 6502 bugs!
+* This program detects 6502 bugs.
 * Please read text after program first.
 
 icmd	equ	$342
@@ -21,7 +21,7 @@ start	lda	#11		Clear screen
 	lda	#$99		BCD 99+01=00
 	add	#1
 	cld
-	beq	*+4		Z flag set: no bug
+	seq			Z flag set: no bug
 	lda	#$ff
 	ldx	<adctxt
 	jsr	print
@@ -36,10 +36,9 @@ start	lda	#11		Clear screen
 irq	brk			BRK interrupt - infinite loop, so...
 nmi	inc	^31		NMI always occurs on BRK
 	cli
-	pla
-	pla
+	pla:pla
 	sub	<irq
-	beq	*+4		Return adr points BRK: no bug
+	seq			Return adr points BRK: no bug
 	lda	#$ff
 	ldx	<brktxt
 	jsr	print
@@ -57,7 +56,7 @@ print	pha			Save A
 	jsr	callio
 	ldx	<nobtxt
 	pla			Restore A
-	beq	*+4		A=0:  X=<nobtxt
+	seq			A=0:  X=<nobtxt
 	ldx	<bugtxt		A<>0: X=<bugtxt
 	lda	#9		CIO write_to_eol command
 	ldy	#$ff		Limit of printed characters
@@ -76,7 +75,7 @@ jmptxt	dta	c'JMP'
 bugtxt	dta	c' bug detected!',b($9b)
 nobtxt	dta	c' bug NOT detected.',b($9b)
 
-	ert	*>*|$ff		Program should fit on one page
+	ert	*>start|$ff	Program should fit on one page
 	org	*|$ff
 jmpptr	dta	a(jmp1)
 
@@ -86,7 +85,7 @@ jmp1	lda	#0		JMP bug not detected
 	run	start
 	end
 
-The program above checks 3 bugs:
+The program above detects 3 bugs:
 - 'ADC bug'
 Flags N,V,Z are not properly set after ADC or SBC in decimal mode.
 You can't rely on these flags after BCD operation.
@@ -95,8 +94,6 @@ If an interrupt occurs on a BRK, it is executed with BRK-like values on stack.
 This means a BRK is simply passed-by if a NMI occurs.
 Beware of using BRK with other interrupts.
 - 'JMP bug' - JMP ($xxff) fetches address from $xxff and $xx00.
-X-Asm 2.0 warns you of using such a jump.
+X-Asm warns you of using such a jump.
 
 All these bugs are supposedly fixed in CMOS chips.
-
-===

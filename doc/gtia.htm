@@ -1,0 +1,221 @@
+<HTML>
+<HEAD>
+<TITLE>GTIA Documentation</TITLE>
+</HEAD>
+<BODY BACKGROUND="6502proc.gif">
+<CENTER>
+<H1>GTIA Documentation</H1>
+by <A HREF="mailto:pfusik@elka.pw.edu.pl">Fox/Taquart</A><P>
+<HR>
+<P>
+<H2>Registers</H2>
+<TABLE BORDER>
+<TR>
+<TD><I>&nbsp;Address&nbsp;</I></TD><TD><I>&nbsp;Read register&nbsp;</I></TD><TD><I>&nbsp;Write register&nbsp;</I></TD>
+<TD><I>&nbsp;Address&nbsp;</I></TD><TD><I>&nbsp;Read register&nbsp;</I></TD><TD><I>&nbsp;Write register&nbsp;</I></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^00</TT></TD><TD><A HREF="#kolmxpf">KOLM0PF</A></TD><TD><A HREF="#hpospx">HPOSP0</A></TD>
+<TD ALIGN=center><TT>^10</TT></TD><TD><A HREF="#trigx">TRIG0</A></TD><TD><A HREF="#grafpx">GRAFP3</A></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^01</TT></TD><TD><A HREF="#kolmxpf">KOLM1PF</A></TD><TD><A HREF="#hpospx">HPOSP1</A></TD>
+<TD ALIGN=center><TT>^11</TT></TD><TD><A HREF="#trigx">TRIG1</A></TD><TD><A HREF="#grafm">GRAFPM</A></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^02</TT></TD><TD><A HREF="#kolmxpf">KOLM2PF</A></TD><TD><A HREF="#hpospx">HPOSP2</A></TD>
+<TD ALIGN=center><TT>^12</TT></TD><TD>unused</TD><TD><A HREF="#colpmx">COLPM0</A></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^03</TT></TD><TD><A HREF="#kolmxpf">KOLM3PF</A></TD><TD><A HREF="#hpospx">HPOSP3</A></TD>
+<TD ALIGN=center><TT>^13</TT></TD><TD><A HREF="#trigx">TRIG3</A></TD><TD><A HREF="#colpmx">COLPM1</A></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^04</TT></TD><TD><A HREF="#kolpxpf">KOLP0PF</A></TD><TD><A HREF="#hposmx">HPOSM0</A></TD>
+<TD ALIGN=center><TT>^14</TT></TD><TD><A HREF="#pal">PAL</A></TD><TD><A HREF="#colpmx">COLPM2</A></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^05</TT></TD><TD><A HREF="#kolpxpf">KOLP1PF</A></TD><TD><A HREF="#hposmx">HPOSM1</A></TD>
+<TD ALIGN=center><TT>^15</TT></TD><TD>unused</TD><TD><A HREF="#colpmx">COLPM3</A></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^06</TT></TD><TD><A HREF="#kolpxpf">KOLP2PF</A></TD><TD><A HREF="#hposmx">HPOSM2</A></TD>
+<TD ALIGN=center><TT>^16</TT></TD><TD>unused</TD><TD><A HREF="#colpfx">COLPF0</A></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^07</TT></TD><TD><A HREF="#kolpxpf">KOLP3PF</A></TD><TD><A HREF="#hposmx">HPOSM3</A></TD>
+<TD ALIGN=center><TT>^17</TT></TD><TD>unused</TD><TD><A HREF="#colpfx">COLPF1</A></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^08</TT></TD><TD><A HREF="#kolmxp">KOLM0P</A></TD><TD><A HREF="#sizepx">SIZEP0</A></TD>
+<TD ALIGN=center><TT>^18</TT></TD><TD>unused</TD><TD><A HREF="#colpfx">COLPF2</A></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^09</TT></TD><TD><A HREF="#kolmxp">KOLM1P</A></TD><TD><A HREF="#sizepx">SIZEP1</A></TD>
+<TD ALIGN=center><TT>^19</TT></TD><TD>unused</TD><TD><A HREF="#colpfx">COLPF3</A></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^0A</TT></TD><TD><A HREF="#kolmxp">KOLM2P</A></TD><TD><A HREF="#sizepx">SIZEP2</A></TD>
+<TD ALIGN=center><TT>^1A</TT></TD><TD>unused</TD><TD><A HREF="#colbak">COLBAK</A></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^0B</TT></TD><TD><A HREF="#kolmxp">KOLM3P</A></TD><TD><A HREF="#sizepx">SIZEP3</A></TD>
+<TD ALIGN=center><TT>^1B</TT></TD><TD>unused</TD><TD><A HREF="#gtiactl">GTIACTL</A></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^0C</TT></TD><TD><A HREF="#kolpxp">KOLP0P</A></TD><TD><A HREF="#sizem">SIZEM</A></TD>
+<TD ALIGN=center><TT>^1C</TT></TD><TD>unused</TD><TD><A HREF="#vdelay">VDELAY</A></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^0D</TT></TD><TD><A HREF="#kolpxp">KOLP1P</A></TD><TD><A HREF="#grafpx">GRAFP0</A></TD>
+<TD ALIGN=center><TT>^1D</TT></TD><TD>unused</TD><TD><A HREF="#pmcntl">PMCNTL</A></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^0E</TT></TD><TD><A HREF="#kolpxp">KOLP2P</A></TD><TD><A HREF="#grafpx">GRAFP1</A></TD>
+<TD ALIGN=center><TT>^1E</TT></TD><TD>unused</TD><TD><A HREF="#hitclr">HITCLR</A></TD>
+</TR><TR>
+<TD ALIGN=center><TT>^0F</TT></TD><TD><A HREF="#kolpxp">KOLP3P</A></TD><TD><A HREF="#grafpx">GRAFP2</A></TD>
+<TD ALIGN=center><TT>^1F</TT></TD><TD><A HREF="#consol">CONSOL</A></TD><TD><A HREF="#consol">CONSOL</A></TD>
+</TR>
+</TABLE>
+<P>
+<HR>
+<P>
+<H2>Description</H2>
+</CENTER>
+
+<A NAME="colbak"><U>COLBAK</U>
+- <B>Color of background</B><BR>
+bit 0 - unused<BR>
+bits 3-1 - luminace<BR>
+bits 7-4 - hue<P>
+
+<A NAME="colpfx"><U>COLPF0</U> <U>COLPF1</U> <U>COLPF2</U> <U>COLPF3</U>
+- <B>Colors of player field</B><BR>
+bit 0 - unused<BR>
+bits 3-1 - luminace<BR>
+bits 7-4 - hue<P>
+
+<A NAME="colpmx"><U>COLPM0</U> <U>COLPM1</U> <U>COLPM2</U> <U>COLPM3</U>
+- <B>Colors of players and missiles</B><BR>
+bit 0 - unused<BR>
+bits 3-1 - luminace<BR>
+bits 7-4 - hue<P>
+
+<A NAME="consol"><U>CONSOL</U>
+- <B>Consol keys</B><BR>
+This is the only read/write register in GTIA.
+Value written is negated on read. Bits 0-2 are ANDed
+with keys status. Reset bit means key pressed.<BR>
+bit 0 - START key<BR>
+bit 1 - SELECT key<BR>
+bit 2 - OPTION key<BR>
+bit 3 - click sound<BR>
+bits 4-7 - unused (=0)<P>
+
+<A NAME="grafm"><U>GRAFM</U>
+- <B>Graphics of missiles</B><BR>
+bits 1,0 - graphics of missile 0<BR>
+bits 3,2 - graphics of missile 1<BR>
+bits 5,4 - graphics of missile 2<BR>
+bits 7,6 - graphics of missile 3<P>
+
+<A NAME="grafpx"><U>GRAFP0</U> <U>GRAFP1</U> <U>GRAFP2</U> <U>GRAFP3</U>
+- <B>Graphics of players</B><P>
+
+<A NAME="gtiactl"><U>GTIACTL</U>
+- <B>GTIA control</B><BR>
+bits 3-0 - priorities of players and missiles<BR>
+0001 - P0, P1, P2, P3, PF0, PF1, PF2, PF3, BAK<BR>
+0010 - P0, P1, PF0, PF1, PF2, PF3, P2, P3, BAK<BR>
+0100 - PF0, PF1, PF2, PF3, P0, P1, P2, P3, BAK<BR>
+1000 - PF0, PF1, P0, P1, P2, P3, PF2, PF3, BAK<BR>
+Players/missiles and playfields are mentioned from highest to lowest priority.<BR>
+Other combinations of bits 3-0 cause strange side effects.<BR>
+bit 4 - set all missiles color to COLPF3<BR>
+bit 5 - enable ORing colors P0 with P1 and P2 with P3 on common areas<BR>
+bits 7,6 - GTIA extra graphics mode<BR>
+00 - off<BR>
+01 - 16 luminaces<BR>
+10 - 9 colors<BR>
+11 - 16 hues<P>
+
+<A NAME="hitclr"><U>HITCLR</U>
+- <B>Clear collision registers</B><BR>
+Any value written to this register causes collision registers to be reset.<P>
+
+<A NAME="hposmx"><U>HPOSM0</U> <U>HPOSM1</U> <U>HPOSM2</U> <U>HPOSM3</U>
+- <B>Horizontal positions of missiles</B><P>
+
+<A NAME="hpospx"><U>HPOSP0</U> <U>HPOSP1</U> <U>HPOSP2</U> <U>HPOSP3</U>
+- <B>Horizontal positions of players</B><P>
+
+<A NAME="kolmxp"><U>KOLM0P</U> <U>KOLM1P</U> <U>KOLM2P</U> <U>KOLM3P</U>
+- <B>Collisions of missiles with players</B><BR>
+bit 0 - collision with player 0<BR>
+bit 1 - collision with player 1<BR>
+bit 2 - collision with player 2<BR>
+bit 3 - collision with player 3<BR>
+bits 4-7 - unused (=0)<P>
+
+<A NAME="kolmxpf"><U>KOLM0PF</U> <U>KOLM1PF</U> <U>KOLM2PF</U> <U>KOLM3PF</U>
+- <B>Collisions of missiles with playfield</B><BR>
+bit 0 - collision with playfield 0<BR>
+bit 1 - collision with playfield 1<BR>
+bit 2 - collision with playfield 2<BR>
+bit 3 - collision with playfield 3<BR>
+bits 4-7 - unused (=0)<P>
+
+<A NAME="kolpxp"><U>KOLP0P</U> <U>KOLP1P</U> <U>KOLP2P</U> <U>KOLP3P</U>
+- <B>Collisions of players with players</B><BR>
+bit 0 - collision with player 0<BR>
+bit 1 - collision with player 1<BR>
+bit 2 - collision with player 2<BR>
+bit 3 - collision with player 3<BR>
+bits 4-7 - unused (=0)<P>
+
+<A NAME="kolpxpf"><U>KOLP0PF</U> <U>KOLP1PF</U> <U>KOLP2PF</U> <U>KOLP3PF</U>
+- <B>Collisions of players with playfield</B><BR>
+bit 0 - collision with playfield 0<BR>
+bit 1 - collision with playfield 1<BR>
+bit 2 - collision with playfield 2<BR>
+bit 3 - collision with playfield 3<BR>
+bits 4-7 - unused (=0)<P>
+
+<A NAME="pal"><U>PAL</U>
+- <B>PAL system flag</B><BR>
+bit 0 - unused<BR>
+bits 1-3 - 000 if TV system is PAL. Else it is NTSC<BR>
+bits 4-7 - unused (=0)<P>
+
+<A NAME="pmctl"><U>PMCTL</U>
+- <B>Player/Missile Control</B><BR>
+bit 0 - get missiles data from ANTIC<BR>
+bit 1 - get players data from ANTIC<BR>
+bit 2 - lock triggers when pressed<BR>
+bits 3-7 - unused<P>
+
+<A NAME="sizem"><U>SIZEM</U>
+- <B>Sizes of missiles</B><BR>
+Two bits set size of each missile:<BR>
+00 - single size<BR>
+01 - double size<BR>
+10 - single size<BR>
+11 - quad size<BR>
+bits 1,0 - size of missile 0<BR>
+bits 3,2 - size of missile 1<BR>
+bits 5,4 - size of missile 2<BR>
+bits 7,6 - size of missile 3<P>
+
+<A NAME="sizepx"><U>SIZEP0</U> <U>SIZEP1</U> <U>SIZEP2</U> <U>SIZEP3</U>
+- <B>Sizes of players</B><BR>
+bits 1,0 - size of player (see <A HREF="#sizem">SIZEM</A>)<BR>
+bits 2-7 - unused<P>
+
+<A NAME="trigx"><U>TRIG0</U> <U>TRIG1</U> <U>TRIG3</U>
+- <B>Triggers</B><BR>
+TRIG0 and TRIG1 contain trigger status of two joysticks.
+TRIG3 contains presence of cartridge.<BR>
+bit 0 - reset if trigger pressed<BR>
+bits 1-7 - unused (=0)<P>
+
+<A NAME="vdelay"><U>VDELAY</U>
+- <B>Vertical delay of players and missiles</B><BR>
+Causes players and missiles to be displayed one scanline lower.
+Works only in two-line resolution.<BR>
+bit 0 - delay missile 0<BR>
+bit 1 - delay missile 1<BR>
+bit 2 - delay missile 2<BR>
+bit 3 - delay missile 3<BR>
+bit 4 - delay player 0<BR>
+bit 5 - delay player 1<BR>
+bit 6 - delay player 2<BR>
+bit 7 - delay player 3<P>
+
+</BODY>
+</HTML>
