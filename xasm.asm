@@ -1,18 +1,28 @@
 ; X-Assembler
 
+EXE	=	1
+
 	IDEAL
 	P386
+IFDEF	EXE
+	MODEL	SMALL
+ELSE
 	MODEL	TINY
+ENDIF
 	CODESEG
 
 ; comment out to disable
 SET_WIN_TITLE	=	1
 
-compak	=	1d00h
+; compak	=	1d00h
 
 l_icl	=	1024
 l_org	=	4096
+IFDEF	EXE
+l_lab	=	55000
+ELSE
 l_lab	=	48000
+ENDIF
 
 STRUC	com
 c_code	db	?
@@ -81,9 +91,10 @@ m_swl	=	8
 b_swn	=	4
 m_swn	=	10h
 m_swo	=	20h
-m_sws	=	40h
-m_swt	=	80h
-m_swu	=	100h
+m_swp	=	40h
+m_sws	=	80h
+m_swt	=	100h
+m_swu	=	200h
 
 ;[flist]
 m_lsti	=	4
@@ -229,7 +240,7 @@ lstorg	db	26 dup(?)
 line	db	258 dup(?)
 tlabel	db	256 dup(?)
 obuf	db	128 dup(?)
-obufen:
+obufen	=	$
 objnam	db	128 dup(?)
 lstnam	db	128 dup(?)
 tabnam	db	128 dup(?)
@@ -239,13 +250,28 @@ t_org	db	l_org dup(?)
 
 ;*****************************
 
+IFNDEF	EXE
 zero	db	100h dup(?)
+ENDIF
 start:
 IFDEF	compak
 	undata
 	db	compak+start-$ dup(?)
 ENDIF
-
+IFDEF	EXE
+	mov	dx, @data
+	mov	es, dx
+	mov	ss, dx
+	mov	sp, offset staken
+	mov	di, offset tlabel
+	mov	ax, [16h]
+	stosw
+	mov	si, 81h
+	movzx	cx, [byte si-1]
+	inc	cx
+	rep	movsb
+	mov	ds, dx
+ENDIF
 	ifdef	SET_WIN_TITLE
 	mov	di, offset hello
 	mov	ax, 168eh
@@ -254,108 +280,87 @@ ENDIF
 	mov	[titfin], ' '
 	endif
 	print	hello
-	mov	di, 81h
-	movzx	cx, [di-1]
-	jcxz	usg		; brak parametrow - usage
-	mov	al, ' '
-	repe	scasb
-	je	usg		; same spacje - usage
-	dec	di
-	inc	cx
-	mov	si, di
-	mov	al, '?'
-	repne	scasb
-	jne	begin		; '?' - usage
+IFDEF	EXE
+	mov	si, offset tlabel+3
+ELSE
+	mov	si, 82h
+ENDIF
+	mov	[objnam], 0
+	mov	[lstnam], 0
+	mov	[tabnam], 0
+	mov	[(icl t_icl).nam], 0	; pusta nazwa zrodla
+
+; parsuj argumenty
+parg0:	dec	si
+parg1:	lodsb
+	cmp	al, ' '
+	je	parg1
+	cmp	al, 9
+	je	parg1
+	cmp	al, 0dh
+	je	pargx
+	cmp	al, '/'
+	je	popt1
+	mov	di, offset (icl t_icl).nam
+	cmp	[byte di], 0
+	jnz	usg		; juz byla nazwa zrodla
+	mov	dx, di
+	call	clfname
+	call	adasx
+	mov	[fslen], di
+	jmp	parg0
 
 usg:	print	usgtxt		; usage - instrukcja
 	dos	4c03h
 
-begin:	lodsb			; pobierz nazwe
-	cmp	al, '/'
-	je	usg		; najpierw musi byc nazwa
-	mov	di, offset (icl t_icl).nam+1
-	lea	dx, [di-1]
-	xor	ah, ah
-	mov	[tabnam], ah	; nie ma nazwy tabeli symboli
-dinam	equ	di-t_icl-offset (icl).nam
-mnam1:	dec	di		; zapisz do t_icl.nam, ...
-	mov	[objnam+dinam], ax	; ... objnam, ...
-	mov	[lstnam+dinam], ax	; ... lstnam
-	stosw
-	lodsb
-	cmp	al, ' '
-	je	mnam2
-	cmp	al, '/'
-	je	mnam2
-	cmp	al, 0dh
-	jne	mnam1
-mnam2:	call	adasx		; doczep .ASX
-	mov	[fslen], di
-chex1:	dec	di
-	cmp	[byte di], '.'
-	jne	chex1
-	mov	[byte objnam+dinam], '.'	; doczep .OBX
-	mov	[dword objnam+dinam+1], 'XBO'
-	mov	[byte lstnam+dinam], '.'	; doczep .LST
-	mov	[dword lstnam+dinam+1], 'TSL'
-
-gsw0:	dec	si
-gsw1:	lodsb			; pobierz switche
-	cmp	al, ' '
-	je	gsw1		; pomin spacje
-	cmp	al, 0dh
-	je	gswx
-	cmp	al, '/'
-	jne	usg		; musi byc '/'
-	lodsb
-	and	al,0dfh		; mala litera -> duza
+popt1:	lodsb
+	and	al, 0dfh	; mala litera -> duza
 	mov	di, offset swilet
-	mov	cx, 9
+	mov	cx, 10
 	repne	scasb
-neusg:	jne	usg		; nie ma takiego switcha
+	jne	usg		; nie ma takiego switcha
 	bts	[swits], cx	; sprawdz bit i ustaw
 	jc	usg		; juz byl taki
 	mov	di, offset lstnam
-	mov	ecx, 'TSL'
 	cmp	al, 'L'
-	je	gsw2		; /L
+	je	popt2
 	mov	di, offset tabnam
-	mov	ecx, 'BAL'
 	cmp	al, 'T'
-	je	gsw2		; /T
+	je	popt2
 	cmp	al, 'O'
-	jne	gsw1		; switch bez parametru
-	cmp	[byte si], ':'
-	jne	neusg		; /O wymaga ':'
+	jne	parg1		; switch bez parametru
+	cmp	[byte si], ':'	; /O wymaga ':'
+	jne	usg
 	mov	di, offset objnam
-	mov	ecx, 'XBO'
-
-gsw2:	lodsb
+popt2:	lodsb
 	cmp	al, ':'
-	jne	gsw0
-	mov	dx, di		; jesli ':', to ...
-gsw3:	lodsb			; ... pobierz nazwe
-	stosb
-	cmp	al, ' '
-	je	gsw4
-	cmp	al, '/'
-	je	gsw4
-	cmp	al, 0dh
-	jne	gsw3
-gsw4:	mov	[byte di-1], 0
-	lda	ecx		; doczep ecx
-	call	adext
-	jmp	gsw0
-gswx:	mov	al, [byte swits]
+	jne	parg0
+	call	clfna		; pobierz nazwe
+	jmp	parg0
+
+pargx:
+	cmp	[(icl t_icl).nam], 0	; czy jest nazwa?
+	je	usg
+	mov	di, offset lstnam
+	mov	eax, 'TSL'
+	call	defnam
+	mov	di, offset objnam
+	mov	eax, 'XBO'
+	call	defnam
+
+	mov	al, [byte swits]
 	and	al, m_lstl
 	xor	al, m_lstl+m_lsto
 	mov	[flist], al
 
 	testsw	m_swe
 	jz	noswe
-
+IFDEF	EXE
+	mov	ax, [word tlabel]
+	jmp	prpsp1
+ENDIF
 prpsp:	mov	ax, [16h]
-	mov	ds, ax
+prpsp1:	mov	ds, ax
 	cmp	ax, [16h]
 	jne	prpsp
 
@@ -363,7 +368,11 @@ prpsp:	mov	ax, [16h]
 	test	ax, ax
 	jz	enver
 	dec	ax
+IFDEF	EXE
+	mov	[ss:envseg], ax
+ELSE
 	mov	[cs:envseg], ax
+ENDIF
 	mov	ds, ax
 	mov	es, ax
 	mov	si, 10h
@@ -391,12 +400,22 @@ renv3:	lodsb
 	jnz	renv3
 	jmp	renv1
 
-enver:	push	cs
+enver:
+IFDEF	EXE
+	push	ss
+ELSE
+	push	cs
+ENDIF
 	pop	ds
 	print	envtxt
 	dos	4c02h
 
-renvx:	push	cs
+renvx:
+IFDEF	EXE
+	push	ss
+ELSE
+	push	cs
+ENDIF
 	pop	ds
 	mov	[envofs], di
 	stosb
@@ -909,7 +928,22 @@ hclose:	cmp	bx, nhand
 
 fopen:	cmp	di, offset t_icl+l_icl-2
 	jnb	icler
-	mov	bx, [iclen]
+	testsw	m_swp
+	jz	fopen1
+	push	si
+	mov	si, offset (icl).nam
+	add	si, [iclen]
+	mov	di, offset tlabel
+	file	60h, e_open
+	mov	si, offset tlabel
+	mov	di, offset (icl).nam
+	add	di, [iclen]
+fomna:	lodsb
+	stosb
+	test	al, al
+	jnz	fomna
+	pop	si
+fopen1:	mov	bx, [iclen]
 	mov	[(icl bx).line], 0
 	mov	[(icl bx).flags], 0
 	lea	dx, [(icl bx).nam]
@@ -1140,8 +1174,9 @@ ctrail:	cmp	[byte di-1], ' '
 	je	strail
 putlst:	mov	ax, 0a0dh
 	stosw
-	lea	cx, [di+zero-lstnum]
 	mov	dx, offset lstnum
+	mov	cx, di
+	sub	cx, dx
 putlad:	mov	bx, [lhand]
 	jfile	40h, e_wrlst
 
@@ -1217,6 +1252,37 @@ phbyte:	aam	10h
 	stosw
 	ret
 
+; Pobierz nazwe pliku z linii polecen (al=#1 znak si=adr kolejnego) i zapisz do di
+clfname:
+clf1:	stosb
+clfna:
+	lodsb
+	cmp	al, ' '
+	je	clfx
+	cmp	al, 9
+	je	clfx
+	cmp	al, '/'
+	je	clfx
+	cmp	al, 0dh
+	jne	clf1
+clfx:	xor	al, al
+	stosb
+	ret
+
+; wpisz domyslna nazwe dla obx lub lst
+defnam:	cmp	[byte di], 0
+	jnz	defnr
+	mov	si, [fslen]
+defn1:	dec	si
+	cmp	[byte si], '.'
+	jne	defn1
+	lea	cx, [si+1]
+	mov	si, offset (icl t_icl).nam
+	sub	cx, si
+	rep	movsb
+	stosd
+defnr:	ret
+
 ; Pobierz znak (eol=error)
 get:	lodsb
 	cmp	al, 0dh
@@ -1286,7 +1352,8 @@ rlab2:	stosb
 	jb	rlab1
 linlon:	push	offset e_long
 	jmp	erron
-rlabx:	lea	dx, [di+zero-tlabel+lab.nam]
+rlabx:	lea	dx, [(lab di).nam]
+	sub	dx, offset tlabel
 	dec	si
 	cmp	[byte tlabel], 'A'
 	ret
@@ -1313,7 +1380,8 @@ flab1:	add	si, cx
 	mov	di, offset tlabel
 	repe	cmpsb
 	jne	flab1
-	lea	bx, [si+tlabel-offset (lab).nam]
+	mov	bx, offset tlabel - offset (lab).nam
+	add	bx, si
 	sub	bx, di	; c=0
 flabx:	pop	si
 	ret
@@ -2074,8 +2142,7 @@ p_mws:	call	getops
 	jae	ilamod
 	cmp	al, 1
 	jne	p_mw1
-	mov	[byte high val], 0
-	mov	[word val+2], 0
+	and	[dword val], 0ffh
 p_mw1:	call	mcall1
 	lea	si, [op2]
 	call	ldop
@@ -2106,7 +2173,7 @@ p_mw4:	test	al, al
 	call	savbyt
 	jmp	p_mw3
 
-p_mwh:	shr	[dword val], 8
+p_mwh:	sar	[dword val], 8
 p_mw2:	call	mcall1
 p_mw3:	lea	si, [op2]
 	call	ldop
@@ -2596,6 +2663,11 @@ emift:	error	e_mift
 
 etmift:	error	e_tmift
 
+IFDEF	EXE
+	ENDS
+	DATASEG
+;	ORG	0
+ENDIF
 ; addressing modes:
 ; 0-@ 1-# 2-A 3-Z 4-A,X 5-Z,X 6-A,Y 7-Z,Y 8-(Z,X) 9-(Z),Y 10-(A)
 lentab	db	1,2,3,2,3,2,3,2,2,2,3
@@ -2611,7 +2683,8 @@ movtab	movt	<0a0h,p_ac1,080h,p_ac1,0,0>
 	movt	<0a2h,p_ld1,086h,p_st1,0e8h,0cah>
 	movt	<0a0h,p_ld1,084h,p_st1,0c8h,088h>
 
-comtab:	cmd	ADC0060p_acc
+comtab	=	$
+	cmd	ADC0060p_acc
 	cmd	ADD8018p_ads
 	cmd	AND0020p_acc
 	cmd	ASL0000p_srt
@@ -2714,9 +2787,10 @@ comtab:	cmd	ADC0060p_acc
 	cmd	TXA008ap_imp
 	cmd	TXS009ap_imp
 	cmd	TYA0098p_imp
-comend:
+comend	=	$
 
-operpa:	opr	1ret
+operpa	=	$
+	opr	1ret
 	opr	6add
 	opr	6sub
 	opr	7mul
@@ -2757,9 +2831,9 @@ optvec	dw	optl0,optl1,opth0,opth1,opto0,opto1
 cndtxt	dd	'DNE','TFI','ILE','SLE','FIE'
 cndvec	dw	pofend,0,p_ift,0,p_eli,0,p_els,0,p_eif
 
-swilet	db	'UTSONLIEC'
+swilet	db	'UTSPONLIEC'
 
-hello	db	'X-Assembler 2.4.-4'
+hello	db	'X-Assembler 2.4.-3'
 	ifdef	SET_WIN_TITLE
 titfin	db	0
 	else
@@ -2768,26 +2842,27 @@ titfin	db	0
 	db	'by Fox/Taquart',eot
 hellen	=	$-hello-1
 usgtxt	db	"Syntax: XASM source [options]",eol
-	db	"/c         List false conditionals",eol
-	db	"/e         Set environment variables on error",eol
-	db	"/i         Don't list included source",eol
+	db	"/c         List code excluded by ift/els/eli",eol
+	db	"/e         Set environment variables ERRFILE and ERRLINE if error occurs",eol
+	db	"/i         Don't list included files",eol
 	db	"/l[:fname] Generate listing",eol
-	db	"/n         Assemble only if source newer than object",eol
-	db	"/o:fname   Write object as 'fname'",eol
+	db	"/n         Assemble only if source file is newer than object file",eol
+	db	"/o:fname   Write object file as 'fname'",eol
+	db	"/p         Print fully qualified file names in listing and error messages",eol
 	db	"/s         Don't convert spaces to tabs in listing",eol
 	db	"/t[:fname] List label table",eol
 	db	"/u         Warn of unused labels",eot
-oldtxt	db	'Source is older than object - not assembling',eot
+oldtxt	db	'Source file is older than object file - not assembling',eot
 envtxt	db	'Can''t change environment',eot
-objtxt	db	'Writing object...',eot
-lsttxt	db	'Writing listing...'
+objtxt	db	'Writing object file...',eot
+lsttxt	db	'Writing listing file...'
 eoltxt	db	eot
 srctxt	db	'Source: '
 srctxl	=	$-srctxt
 tabtxt	db	'Label table:',eol
 tabtxl	=	$-tabtxt
 lintxt	db	' lines of source assembled',eot
-byttxt	db	' bytes written to object',eot
+byttxt	db	' bytes written to the object file',eot
 dectxt	db	10 dup(' '),'$'
 wartxt	db	'WARNING: $'
 w_bugjp	db	'Buggy indirect jump',eol
@@ -2798,10 +2873,10 @@ w_repl	db	'Repeating only last instruction',eol
 errtxt	db	'ERROR: $'
 e_open	db	'Can''t open file',cr
 e_read	db	'Disk read error',cr
-e_crobj	db	'Can''t write object',cr
-e_wrobj	db	'Error writing object',cr
-e_crlst	db	'Can''t write listing',cr
-e_wrlst	db	'Error writing listing',cr
+e_crobj	db	'Can''t write to the object file',cr
+e_wrobj	db	'Error writing to the object file',cr
+e_crlst	db	'Can''t write to the listing file',cr
+e_wrlst	db	'Error writing to the listing file',cr
 e_icl	db	'Too many files nested',cr
 e_long	db	'Line too long',cr
 e_uneol	db	'Unexpected eol',cr
@@ -2820,7 +2895,7 @@ e_bra	db	'Branch out of range by $'
 brout	db	'     bytes',cr
 e_sin	db	'Bad or missing sinus parameter',cr
 e_spac	db	'Space expected',cr
-e_opt	db	'Invalid options',cr
+e_opt	db	'Invalid option',cr
 e_over	db	'Arithmetic overflow',cr
 e_div0	db	'Divide by zero',cr
 e_range	db	'Value out of range',cr
@@ -2894,7 +2969,7 @@ envnam	dw	?
 envnum	dw	?
 envlen	dw	?
 
-var:
+var	=	$
 MACRO	bb	_name
 _name&o	=	$-var
 _name	equ	byte bp+_name&o
@@ -2922,6 +2997,13 @@ IFNDEF	compak
 ENDIF
 
 t_lab	db	l_lab dup(?)
+
+IFDEF	EXE
+stak	db	400h dup(?)
+staken	=	$
+	ENDS
+	STACK	100h
+ENDIF
 
 	ENDS
 	END	start
