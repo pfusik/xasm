@@ -121,6 +121,18 @@ MACRO	file	_func, _errtx
 	call	xdisk
 	ENDM
 
+MACRO	jfile	_func, _errtx
+	IFNB	<_errtx>
+	mov	[errmsg], offset _errtx
+	ENDIF
+	IF	_func and 0ff00h
+	mov	ax, _func
+	ELSE
+	mov	ah, _func
+	ENDIF
+	jmp	xdisk
+	ENDM
+
 MACRO	print	_text
 	IFNB	<_text>
 	mov	dx, offset _text
@@ -273,7 +285,7 @@ gsw1:	lodsb			; pobierz switche
 	mov	di, offset swilet
 	mov	cx, 8
 	repne	scasb
-	jne	usg		; nie ma takiego switcha
+neusg:	jne	usg		; nie ma takiego switcha
 	bts	[word swits], cx	; sprawdz bit i ustaw
 	jc	usg		; juz byl taki
 	mov	di, offset lstnam
@@ -287,7 +299,7 @@ gsw1:	lodsb			; pobierz switche
 	cmp	al, 'O'
 	jne	gsw1		; switch bez parametru
 	cmp	[byte si], ':'
-	jne	usg		; /O wymaga ':'
+	jne	neusg		; /O wymaga ':'
 	mov	di, offset objnam
 	mov	ecx, 'XBO'
 
@@ -425,7 +437,7 @@ gline1:	cmp	di, offset line+256
 	jz	eof
 	mov	al, [di]
 	cmp	al, 0dh		; pc cr
-	je	syntax
+	je	short syntax
 	cmp	al, 0ah		; unix lf
 	je	syntax
 	cmp	al, 9bh		; atari eol
@@ -433,23 +445,7 @@ gline1:	cmp	di, offset line+256
 	inc	di
 	jmp	gline1
 
-eof:	mov	bx, [iclen]	; koniec pliku
-	or	[(icl bx).flags], m_eofl
-
-syntax:	call	lspeol		; zapisz CR/LF i zapamietaj dlugosc linii
-	mov	si, offset line
-	mov	al, [si]
-	cmp	al, '*'
-	je	lstrem
-	cmp	al, ';'
-	je	lstrem
-	cmp	al, '|'
-	je	lstrem
-	cmp	al, 0dh
-	je	lsteol
-	testfl	m_skip
-	jz	nskip		; czy byl falszywy warunek ?
-skip1:	call	get		; ... tak - omin etykiete ...
+skip1:	call	get		; falszywy warunek - omin etykiete ...
 	cmp	al, ' '
 	je	skip2
 	cmp	al, 9
@@ -472,27 +468,33 @@ skip2:	call	space1		; omin spacje
 	resfl	m_skip
 	inc	[sift]	;0
 skret:	ret
-skift:	call	shlelf
-	inc	[sift]
-	ret
+skift:	inc	[sift]
+shlelf:	shl	[elflag], 1
+	jnc	skret
+	error	e_tmift
+
 skels:	call	btself
 	cmp	[sift], 0
 	jnz	skret
 	jmp	fliski
 
-lstrem:	call	chklst
-	jnz	main
-	mov	di, offset lstspa+1
-	call	putlsp
-	jmp	main
-lsteol:	call	chklst
-	jnz	main
-	mov	di, offset lstspa
-	call	lspeol
-	call	putlnm
-	jmp	main
+eof:	mov	bx, [iclen]	; koniec pliku
+	or	[(icl bx).flags], m_eofl
 
-nskip:	mov	[labvec], 0
+syntax:	call	lspeol		; zapisz CR/LF i zapamietaj dlugosc linii
+	mov	si, offset line	; asembluj linie
+	mov	al, [si]
+	cmp	al, '*'
+	je	lstrem
+	cmp	al, ';'
+	je	lstrem
+	cmp	al, '|'
+	je	lstrem
+	cmp	al, 0dh
+	je	lsteol
+	testfl	m_skip
+	jnz	skip1		; czy byl falszywy warunek ?
+	mov	[labvec], 0	; ... nie
 	cmp	al, ' '
 	je	s_one
 	cmp	al, 9
@@ -503,8 +505,19 @@ nskip:	mov	[labvec], 0
 	call	getuns
 	jc	unknow
 	test	ax, ax
-	jz	lstrem
-	jmp	s_cmd
+	jnz	s_cmd
+
+lstrem:	call	chklst
+	jnz	jmain
+	mov	di, offset lstspa+1
+	call	putlsp
+jmain:	jmp	main
+lsteol:	call	chklst
+	jnz	jmain
+	mov	di, offset lstspa
+	call	lspeol
+	call	putlnm
+	jmp	main
 
 labdef:	jpass2	deflp2		; jest etykieta
 	call	flabel		; definicja etykiety w pass 1
@@ -575,7 +588,7 @@ rdcmd3:	lodsw			; wez trzy litery
 	cmp	[byte high labvec], 0
 	je	lbnox		; ... a jest etykieta ...
 	cmp	eax, 'EQU' shl 8
-	jne	noorg		; ... to dozwolony jest tylko EQU
+	call	nenorg		; ... to dozwolony jest tylko EQU
 lbnox:	inc	si
 	cmp	[byte si], ':'	; czy para instrukcji?
 	jne	nopair
@@ -651,6 +664,7 @@ ckcmd5:	setfl	m_repa
 	mov	[reporg], ax
 	jz	rncmd2
 	setfl	m_skit		; pseudo instrukcja omijania
+	mov	[obuf], 2
 	mov	al, [(com di+bx).c_code]
 	call	savbyt
 	jmp	encmd2
@@ -849,7 +863,7 @@ nlata:	call	lclose
 	call	pridec
 	print	byttxt
 zrbyt:	mov	ax, [exitcod]
-;	dos	;!!!!!!
+;	dos	;!!!
 
 ; I/O
 xdisk:	dos
@@ -865,8 +879,7 @@ lclose:	mov	bx, nhand	; mov	bx, [lhand]
 	mov	[errmsg], offset e_wrlst
 hclose:	cmp	bx, nhand
 	je	cloret
-	file	3eh
-cloret:	ret
+	jfile	3eh
 
 fopen:	cmp	di, offset t_icl+l_icl-2
 	jnb	icler
@@ -880,7 +893,7 @@ fopen:	cmp	di, offset t_icl+l_icl-2
 	mov	bx, [iclen]
 	mov	bx, [(icl bx).prev]
 	mov	[(icl bx).handle], ax
-	ret
+cloret:	ret
 
 fread1:	mov	dx, di
 	mov	cx, 1
@@ -930,8 +943,8 @@ orgwor:	push	ax
 	jmp	putwor
 
 chorg:	testfl	m_norg
-	jz	putx
-noorg:	error	e_norg
+nenorg:	jz	putx
+	error	e_norg
 
 tmorgs:	error	e_orgs
 
@@ -1095,8 +1108,7 @@ spatax:	call	lsplen
 putlst:	mov	dx, offset lstnum
 	mov	cx, [linlen]
 putlad:	mov	bx, [lhand]
-	file	40h, e_wrlst
-	ret
+	jfile	40h, e_wrlst
 
 opnlst:	mov	dx, offset lstnam
 opntab:	xor	cx, cx
@@ -1289,16 +1301,21 @@ getval:	xor	bx, bx
 
 v_lop:
 v_par1:	inc	bh
-	call	get
+v_par0:	call	get
 	cmp	al, '['
 	je	v_par1
-	cmp	al, '('
+	mov	di, offset opert0
+	mov	cx, noper0
+	repne	scasb
+	jne	v_n1a
+	sub	di, offset opert0-noper1-noper2
+	call	goprpa
+	push	di bx
+	jmp	v_par0
+
+v_n1a:	cmp	al, '('
 	je	wropar
-	cmp	al, '-'
-	je	valuem
 	dec	si
-	mov	al, '+'
-valuem:	mov	bl, al
 	xor	eax, eax
 	call	get
 	cmp	al, '*'
@@ -1429,10 +1446,7 @@ value0:	dec	si
 	test	di, di
 	js	ilchar
 	lda	edx
-value1:	cmp	bl, '-'
-	jne	value2
-	neg	eax
-value2:	push	eax
+value1:	push	eax
 v_par2:	dec	bh
 	js	mbrack
 	lodsb
@@ -1457,24 +1471,22 @@ foper2:	inc	si
 	sub	di, offset opert2
 	shr	di, 1
 	add	di, noper1
-goper:	lea	ax, [di+operpa]
-	add	di, di
-	add	di, ax
-	mov	bl, [di]
-	mov	di, [di+1]
+goper:	call	goprpa
 	pop	eax
 v_com:	pop	cx
 	cmp	cx, bx
 	jb	v_xcm
-	pop	ecx
-	xchg	eax, ecx
 	pop	dx
-	push	offset v_com
+	cmp	dx, offset v_1arg
+	jae	v_r1a
+	sta	ecx
+	pop	eax
+v_r1a:	push	offset v_com
 	push	dx
 	ret
 v_xcm:	cmp	bl, 1
 	jbe	v_xit
-	push	cx di eax bx
+	push	cx eax di bx
 	jmp	v_lop
 v_xit:	mov	[dword val], eax
 	cmp	[ukp1], 1
@@ -1585,7 +1597,7 @@ v_xor:	xor	eax, ecx	; ^
 	ret
 
 v_equ:	cmp	eax, ecx	; =
-	je	v_one
+v_eq1:	je	v_one
 v_zer:	xor	eax, eax
 	ret
 v_one:	mov	eax, 1
@@ -1619,6 +1631,30 @@ v_anl:	jecxz	v_zer		; &&
 v_orl:	or	eax, ecx	; ||
 	jz	v_ret
 	jmp	v_one
+
+; Operatory 1-argumentowe
+v_1arg:
+v_neg:	neg	eax
+v_plu:	ret
+
+v_low:	movzx	eax, al
+	ret
+
+v_hig:	movzx	eax, ah
+	ret
+
+v_nol:	test	eax, eax
+	jmp	v_eq1
+
+v_not:	not	eax
+	ret
+
+goprpa:	lea	ax, [di+operpa]
+	add	di, di
+	add	di, ax
+	mov	bl, [di]
+	mov	di, [di+1]
+	ret
 
 ; Pobierz operand rozkazu i rozpoznaj tryb adresowania
 getadr:	call	spaces
@@ -1700,8 +1736,7 @@ getai2:	mov	dx, 1
 getaid:	lodsb
 	cmp	al, ','
 	je	getaix
-	cmp	al, ')'
-	jne	mparen
+	call	chkpar
 	lodsw
 	mov	dx, 1009h
 	mov	bl, 14h
@@ -2125,11 +2160,7 @@ valuco:	call	getval
 	ret
 badsin:	error	e_sin
 
-p_dta:	call	spaces
-dta1:	call	get
-	and	al, 0dfh
-	mov	[cod], al
-	cmp	al, 'A'
+dtan0:	cmp	al, 'A'
 	je	dtan1
 	cmp	al, 'B'
 	je	dtan1
@@ -2137,17 +2168,30 @@ dta1:	call	get
 	je	dtan1
 	cmp	al, 'H'
 	je	dtan1
-	cmp	al, 'C'
-	je	dtat1
-	cmp	al, 'D'
-	je	dtat1
 	cmp	al, 'R'
-	je	dtar1
-	jmp	ilchar
+	jne	dtab1
+	jmp	dtar1
 
-dtan1:	lodsb
-	cmp	al, '('
-	jne	mparen
+dtat0:	cmp	al, 'C'
+	je	dtat1j
+	cmp	al, 'D'
+	jne	dtab1
+dtat1j:	dec	si
+	jmp	dtat1
+
+p_dta:	call	spaces
+dta1:	lodsw
+	and	al, 0dfh
+	cmp	ah, '('
+	je	dtan0
+	cmp	ah, "'"
+	je	dtat0
+	cmp	ah, '"'
+	je	dtat0
+dtab1:	dec	si
+	dec	si
+	mov	al, ' '
+dtan1:	mov	[cod], al
 
 dtan2:	lodsd
 	and	eax, 0ffdfdfdfh
@@ -2177,8 +2221,7 @@ dtan2:	lodsd
 	jb	badsin
 	mov	[sinmax], ax
 	lodsb
-	cmp	al, ')'
-	jne	mparen
+	call	chkpar
 presin:	finit
 	fldpi
 	fld	st
@@ -2222,13 +2265,15 @@ dtans:	call	savbyt
 dtanx:	mov	ax, [sinmin]
 	cmp	ax, [sinmax]
 	jbe	gensin
+	cmp	[cod], ' '
+	je	dtanxt
 	lodsb
 	cmp	al, ','
 	je	dtan2
-	cmp	al, ')'
-	je	dtanxt
-
-mparen:	error	e_paren
+dtanp:	push	offset dtanxt
+chkpar:	cmp	al, ')'
+	je	paret
+	error	e_paren
 
 unknow:	error	e_uknow
 
@@ -2262,12 +2307,10 @@ dtanxt:	lodsb
 	cmp	al, ','
 	je	dta1
 	dec	si
-	ret
+paret:	ret
 
 ; Zapisz liczbe rzeczywista
-dtar1:	lodsb
-	cmp	al, '('
-	jne	mparen
+dtar1:
 dtar2:	xor	bx, bx
 	xor	edx, edx
 	xor	cx, cx
@@ -2289,22 +2332,7 @@ dreal3:	inc	cx
 	jnc	dreal3
 	cmp	al, '.'
 	je	drealp
-	and	al, 0dfh
-	cmp	al, 'E'
-	jne	drealf
-dreale:	call	getsgn
-	call	getdig
-	jc	ilchar
-	mov	ah, al
-	call	getdig
-	jnc	dreal4
-	shr	ax, 8
-dreal4:	aad
-	add	di, di
-	jnc	drealn
-	neg	ax
-drealn:	add	cx, ax
-	jmp	drealf
+	jmp	dreale
 dreal5:	test	edx, edx
 	jnz	dreal9
 	test	bl, bl
@@ -2313,9 +2341,23 @@ dreal5:	test	edx, edx
 dreal9:	call	putdig
 drealp:	call	getdig
 	jnc	dreal5
-	and	al, 0dfh
+dreale:	and	al, 0dfh
 	cmp	al, 'E'
-	je	dreale
+	jne	drealf
+	call	getsgn
+	call	getdig
+	jc	ilchar
+	mov	ah, al
+	call	getdig
+	jnc	dreal4
+	shr	ax, 8
+	dec	si
+dreal4:	inc	si
+	aad
+	add	di, di
+	jnc	drealn
+	neg	ax
+drealn:	add	cx, ax
 drealf:	test	edx, edx
 	jnz	drealx
 	test	bl, bl
@@ -2344,8 +2386,8 @@ dreal7:	cmp	bl, al
 	jb	dreal6
 dreal8:	lda	cx
 	mov	ah, bl
-dreals:	rol	edx, 16
-	push	edx
+	rol	edx, 16
+dreals:	push	edx
 	call	savwor
 	pop	ax
 	xchg	ah, al
@@ -2357,9 +2399,7 @@ dreals:	rol	edx, 16
 	lodsb
 	cmp	al, ','
 	je	dtar2
-	cmp	al, ')'
-	jne	mparen
-	jmp	dtanxt
+	jmp	dtanp
 
 putdig:	cmp	bl, 10h
 	jnb	rlret
@@ -2458,10 +2498,6 @@ p_inx:	call	fclose
 p_end:	pop	ax
 	call	linend
 	jmp	filend
-
-shlelf:	shl	[elflag], 1
-	jnc	cndret
-	error	e_tmift
 
 btself:	bts	[elflag], 0
 	jnc	cndret
@@ -2604,34 +2640,42 @@ comtab:	cmd	ADC0060p_acc
 comend:
 
 operpa:	opr	1ret
-	opr	5add
-	opr	5sub
-	opr	6mul
-	opr	6div
-	opr	6mod
-	opr	6and
-	opr	5or
-	opr	5xor
-	opr	4equ
-	opr	4les
-	opr	4grt
-	opr	6sal
-	opr	6sar
-	opr	4leq
-	opr	4geq
-	opr	4neq
-	opr	4neq
+	opr	6add
+	opr	6sub
+	opr	7mul
+	opr	7div
+	opr	7mod
+	opr	7and
+	opr	6or
+	opr	6xor
+	opr	5equ
+	opr	5les
+	opr	5grt
+	opr	7sal
+	opr	7sar
+	opr	5leq
+	opr	5geq
+	opr	5neq
+	opr	5neq
 	opr	3anl
 	opr	2orl
+	opr	8plu
+	opr	8neg
+	opr	8low
+	opr	8hig
+	opr	4nol
+	opr	8not
 
 opert2	db	'<<>><=>=<>!=&&||'
 noper2	=	($-opert2)/2
 opert1	db	'+-*/%&|^=<>'
 noper1	=	$-opert1
+opert0	db	'+-<>!~'
+noper0	=	$-opert0
 
 swilet	db	'TSONLIEC'
 
-hello	db	'X-Assembler 2.2 by Fox/Taquart',eot
+hello	db	'X-Assembler 2.3.-5 by Fox/Taquart',eot
 hellen	=	$-hello-1
 usgtxt	db	"Syntax: XASM source [options]",eol
 	db	"/c         List false conditionals",eol
