@@ -25,7 +25,7 @@ MACRO	topt	_op
 
 	mov	si, 81h
 	mov	bx, 0ff00h	;bh=attr mask, bl=attr set
-	xor	dx, dx		;m_xxx
+	xor	dx, dx		;dx=options
 
 gsw1:	lodsb
 	cmp	al, ' '
@@ -46,7 +46,7 @@ panic:	print
 
 rdpage:	mov	cx, 100h
 	fread
-	cmp	ax, 100h
+	cmp	ax, cx
 	jb	_derr
 	ret
 
@@ -54,14 +54,11 @@ rdnum:	lodsb
 	cmp	al, ':'
 	jne	usage
 	lodsw
-	cmp	al, '9'
-	ja	usage
-	sub	al, '0'
-	jb	usage
-	cmp	ah, '9'
-	ja	rdnum1
-	sub	ah, '0'
-	jb	rdnum1
+	sub	ax, '00'
+	cmp	al, 10
+	jae	usage
+	cmp	ah, 10
+	jae	rdnum1
 	xchg	al, ah
 	aad		;al:=10*ah+al
 	cmp	al, 15
@@ -111,7 +108,7 @@ swf2:	pusha
 	mov	bx, di
 	mov	cx, di
 	sub	cx, offset fname
-	je	usage
+	je	short jusage
 adex1:	dec	bx
 	cmp	[byte bx], '.'
 	je	adexn
@@ -135,7 +132,7 @@ adexn:	mov	[byte di], 0
 	jmp	gsw1
 
 gswx:	test	dx, dx
-	jz	usage
+	jz	jusage
 
 	topt	o_a	;obsluz opcje a
 	jz	atrok
@@ -160,11 +157,15 @@ atrok:
 	btr	ax, cx
 	test	ax, ax
 	jz	fntok
-	jmp	usage
+jusage:	jmp	usage
 nofnt:	topt	o_l	;jezeli l i zadna z d,f,x, to ustaw d
 	jz	fntok
 	setflag	dx, o_d
-fntok:
+fntok:	topt	o_i
+	jz	noinv0
+	topt	o_f+o_x	;i tylko razem z f lub x
+	jz	jusage
+noinv0:
 
 	push	bx
 
@@ -178,13 +179,14 @@ fntok:
 noini:
 
 ; wczytaj font domyslny
-	topt	o_d
+	topt	o_d+o_f+o_x
 	jz	nodef
 	mov	ax, 1112h
 	topt	o_l
 	jnz	def50
 	mov	al, 14h
 def50:	push	dx
+	xor	bl, bl
 	int	10h
 	pop	dx
 nodef:
@@ -227,8 +229,8 @@ nodbl:	push	dx
 	mov	ax, 1110h
 	int	10h
 	pop	dx
-
 nocust:
+
 ; jezeli przelaczylismy 50->25 to skorygowac polozenie kursora
 	topt	o_l
 	jnz	nococu
@@ -275,7 +277,7 @@ cls:	inc	di
 nocol:	ret
 
 swilet	db	'XNLIFDCBA'
-usgtxt	db	'GR0 version 1.0 by Fox/Taquart',eol
+usgtxt	db	'GR0 version 1.1 by Fox/Taquart',eol
 	db	'Customizes DOS screen.',eol
 	db	'Available options:',eol
 	db	'/a       Set Atari scheme = /b:1 /c:7 /n /l /x',eol
@@ -283,10 +285,10 @@ usgtxt	db	'GR0 version 1.0 by Fox/Taquart',eol
 	db	'/c:nn    Set foreground color 0-15',eol
 	db	'/d       Set default PC font',eol
 	db	'/f:fname Set external Atari font',eol
-	db	'/i       Set chars 128-255 to inverse',eol
+	db	'/i       Set characters 128-255 to inverse',eol
 	db	'/l       Select 50 lines font',eol
 	db	'/n       Initialize text mode (clears screen)',eol
-	db	'/x       Set Atari build-in font',eot
+	db	'/x       Set Atari built-in font',eot
 	smarterr
 
 font	db	0,54,127,127,62,28,8,0,24,24,24,31,31,24,24,24,3
