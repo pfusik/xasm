@@ -1,13 +1,13 @@
-<HTML><HEAD><TITLE>X-Assembler 2.4.2</TITLE></HEAD>
+<HTML><HEAD><TITLE>X-Assembler 2.5</TITLE></HEAD>
 <BODY BACKGROUND="6502proc.gif">
 <CENTER>
-<H1>X-Assembler version 2.4.2</H1>
+<H1>X-Assembler version 2.5</H1>
 <HR>
 <H2>TABLE OF CONTENTS</H2>
-<TABLE><TR><TD  VALIGN=top>
+<TABLE><TR><TD VALIGN=top>
 <UL><LI><A HREF="#intro">INTRODUCTION</A>
 <UL><LI><A HREF="#changes">Changes</A>
-<UL><LI><A HREF="#ver242">Version 2.4.2</A>
+<UL><LI><A HREF="#ver25">Version 2.5</A>
 <LI><A HREF="#ver241">Version 2.4.1</A>
 <LI><A HREF="#ver24">Version 2.4</A>
 <LI><A HREF="#ver23">Version 2.3</A>
@@ -47,7 +47,7 @@ The X-Assembler is a cross-assembler, which generates code for the 6502 processo
 It has been designed to be easy to use for Quick Assembler programmers,
 therefore its syntax is an extension of QA's one.<BR>
 <A NAME="changes"><H3>Changes</H3>
-<A NAME="ver242"><H4>Version 2.4.2</H4>
+<A NAME="ver25"><H4>Version 2.5</H4>
 <UL>
 <LI> fixed another bug, very similar to previous one, e.g.
 <PRE> ift 0
@@ -55,6 +55,9 @@ therefore its syntax is an extension of QA's one.<BR>
  eif
 </PRE>
 reported <TT>Label not defined before</TT> error for the repeat count.
+<LI> <A HREF="#new_opt"><TT>OPT F+</TT> causes <TT>ORG</TT>s to fill the space between old and new
+location with <TT>$FF</TT>s</A>
+<LI> <A HREF="#new_opt"><TT>OPT G+</TT> enables Atari 5200 mode for hardware register abbreviations</A>
 </UL>
 <A NAME="ver241"><H4>Version 2.4.1</H4>
 <UL>
@@ -82,7 +85,7 @@ separator (Unix convention)
 <LI> <A HREF="#new_fullpaths">added <TT>/p</TT> option: print full paths in listing and error messages</A>
 <LI> <A HREF="#new_quiet">added <TT>/q</TT> option: quiet mode</A>
 <LI> <A HREF="#new_unlabels">added <TT>/u</TT> option: warn of unused labels</A>
-<LI> <A HREF="#new_opto">writing to the object file may be suppressed with <TT>OPT O-</TT></A>
+<LI> <A HREF="#new_opt">writing to the object file may be suppressed with <TT>OPT O-</TT></A>
 <LI> <A HREF="#new_eli">added <TT>ELI</TT> (else if) directive</A>
 <LI> <A HREF="#new_mwinde"><TT>MWX</TT> and <TT>MWY</TT> may use <TT>INX</TT>/<TT>DEX</TT>
 and <TT>INY</TT>/<TT>DEY</TT>, respectively, for generating smaller code</A>
@@ -234,7 +237,7 @@ only if full path is given.<P>
 <A NAME="new_quiet">
 <DT><TT>/q</TT>
 <DD>Suppress info messages.<BR>
-Prevents X-Asm from printing "<TT>X-Assembler 2.4.2 by Fox/Taquart</TT>"
+Prevents X-Asm from printing "<TT>X-Assembler 2.5 by Fox/Taquart</TT>"
 and the summary (how many lines assembled and bytes written).
 Good if you are building a project from many source files and don't want
 tons of messages.<P>
@@ -387,38 +390,47 @@ for 6502 indirect addressing.
 
 <A NAME="numbers"><H4>Numbers</H4>
 Numbers are 32-bit signed integers, in the range of -$7fffffff..$7fffffff.
-A number may be:
+A number may be:<P>
 <TABLE>
 <TR><TD WIDTH=300><UL><LI> a decimal number</TD><TD><TT>-12345</TT></TD></TR>
 <TR><TD><UL><LI> a hexadecimal number</TD><TD><TT>$abcd</TT></TD></TR>
 <TR><TD><UL><LI> a binary number</TD><TD><TT>%10100101</TT></TD></TR>
 <TR><TD><UL><LI> an ASCII character</TD><TD><TT>'a'</TT> or <TT>"a"</TT></TD></TR>
 <TR><TD><UL><LI> the origin counter value</TD><TD><TT>*</TT></TD></TR>
-<TR><TD><UL><LI> a hardware register</TD><TD><TT>^31</TT></TD></TR>
+<TR><TD><UL><LI> a hardware register</TD><TD><TT>^4e</TT></TD></TR>
 </UL></TABLE>
-<DIV STYLE="MARGIN-LEFT: 54">
-An abbreviation of Atari hardware register:<BR>
-<TT>^0x</TT> means <TT>$d00x</TT><BR>
-<TT>^1x</TT> means <TT>$d01x</TT><BR>
-<TT>^2x</TT> means <TT>$d20x</TT><BR>
-<TT>^3x</TT> means <TT>$d30x</TT><BR>
-<TT>^4x</TT> means <TT>$d40x</TT><BR>
-where x is a hexadecimal digit.
-</DIV>
+<BLOCKQUOTE>
+An abbreviation of Atari hardware register is provided to save you trouble of typing
+two extra characters (<TT>^4e</TT> vs <TT>$d40e</TT>) and to support porting software
+between Atari 8-bit computers and Atari 5200 console. These are very similar machines,
+one of biggest differences is different location of hardware registers.<P>
+<TABLE>
+<TR><TD><B>Syntax&nbsp;</B></TD><TD><B>Chip&nbsp;</B></TD>
+<TD><B>Value in Atari 8-bit<BR>computer mode (<TT>OPT G-</TT>)&nbsp;</B></TD>
+<TD><B>Value in Atari 5200<BR>game console mode (<TT>OPT G+</TT>)&nbsp;</B></TD>
+</TR>
+<TR><TD><TT>^0x</TT></TD><TD>GTIA&nbsp;</TD><TD><TT>$d00x</TT></TD><TD><TT>$c00x</TT></TD></TR>
+<TR><TD><TT>^1x</TT></TD><TD>GTIA&nbsp;</TD><TD><TT>$d01x</TT></TD><TD><TT>$c01x</TT></TD></TR>
+<TR><TD><TT>^2x</TT></TD><TD>POKEY&nbsp;</TD><TD><TT>$d20x</TT></TD><TD><TT>$e80x</TT></TD></TR>
+<TR><TD><TT>^3x</TT></TD><TD>PIA&nbsp;</TD><TD><TT>$d30x</TT></TD><TD><I>error</I> (there's no PIA chip)</TD></TR>
+<TR><TD><TT>^4x</TT></TD><TD>ANTIC&nbsp;</TD><TD><TT>$d40x</TT></TD><TD><TT>$d40x</TT></TD></TR>
+</TABLE>
+(<TT>x</TT> is a hexadecimal digit).
+</BLOCKQUOTE>
 <A NAME="new_opcode">
 <TABLE>
 <TR><TD WIDTH=300><UL><LI> an op-code</TD><TD><TT>{lda #0}</TT></TD></TR>
 </UL></TABLE>
-<DIV STYLE="MARGIN-LEFT: 54">
-Single-byte op-code of the instruction inside braces. Operand is discarded
-and is necessary only for identifying addressing mode.
+<BLOCKQUOTE>
+Single-byte op-code of the instruction inside braces (e.g. value of <TT>{nop}</TT> is <TT>$ea</TT>).
+Operand is discarded and is necessary only for identifying addressing mode.
 Instruction should begin just after the left brace and the right brace should
-immediately follow the operand or the command in implied addressing mode.<BR>
+immediately follow the operand or the command.<BR>
 <A NAME="new_op_op">You can skip the operand, if the addressing mode is fixed.
 Examples:<BR>
 <TT>{lda #}</TT>, <TT>{jsr}</TT>, <TT>{bne}</TT>, <TT>{jmp ()}</TT>,
 <TT>{sta a:,x}</TT>.
-</DIV>
+</BLOCKQUOTE>
 <P>
 
 <A NAME="operators"><H4>Operators</H4>
@@ -483,24 +495,31 @@ Examples:
 here equ *
 </PRE>
 
-<A NAME="new_opto">
+<A NAME="new_opt">
 <DT><TT><B>OPT</B></TT> - set assembly options
-<DD>Three options are available:
+<DD>Five options are available:
 <UL>
+<LI> <TT>F</TT> - fill space between <TT>ORG</TT>s
+(details <A HREF="#org_fill">here</A>)
+<LI> <TT>G</TT> - Atari 5200 mode for hardware register abbreviations
+(details <A HREF="#numbers">here</A>)
 <LI> <TT>H</TT> - generate Atari executable headers
 <LI> <TT>L</TT> - generate listing
 <LI> <TT>O</TT> - generate object file
 </UL>
 You can turn any of these on or off.<BR>
-Default (if no <TT>OPT</TT> specified) is <TT>opt h+l+o+</TT>.<BR>
+Default (if no <TT>OPT</TT> specified) is <TT>opt f-g-h+l+o+</TT>.<BR>
 Examples:
-<PRE> opt l-    listing off
- opt h-    headers off
- opt l+o-  listing on, object file off
+<PRE> opt l-      listing off
+ opt l+o-    listing on, object file off
+ opt f+g+h-  useful for Atari 5200 cartridges - raw output format, 5200 hw regs
 </PRE>
 
+<A NAME="org_fill">
 <DT><TT><B>ORG</B></TT> - change value of the origin counter
-<DD>You can set some options applied to the new header (if headers are
+<DD>
+<!-- Option '<TT>F</TT> affects all <TT>ORG</TT> directives except for the first one. -->
+You can set some options applied to the new header (if headers are
 enabled):
 <UL>
 <LI> <TT>a:</TT> tells X-Asm to always make a header, even it is unnecessary,
