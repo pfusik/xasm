@@ -129,6 +129,9 @@ npoint:	stosb			; przepisz nazwe
 	je	spath
 	jmp	snam1
 
+usg:	print	usgtxt
+	dos	4c03h
+
 snamx:	mov	eax, 'XBO.'
 	cmp	di, offset atrnam
 	jb	adobx
@@ -153,12 +156,9 @@ nadext:	xor	al, al
 	dec	si
 	cmp	di, offset atrnam
 	mov	di, offset atrnam
-	jb	arg1
+	jb	jarg1
 	inc	di
-	jmp	arg1
-
-usg:	print	usgtxt
-	dos	4c03h
+jarg1:	jmp	arg1
 
 argx:	cmp	di, offset atrnam
 	jb	usg		; nie ma nazwy
@@ -210,8 +210,10 @@ nowild:	mov	si, offset obxnam
 	mov	dx, offset head
 	mov	cx, 4
 	call	xread
-	jb	enate
-
+	jnb	nenate
+enate:	mov	dx, offset e_nota
+	jmp	error
+nenate:
 	mov	ax, [head]
 	mov	[l1runl], al
 	mov	[l2runl], al
@@ -255,12 +257,12 @@ stlo:	call	xwrite
 
 skff:
 	call	xreadh
-	jb	finfil
+	jb	chtrun
 	cmp	[head], -1
 	je	skff
 	mov	dx, offset head+2
 	call	xread2
-	jb	finfil
+	jb	trunca
 
 firs:	mov	cx, [head+2]
 	sub	cx, [head]
@@ -274,17 +276,24 @@ firs:	mov	cx, [head+2]
 	call	xwrihd
 	jmp	skff
 
+einva:	mov	dx, offset e_head
+	jmp	error
+
+chtrun:	test	ax, ax
+	jnz	trunca
+	jmp	finfil
+
 trunc:	test	ax, ax
 	jz	finfil
 	dec	ax
 	push	ax
 	add	ax, [head]
 	mov	[head+2], ax
-	mov	dx, offset w_trunc
-	call	warni
 	pop	ax
 	call	xwrihd
 
+trunca:	mov	dx, offset w_trunc
+	call	warni
 finfil:	mov	dx, offset endseq1
 	test	[flags], m_pro
 	jz	endst
@@ -345,19 +354,13 @@ nwacod:	or	[flags], m_errs
 	print
 	ret
 
-enate:	mov	dx, offset e_nota
-	jmp	error
-
-einva:	mov	dx, offset e_head
-	jmp	error
-
 xreadh:	mov	dx, offset head
 xread2:	mov	cx, 2
 xread:	mov	bx, [ohand]
 	mov	bp, offset e_read
 	file	3fh
 	cmp	ax, cx
-	ret
+rts:	ret
 
 xwrihd:	add	ax, 4
 	movzx	ecx, ax
@@ -403,9 +406,9 @@ pnam1:	sta	dx
 printz:	lodsb
 	test	al, al
 	jnz	pnam1
-rts:	ret
+	ret
 
-hello	db	'X-BOOT 4.0á2 by Fox/Taquart',eot
+hello	db	'X-BOOT 4.0 by Fox/Taquart',eot
 usgtxt	db	'XBOOT [/p] obxfile [atrfile]',eol
 	db	'  Convert single Atari 8-bit executable into .ATR disk image.',eol
 	db	'XBOOT [/p] obxfiles [atrpath]',eol
@@ -418,7 +421,7 @@ kropki	db	' ... $'
 oktxt	db	'OK$'
 w_mem	db	eol,'  WARNING: Memory conflict$'
 w_prof	db	eol,'  WARNING: Professional loader needed$'
-w_trunc	db	eol,'  WARNING: Last block truncated$'
+w_trunc	db	eol,'  WARNING: File is truncated$'
 e_nota	db	eol,'  ERROR: Not Atari executable$'
 e_head	db	eol,'  ERROR: Invalid header$'
 e_open	db	eol,'  ERROR: Can''t open file$'
@@ -431,37 +434,36 @@ begin	dw	296h,0,80h,5 dup(0)
 beglen	=	$-begin
 
 ; Loader #1 (std)
-stdlod	db	96,1,128,7,119,228,160,215,185,30,7,145,88,200,192,226,144
+stdlod	db	0,1,128,7,119,228,160,215,185,27,7,145,88,200,192,226,144
 	db	246,169
-l1runl	db	128,141,224,2,169
-l1runh	db	7,141,225,2,169,7,141,5,3,160,255
-	db	140,1,211,136,169,128,141,226,2,169,7,141,227,2,162,251,149,72
-	db	232,134,67,76,193,7,230,68,208,2,230,69,200,16,16,238,10,3
-	db	208,3,238,11,3,32,83,228,56,48,174,160,0,185,0,7,166,67
-	db	208,216,129,68,165,68,197,70,208,216,165,69,197,71,208,210,152,72
-	db	32,242,7,104,168,16,181,108,226,2,44,111,97,100,105,110,103,14
-	db	14,14,0
-
+l1runl	db	168,141,224,2,169
+l1runh	db	7,141,225,2,169,7,141,5,3,169,255
+	db	141,1,211,173,56,96,169,7,141,227,2,72,169,168,141,226,2,72
+	db	162,251,149,72,232,134,67,238,210,7,16,16,238,10,3,208,3,238
+	db	11,3,32,83,228,48,217,14,210,7,173,127,7,166,67,208,223,129
+	db	68,230,68,208,2,230,69,165,70,197,68,165,71,229,69,176,210,169
+	db	3,141,15,210,108,226,2,44,111,97,100,105,110,103,14,14,14,0
+	db	52,46,48
 lodlen	=	$-stdlod
 
 ; Ending Header for loader #1
-endseq1	db	233,7,235,7,108,224,2
+endseq1	db	240,7,240,7,224
+endlen	=	$-endseq1
 
 ; Loader #2 (rom)
-prolod	db	96,1,128,4,119,228,169,0,141,47,2,169,82,141,200,2,165
+prolod	db	0,1,128,4,119,228,169,0,141,47,2,169,82,141,200,2,165
 	db	20,197,20,240,252,169
-l2runl	db	128,141,224,2,169
-l2runh	db	4,141,225,2,160,254,169
-	db	128,141,226,2,169,4,141,227,2,162,251,149,72,232,134,67,76,188
-	db	4,230,68,208,2,230,69,200,16,32,238,10,3,208,3,238,11,3
-	db	169,255,141,1,211,78,14,212,88,32,83,228,56,48,170,120,160,0
-	db	140,14,212,206,1,211,185,0,4,166,67,208,200,129,68,165,68,197
-	db	70,208,200,165,69,197,71,208,194,152,72,32,253,4,104,168,16,165
-	db	108,226,2
+l2runl	db	162,141,224,2,169
+l2runh	db	4,141,225,2,173,56,96
+	db	169,4,141,227,2,72,169,162,141,226,2,72,162,251,149,72,232,134
+	db	67,238,220,4,16,32,238,10,3,208,3,238,11,3,169,255,141,1
+	db	211,78,14,212,88,32,83,228,48,208,120,238,14,212,206,1,211,14
+	db	220,4,173,127,4,166,67,208,207,129,68,230,68,208,2,230,69,165
+	db	70,197,68,165,71,229,69,176,194,169,3,141,15,210,108,226,2,52
+	db	46,48,112
 
 ; Ending Header for loader #2
-endseq2	db	244,4,246,4,108,224,2
-endlen	=	$-endseq2
+endseq2	db	250,4,250,4,224
 
 exitcod	dw	4c00h
 flags	db	0
