@@ -166,7 +166,7 @@ gline1:	cmp	di, offset line+255
 	jmp	syntax
 
 eof:	inc	[eoflag]
-	mov	[word di+1], 0a0dh
+	mov	[word di], 0a0dh
 
 syntax:	mov	si, offset line
 
@@ -211,14 +211,24 @@ asilab:	push	si
 	stosw
 	pop	si
 
-s_cmd:	call	spaces
+s_cmd:	lodsb
+	cmp	al, ' '
+	je	s_cmd
+	cmp	al, 9
+	je	s_cmd
+	cmp	al, 0dh
+	jne	s_cmd1
+	cmp	[byte high labvec], 0
+	je	main
+	jmp	uneol
+s_cmd1:	dec	si
 	lodsw
 	and	ax, 0dfdfh
-	mov	dx, ax
+	sta	dx
 	lodsb
 	and	al, 0dfh
 	mov	di, offset comtab
-	mov	bx, 32*6
+	mov	bx, 64*6
 sfcmd1:	mov	ah, al
 	mov	cx, dx
 	sub	ah, [di+bx+2]
@@ -232,15 +242,8 @@ sfcmd1:	mov	ah, al
 	mov	al, [di+bx+3]
 	mov	[cod], al
 	call	[word di+4+bx]
-	lodsb
-	cmp	al, 0dh
-	je	main
-	cmp	al, ' '
-	je	main
-	cmp	al, 9
-	je	main
-	mov	ax, offset e_xtra
-	jmp	panica
+	call	linend
+	jmp	main
 
 sfcmd2:	add	di, bx
 	cmp	di, offset comend
@@ -252,12 +255,6 @@ sfcmd3:	shr	bx, 1
 	mov	bl, 0
 	je	sfcmd1
 	mov	ax, offset e_inst
-	jmp	panica
-
-uneol:	mov	ax, offset e_uneol
-	jmp	panica
-
-ilchar:	mov	ax, offset e_char
 	jmp	panica
 
 filend:	mov	[eoflag], 0
@@ -354,25 +351,50 @@ pride1:	cdq
 	print
 	ret
 
-; Omija spacje i tabulatory
-spaces:	lodsb
-	cmp	al, ' '
-	je	spaces
-	cmp	al, 9
-	je	spaces
+; Pobiera znak (eol=error)
+get:	lodsb
 	cmp	al, 0dh
 	je	uneol
+	ret
+uneol:	mov	ax, offset e_uneol
+	jmp	panica
+
+ilchar:	mov	ax, offset e_char
+	jmp	panica
+
+; Omija spacje i tabulatory
+spaces:	call	get
+	cmp	al, ' '
+	je	space1
+	cmp	al, 9
+	je	space1
+	mov	ax, offset e_spac
+	jmp	panica
+space1:	call	get
+	cmp	al, ' '
+	je	space1
+	cmp	al, 9
+	je	space1
 	dec	si
 rstret:	ret
 
+; Stwierdza blad, jesli nie spacja, tab i eol
+linend:	lodsb
+	cmp	al, 0dh
+	je	rstret
+	cmp	al, ' '
+	je	rstret
+	cmp	al, 9
+	je	rstret
+	mov	ax, offset e_xtra
+	jmp	panica
+
 ; Czyta lancuch i zapisuje do [di]
-rstr:	lodsb
+rstr:	call	get
 	cmp	al, "'"
 	jne	strer
 	push	di
-rstr1:	lodsb
-	cmp	al, 0dh
-	je	uneol
+rstr1:	call	get
 	stosb
 	cmp	al, "'"
 	jne	rstr1
@@ -380,7 +402,9 @@ rstr1:	lodsb
 	cmp	al, "'"
 	je	rstr1
 	dec	si
-	lea	cx, [di-1]
+	dec	di
+	mov	[byte di], 0
+	mov	cx, di
 	pop	di
 	sub	cx, di
 	jnz	rstret
@@ -448,13 +472,13 @@ value:	mov	[val], 0
 valuem:	mov	[oper], al
 	xor	dx, dx
 	mov	ch, -1
-	lodsb
-	cmp	al, 0dh
-	je	uneol
+	call	get
 	cmp	al, '*'
 	je	valorg
 	cmp	al, "'"
 	je	valchr
+	cmp	al, '^'
+	je	valreg
 	mov	bx, 16
 	cmp	al, '$'
 	je	rdnum3
@@ -498,9 +522,7 @@ vlabkn:	mov	dx, [bx+2]
 vlabun:	mov	[undef], 0ffh
 	jmp	value1
 
-valchr:	lodsb
-	cmp	al, 0dh
-	je	uneol
+valchr:	call	get
 	cmp	al, "'"
 	jne	valch1
 	lodsb
@@ -514,6 +536,29 @@ valch1:	movzx	dx, al
 	jne	value1
 	inc	si
 	xor	dl, 80h
+	jmp	value1
+
+valreg:	call	get
+	cmp	al, '4'
+	ja	ilchar
+	sub	al, '0'
+	jb	ilchar
+	add	al, 0d0h
+	mov	ah, al
+	call	get
+	cmp	al, 'A'
+	jb	valre1
+	and	al, 0dfh
+	cmp	al, 'A'
+	jb	valre1
+	add	al, '0'+10-'A'
+valre1:	sub	al, '0'
+	cmp	al, 0fh
+	ja	ilchar	
+	cmp	ah, 0d1h
+	jne	valre2
+	sub	ax, 0f0h
+valre2:	sta	dx
 	jmp	value1
 
 valorg:	mov	dx, [origin]
@@ -617,8 +662,19 @@ putret:	ret
 	
 p_imp	=	savbyt
 
+p_ads:	call	getadr
+	mov	al, [cod]
+	call	savbyt
+	mov	al, 60h
+	cmp	[cod], 18h
+	je	p_as1
+	mov	al, 0e0h
+p_as1:	mov	[cod], al
+	mov	al, [amod]
+	jmp	p_ac1
+
 p_acc:	call	getadr
-	cmp	al, 7
+p_ac1:	cmp	al, 7
 	jne	acc1
 	dec	ax
 	mov	[amod], al
@@ -721,12 +777,8 @@ toofar:	mov	ax, offset e_bra
 	jmp	panica
 
 p_jsr:	call	getadr
-	and	al, 0feh
-	mov	[amod], al
-	cmp	al, 2
-	jne	ilamod
 	mov	al, 20h
-	jmp	putcmd
+	jmp	p_abs
 
 p_bit:	call	getadr
 	cmp	al, 2
@@ -737,14 +789,20 @@ p_bit:	call	getadr
 	mov	al, 24h
 	jmp	putcmd
 
+p_juc:	call	getadr
+	mov	al, [cod]
+	mov	ah, 3
+	call	savwor
+	jmp	p_jp1
+
 p_jmp:	call	getadr
 	cmp	al, 10
 	mov	al, 6ch
 	je	putcmd
-	and	[amod], 0feh
+p_jp1:	mov	al, 4ch
+p_abs:	and	[amod], 0feh
 	cmp	[amod], 2
 	jne	ilamod
-	mov	al, 4ch
 	jmp	putcmd
 
 p_opt:	call	getval
@@ -805,10 +863,18 @@ putorg:	mov	bx, [orgvec]
 tmorgs:	mov	ax, offset e_orgs
 	jmp	panica
 
+valuco:	call	value
+	jc	unknow
+	call	get
+	cmp	al, ','
+	jne	badsin
+	mov	ax, [val]
+	ret
+badsin:	mov	ax, offset e_sin
+	jmp	panica
+
 p_dta:	call	spaces
-dta1:	lodsb
-	cmp	al, 0dh
-	je	uneol
+dta1:	call	get
 	and	al, 0dfh
 	mov	[cod], al
 	cmp	al, 'A'
@@ -829,9 +895,65 @@ dtan1:	lodsb
 	cmp	al, '('
 	jne	mbrack
 
-dtan2:	call	value
+dtan2:	lodsd
+	and	eax, 0ffdfdfdfh
+	cmp	eax, '(NIS'
+	jne	dtansi
+	call	valuco
+	mov	[sinadd], ax
+	call	valuco
+	mov	[sinamp], ax
+	call	value
+	jc	unknow
+	mov	ax, [val]
+	test	ax, ax
+	js	badsin
+	jz	badsin
+	mov	[sinsiz], ax
+	mov	[sinmin], 0
+	dec	ax
+	mov	[sinmax], ax
+	call	get
+	cmp	al, ')'
+	je	presin
+	cmp	al, ','
+	jne	badsin
+	call	valuco
+	test	ax, ax
+	js	badsin
+	mov	[sinmin], ax
+	call	value
+	jc	unknow
+	mov	ax, [val]
+	test	ax, ax
+	js	badsin
+	cmp	ax, [sinmin]
+	jb	badsin
+	mov	[sinmax], ax
+	lodsb
+	cmp	al, ')'
+	jne	mbrack
+presin:	finit
+	fldpi
+	fld	st
+	faddp	st(1), st
+	fild	[sinsiz]
+	fdivp	st(1), st
+gensin:	fild	[sinmin]
+	inc	[sinmin]
+	fmul	st, st(1)
+	fsin
+	fild	[sinamp]
+	fmulp	st(1), st
+	fistp	[val]
+	mov	ax, [sinadd]
+	add	[val], ax
+	jmp	dtasto
+	
+dtansi:	sub	si, 4
+	call	value
 	jc	dtan3
-	cmp	[pass], 1
+dtasto:	cmp	[pass], 1
 	jb	dtan4
 	mov	al, [cod]
 	cmp	al, 'B'
@@ -863,7 +985,10 @@ dtan3:	cmp	[pass], 1
 dtan4:	cmp	[cod], 'A'+1
 	adc	[origin], 1
 	
-dtanx:	lodsb
+dtanx:	mov	ax, [sinmin]
+	cmp	ax, [sinmax]
+	jbe	gensin
+	lodsb
 	cmp	al, ','
 	je	dtan2
 	cmp	al, ')'
@@ -910,10 +1035,12 @@ dtanxt:	lodsb
 p_icl:	call	spaces
 	mov	di, offset fname
 	call	rstr
-	mov	[byte di], 0
+	pop	ax
+	call	linend
 	jmp	opfile
 
 p_end:	pop	ax
+	call	linend
 	jmp	filend
 
 lentab	db	1,2,3,2,3,2,3,2,2,2,3
@@ -922,6 +1049,7 @@ srttab	db	0ah,0,0eh,6,1eh,16h
 lditab	db	0,0,0ch,4,1ch,14h,1ch,14h
 
 comtab:	cmd	ADC60p_acc
+	cmd	ADD18p_ads
 	cmd	AND20p_acc
 	cmd	ASL00p_srt
 	cmd	BCC90p_bra
@@ -952,8 +1080,16 @@ comtab:	cmd	ADC60p_acc
 	cmd	INCe0p_srt
 	cmd	INXe8p_imp
 	cmd	INYc8p_imp
+	cmd	JCCb0p_juc
+	cmd	JCS90p_juc
+	cmd	JEQd0p_juc
+	cmd	JMI10p_juc
 	cmd	JMP4cp_jmp
+	cmd	JNEf0p_juc
+	cmd	JPL30p_juc
 	cmd	JSR20p_jsr
+	cmd	JVC70p_juc
+	cmd	JVS50p_juc
 	cmd	LDAa0p_acc
 	cmd	LDXa2p_ldi
 	cmd	LDYa0p_ldi
@@ -977,6 +1113,7 @@ comtab:	cmd	ADC60p_acc
 	cmd	STA80p_acc
 	cmd	STX86p_sti
 	cmd	STY84p_sti
+	cmd	SUB38p_ads
 	cmd	TAXaap_imp
 	cmd	TAYa8p_imp
 	cmd	TSXbap_imp
@@ -985,7 +1122,7 @@ comtab:	cmd	ADC60p_acc
 	cmd	TYA98p_imp
 comend:
 
-hello	db	'X-Assembler 1.0 by Fox/Taquart',eot
+hello	db	'X-Assembler 1.1 by Fox/Taquart',eot
 usgtxt	db	'Give a source filename. Default extension is .ASX.',eol
 	db	'Destination will have the same name and .COM extension.',eot
 lintxt	db	' lines assembled',eot
@@ -1013,6 +1150,8 @@ e_brack	db	'Missing bracket',eot
 e_tlab	db	'Too many labels',eot
 e_amod	db	'Illegal adressing mode',eot
 e_bra	db	'Branch too far',eot
+e_sin	db	'Bad or missing sinus parameter',eot
+e_spac	db	'Space expected',eot
 
 pass	dw	0
 lines	dd	0
@@ -1023,6 +1162,11 @@ p1laben	dw	0
 pslaben	dw	-1
 orgvec	dw	t_org
 eoflag	db	0
+sinmin	dw	1
+sinmax	dw	0
+sinadd	dw	?
+sinamp	dw	?
+sinsiz	dw	?
 ohand	dw	?
 errad	dw	?
 val	dw	?
