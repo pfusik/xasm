@@ -13,8 +13,8 @@ l_org	=	1000*2
 l_lab	=	50000
 
 STRUC	com
-nam	db	?,?,?
 cod	db	?
+nam	db	?,?,?
 vec	dw	?
 	ENDS
 
@@ -31,17 +31,11 @@ val	dw	?
 nam	db	?
 	ENDS
 
-;北北北北北北北北北北北北北北北北北北北北北
-
 eol	equ	13,10
 eot	equ	13,10,'$'
 
-MACRO	lda	_rg
-	xchg	ax, _rg	; in meaning 'mov ax, _rg', but xchg is shorter
-	ENDM
-
 MACRO	sta	_rg
-	xchg	_rg, ax	; in meaning 'mov _rg, ax', but xchg is shorter
+	xchg	_rg, ax	;shorter than 'mov _rg, ax'
 	ENDM
 
 MACRO	dos	_func
@@ -73,21 +67,19 @@ ENDIF
 	dos	9
 	ENDM
 
-MACRO	dtext	_text
-	db	'&_text'
-	ENDM
-
 MACRO	cmd	_oper
-_tp	SUBSTR	<_oper>, 1, 3
-	dtext	%_tp
 _tp	SUBSTR	<_oper>, 4, 2
 _tp	CATSTR	<0>, &_tp, <h>
-	db	&_tp
+	db	_tp
+	IRP	_ct,<3,2,1>
+_tp	SUBSTR	<_oper>, _ct, 1
+%	db	'&_tp'
+	ENDM
 _tp	SUBSTR	<_oper>, 6
 	dw	_tp
 	ENDM
 
-;北北北北北北北北北北北北北北北北北北北北北
+;*****************************
 
 	print	hello
 	mov	di, 81h
@@ -104,7 +96,7 @@ _tp	SUBSTR	<_oper>, 6
 	jne	begin
 
 usg:	print	usgtxt
-	dos	4c01h
+	dos	4c02h
 
 begin:	mov	[origin], 0
 	call	ldname
@@ -120,10 +112,8 @@ srex2:	dec	si
 	cmp	si, bx
 	ja	srex2
 adex2:	mov	[byte di-1], '.'
-	mov	ax, 'sa'
-	stosw
-	mov	ax, 'x'
-	stosw
+	mov	eax, 'xsa'
+	stosd
 lvex2:	call	fopen
 
 main:	test	[eoflag], 0ffh
@@ -204,22 +194,18 @@ s_cmd:	lodsb
 s_cmd1:	dec	si
 	lodsw
  	and	ax, 0dfdfh
-	sta	dx
-	lodsb
-	and	al, 0dfh
+	xchg	al, ah
+	shl	eax, 16
+	mov	ah, 0dfh
+	and	ah, [si]
+	inc	si
 	mov	di, offset comtab
 	mov	bx, 64*size com
-sfcmd1:	mov	ah, al
-	mov	cx, dx
-	sub	ah, [(com di+bx+2).nam]
-	sbb	ch, [(com di+bx+1).nam]
-	sbb	cl, [(com di+bx).nam]
+sfcmd1:	mov	al, [(com di+bx).cod]
+	cmp	eax, [dword (com di+bx).cod]
 	jb	sfcmd3
-	or	ah, ch
-	or	ah, cl
-	jnz	sfcmd2
+	jne	sfcmd2
 
-	mov	al, [(com di+bx).cod]
 	mov	[cod], al
 	call	[(com di+bx).vec]
 	call	linend
@@ -238,16 +224,14 @@ sfcmd3:	shr	bx, 1
 	jmp	panica
 
 filend:	mov	[eoflag], 0
-	cmp	[pass], 1
-	jnb	noforg
-	call	putorg
-noforg:	call	fclose
+	call	fclose
 	cmp	bx, offset t_icl
 	ja	main
 	cmp	[pass], 1
 	jnb	fin
 
 	inc	[pass]
+	call	putorg
 	call	ldname
 	mov	si, di
 srex1:	dec	si
@@ -258,7 +242,7 @@ srex1:	dec	si
 	cmp	si, offset (icl t_icl).nam
 	ja	srex1
 	jmp	adex1
-chex1:	mov	di, si
+chex1:	lea	di, [si+1]
 adex1:	mov	[byte di-1], '.'
 	mov	[dword di], 'moc'
 	mov	dx, offset (icl t_icl).nam
@@ -317,7 +301,7 @@ panifn:	mov	bx, [iclen]
 eronly:	print	errtxt
 	mov	dx, [errad]
 	print
-	dos	4c01h
+	dos	4c02h
 
 ; I/O
 xdisk:	mov	[errad], bp
@@ -360,10 +344,10 @@ putwor:	push	ax
 	pop	ax
 	mov	al, ah
 putbyt:	mov	cx, 1
-	cmp	[pass], cx
+	cmp	[pass], cl
 	jb	putx
-	mov	[obyte], al
-	mov	dx, offset obyte
+	mov	[oper], al
+	mov	dx, offset oper
 	mov	bx, [ohand]
 	file	40h, e_writ
 	inc	[bytes]
@@ -884,21 +868,17 @@ p_juc:	call	getadr
 	jmp	p_jp1
 
 p_jmp:	call	getadr
-	cmp	al, 10
-	mov	al, 6ch
+p_jp1:	mov	al, 6ch
+	cmp	[amod], 10
 	je	putcmd
-p_jp1:	mov	al, 4ch
+	mov	al, 4ch
 p_abs:	and	[amod], 0feh
 	cmp	[amod], 2
 	jne	ilamod
 	jmp	putcmd
 
-p_opt:	call	getval
-	jc	unknow
-	mov	ax, [val]
-	test	ah, ah
-	jnz	toobig
-	ret
+p_opt:	mov	ax, offset e_opt
+	jmp	panica
 
 p_equ:	mov	di, [labvec]
 	cmp	di, 1
@@ -907,14 +887,14 @@ p_equ:	mov	di, [labvec]
 	mov	[word di], 0
 	call	getval
 	mov	di, [labvec]
-	jc	lbund
-	mov	ax, [val]
+	jnc	equ1
+	cmp	[pass], 1
+	jb	lbund
+equ1:	mov	ax, [val]
 	stosw
 equret:	ret
 
-lbund:	cmp	[pass], 1
-	jnb	unknow
-	lea	ax, [di-2]
+lbund:	lea	ax, [di-2]
 	mov	[laben], ax
 	ret
 
@@ -1240,9 +1220,9 @@ comtab:	cmd	ADC60p_acc
 	cmd	TYA98p_imp
 comend:
 
-hello	db	'X-Assembler 1.3 by Fox/Taquart',eot
+hello	db	'X-Assembler 1.4 by Fox/Taquart',eot
 usgtxt	db	'Give a source filename. Default extension is .ASX.',eol
-	db	'Destination will have the same name and .COM extension.',eot
+	db	'Object file will be written with .COM extension.',eot
 lintxt	db	' lines assembled',eot
 byttxt	db	' bytes written',eot
 dectxt	db	10 dup(' '),'$'
@@ -1264,14 +1244,15 @@ e_xtra	db	'Extra characters on line',eot
 e_label	db	'Label name required',eot
 e_str	db	'String error',eot
 e_orgs	db	'Too many ORGs',eot
-e_brack	db	'Missing bracket',eot
+e_brack	db	'Need parenthesis',eot
 e_tlab	db	'Too many labels',eot
 e_amod	db	'Illegal adressing mode',eot
 e_bra	db	'Branch too far',eot
 e_sin	db	'Bad or missing sinus parameter',eot
 e_spac	db	'Space expected',eot
+e_opt	db	'OPT directive not supported',eot
 
-pass	dw	0
+pass	db	0
 lines	dd	0
 bytes	dd	0
 iclen	dw	t_icl
@@ -1292,12 +1273,10 @@ oper	db	?
 cod	db	?
 amod	db	?
 origin	dw	?
-obyte	db	?
 undef	db	?
 labvec	dw	?
 fnad	dw	?
 
-fname	db	80 dup(?)
 line	db	258 dup(?)
 tlabel	db	256 dup(?)
 t_icl	db	l_icl dup(?)
