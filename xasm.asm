@@ -6,11 +6,30 @@
 	CODESEG
 	ORG	100h
 start:
-	db	3072 dup(0)	;for packing
+	db	4096 dup(0)	;for packing
 
-l_lab	=	50000
+l_icl	=	1000
 l_org	=	1000*2
-l_icl	=	16*6
+l_lab	=	50000
+
+STRUC	com
+nam	db	?,?,?
+cod	db	?
+vec	dw	?
+	ENDS
+
+STRUC	icl
+prev	dw	?
+handle	dw	?
+line	dd	?
+nam	db	?
+	ENDS
+
+STRUC	lab
+prev	dw	?
+val	dw	?
+nam	db	?
+	ENDS
 
 ;北北北北北北北北北北北北北北北北北北北北北
 
@@ -38,12 +57,10 @@ ENDIF
 
 MACRO	file	_func, _errtx
 	mov	bp, offset _errtx
-IFNB	<_func>
 IF	_func and 0ff00h
 	mov	ax, _func
 ELSE
 	mov	ah, _func
-ENDIF
 ENDIF
 	call	xdisk
 	ENDM
@@ -84,82 +101,46 @@ _tp	SUBSTR	<_oper>, 6
 	mov	[fnad], di
 	mov	al, '?'
 	repne	scasb
-	jne	nousg
+	jne	begin
 
 usg:	print	usgtxt
 	dos	4c01h
 
-nousg:	mov	si, di
-srchex:	dec	si
+begin:	mov	[origin], 0
+	call	ldname
+
+opfile:	mov	bx, offset (icl).nam
+	add	bx, [iclen]
+	mov	si, di
+srex2:	dec	si
 	cmp	[byte si], '\'
-	je	addext
+	je	adex2
 	cmp	[byte si], '.'
-	je	extexs
-	cmp	si, 82h
-	jnb	srchex
-addext:	mov	si, di
-	mov	ax, 'a.'
+	je	lvex2
+	cmp	si, bx
+	ja	srex2
+adex2:	mov	[byte di-1], '.'
+	mov	ax, 'sa'
 	stosw
-	mov	ax, 'xs'
+	mov	ax, 'x'
 	stosw
-extexs:	inc	si
-	mov	[fnen], si
-	mov	[di], ch	;0
-
-begin:	mov	si, [fnad]
-	mov	di, offset fname
-ldname:	lodsb
-	stosb
-	test	al, al
-	jnz	ldname
-	cmp	[pass], 1
-	jb	pass1
-
-	mov	di, [fnen]
-	mov	[dword di], 'moc'
-	mov	dx, [fnad]
-	xor	cx, cx
-	file	3ch, e_creat
-	mov	[ohand], ax
-	mov	ax, 0ffffh
-	call	putwor
-	mov	[orgvec], offset t_org
-	xor	ax, ax
-	call	pheadr
-	mov	ax, [laben]
-	mov	[p1laben], ax
-	mov	[pslaben], offset t_lab
-
-pass1:	mov	[origin], 0
-
-opfile:	mov	bx, [filidx]
-	cmp	bx, offset t_icl+l_icl-6
-	mov	ax, offset e_icl
-	jnb	panica
-	mov	[dword bx+6+2], 0
-	add	[filidx], 6
-	mov	dx, offset fname
-	file	3d00h, e_open
-	mov	bx, [filidx]
-	mov	[bx], ax
+lvex2:	call	fopen
 
 main:	test	[eoflag], 0ffh
 	jnz	filend
-	mov	bx, [filidx]
-	inc	[dword bx+2]
+	mov	bx, [iclen]
+	mov	bx, [(icl bx).prev]
+	inc	[(icl bx).line]
 	inc	[lines]
 	mov	di, offset line-1
 
 gline1:	cmp	di, offset line+255
 	jnb	linlon
-	mov	bx, [filidx]
-	mov	bx, [bx]
 	mov	cx, 1
 	lea	dx, [di+1]
 	push	dx
-	file	3fh, e_read
+	call	fread
 	pop	di
-	test	ax, ax
 	jz	eof
 	cmp	[byte di], 0ah
 	jne	gline1
@@ -169,7 +150,6 @@ eof:	inc	[eoflag]
 	mov	[word di], 0a0dh
 
 syntax:	mov	si, offset line
-
 	mov	al, [si]
 	cmp	al, 0dh
 	je	main
@@ -189,7 +169,7 @@ syntax:	mov	si, offset line
 	cmp	bx, [p1laben]
 	jnb	ltwice
 	mov	[pslaben], bx
-	inc	[labvec]
+	inc	[labvec]	;1
 	jmp	s_cmd
 ltwice:	mov	ax, offset e_twice
 	jmp	panica
@@ -223,25 +203,25 @@ s_cmd:	lodsb
 	jmp	uneol
 s_cmd1:	dec	si
 	lodsw
-	and	ax, 0dfdfh
+ 	and	ax, 0dfdfh
 	sta	dx
 	lodsb
 	and	al, 0dfh
 	mov	di, offset comtab
-	mov	bx, 64*6
+	mov	bx, 64*size com
 sfcmd1:	mov	ah, al
 	mov	cx, dx
-	sub	ah, [di+bx+2]
-	sbb	ch, [di+bx+1]
-	sbb	cl, [di+bx]
+	sub	ah, [(com di+bx+2).nam]
+	sbb	ch, [(com di+bx+1).nam]
+	sbb	cl, [(com di+bx).nam]
 	jb	sfcmd3
 	or	ah, ch
 	or	ah, cl
 	jnz	sfcmd2
 
-	mov	al, [di+bx+3]
+	mov	al, [(com di+bx).cod]
 	mov	[cod], al
-	call	[word di+4+bx]
+	call	[(com di+bx).vec]
 	call	linend
 	jmp	main
 
@@ -261,17 +241,41 @@ filend:	mov	[eoflag], 0
 	cmp	[pass], 1
 	jnb	noforg
 	call	putorg
-noforg:	mov	bx, [filidx]
-	mov	bx, [bx]
-	file	3eh, e_read
-	sub	[filidx], 6
-	cmp	[filidx], offset t_icl
-	jnb	main
-	inc	[pass]
-	cmp	[pass], 2
-	jb	begin
+noforg:	call	fclose
+	cmp	bx, offset t_icl
+	ja	main
+	cmp	[pass], 1
+	jnb	fin
 
-	mov	bx, [ohand]
+	inc	[pass]
+	call	ldname
+	mov	si, di
+srex1:	dec	si
+	cmp	[byte si], '\'
+	je	adex1
+	cmp	[byte si], '.'
+	je	chex1
+	cmp	si, offset (icl t_icl).nam
+	ja	srex1
+	jmp	adex1
+chex1:	mov	di, si
+adex1:	mov	[byte di-1], '.'
+	mov	[dword di], 'moc'
+	mov	dx, offset (icl t_icl).nam
+	xor	cx, cx
+	file	3ch, e_creat
+	mov	[ohand], ax
+	mov	ax, 0ffffh
+	call	putwor
+	mov	[orgvec], offset t_org
+	xor	ax, ax
+	call	pheadr
+	mov	ax, [laben]
+	mov	[p1laben], ax
+	inc	[pslaben]	;0
+	jmp	begin
+
+fin:	mov	bx, [ohand]
 	file	3eh, e_writ
 	mov	eax, [lines]
 	shr	eax, 1
@@ -286,6 +290,7 @@ tmlab:	mov	ax, offset e_tlab
 	jmp	panica
 
 linlon:	mov	ax, offset e_long
+; Obsluga bledow
 panica:	mov	[errad], ax
 panic:	cmp	[errad], offset lislin
 	jb	panifn
@@ -295,25 +300,59 @@ prilin:	inc	si
 	dos	2
 	cmp	[byte si], 0ah
 	jne	prilin
-panifn:	mov	dx, offset fname
-	mov	di, dx
-	mov	ch, -1
-	xor	al, al
-	repne	scasb
-	mov	[byte di-1], ' '
-	mov	[word di], '$('
+panifn:	mov	bx, [iclen]
+	cmp	bx, offset t_icl
+	jna	eronly
+	mov	di, [(icl bx).prev]
+	push	di
+	lea	dx, [(icl di).nam]
+	mov	[byte bx-1], ' '
+	mov	[word bx], '$('
 	print
-	mov	bx, [filidx]
-	mov	eax, [bx+2]
+	pop	bx
+	mov	eax, [(icl bx).line]
 	call	pridec
-	print	errtxt
+	mov	dl, ')'
+	dos	2
+eronly:	print	errtxt
 	mov	dx, [errad]
 	print
 	dos	4c01h
 
+; I/O
 xdisk:	mov	[errad], bp
 	dos
 	jc	panic
+	ret
+
+fopen:	mov	ax, offset e_icl
+	cmp	di, offset t_icl+l_icl-2
+	jnb	panica
+	mov	bx, [iclen]
+	mov	[(icl bx).line], 0
+	lea	dx, [(icl bx).nam]
+	mov	[(icl di).prev], bx
+	mov	[iclen], di
+	file	3d00h, e_open
+	mov	bx, [iclen]
+	mov	bx, [(icl bx).prev]
+	mov	[(icl bx).handle], ax
+	ret
+
+fread:	mov	ah, 3fh
+freacl:	mov	bx, [iclen]
+	mov	bx, [(icl bx).prev]
+	mov	bx, [(icl bx).handle]
+	mov	bp, offset e_read
+	call	xdisk
+	test	ax, ax
+	ret
+
+fclose:	mov	ah, 3eh
+	call	freacl
+	mov	bx, [iclen]
+	mov	bx, [(icl bx).prev]
+	mov	[iclen], bx
 	ret
 
 putwor:	push	ax
@@ -336,6 +375,16 @@ savwor:	inc	[origin]
 
 savbyt:	inc	[origin]
 	jmp	putbyt
+
+; Przepisuje nazwe z linii komend
+ldname:	mov	si, [fnad]
+	mov	di, offset (icl t_icl).nam
+ldnam1:	lodsb
+	stosb
+	cmp	al, 0dh
+	jne	ldnam1
+	mov	[byte di-1], 0
+	ret
 
 ; Wyswietla dziesietnie EAX
 pridec:	mov	di, offset dectxt+10
@@ -378,7 +427,7 @@ space1:	call	get
 	dec	si
 rstret:	ret
 
-; Stwierdza blad, jesli nie spacja, tab i eol
+; Stwierdza blad, jesli nie spacja, tab lub eol
 linend:	lodsb
 	cmp	al, 0dh
 	je	rstret
@@ -389,11 +438,15 @@ linend:	lodsb
 	mov	ax, offset e_xtra
 	jmp	panica
 
+; Czyta nazwe pliku
+rfname:	call	spaces
+	mov	di, offset (icl).nam
+	add	di, [iclen]
 ; Czyta lancuch i zapisuje do [di]
 rstr:	call	get
 	cmp	al, "'"
 	jne	strer
-	push	di
+	mov	dx, di
 rstr1:	call	get
 	stosb
 	cmp	al, "'"
@@ -402,11 +455,9 @@ rstr1:	call	get
 	cmp	al, "'"
 	je	rstr1
 	dec	si
-	dec	di
-	mov	[byte di], 0
-	mov	cx, di
-	pop	di
-	sub	cx, di
+	mov	[byte di-1], 0
+	lea	cx, [di-1]
+	sub	cx, dx
 	jnz	rstret
 
 strer:	mov	ax, offset e_str
@@ -444,14 +495,14 @@ sflab0:	mov	dx, di
 	dec	si
 	push	si
 	mov	bx, [laben]
-sflab1:	cmp	bx, offset t_lab+4
+sflab1:	cmp	bx, offset (lab t_lab).nam
 	jb	sflabn
 	lea	cx, [bx-4]
-	mov	bx, [bx]
+	mov	bx, [(lab bx).prev]
 	sub	cx, bx
 	cmp	cx, dx
 	jne	sflab1
-	lea	si, [bx+4]
+	lea	si, [(lab bx).nam]
 	mov	di, offset tlabel
 	repe	cmpsb
 	jne	sflab1
@@ -516,7 +567,7 @@ vlabel:	dec	si
 	cmp	[pass], 1
 	jb	vlabun
 	jmp	unknow
-vlabkn:	mov	dx, [bx+2]
+vlabkn:	mov	dx, [(lab bx).val]
 	cmp	bx, [pslaben]
 	jbe	value1
 vlabun:	mov	[undef], 0ffh
@@ -590,6 +641,7 @@ getadr:	call	spaces
 	xor	dl, dl
 	cmp	al, '@'
 	je	getadx
+	push	0ffh
 	inc	dx
 	cmp	al, '#'
 	je	getad1
@@ -603,13 +655,30 @@ getadr:	call	spaces
 	cmp	al, '('
 	je	getad1
 	dec	si
-	mov	dl, 2
+	lodsw
+	and	al, 0dfh
+	xor	dx, dx
+	cmp	ax, ':Z'
+	je	getad0
+	dec	dx
+	cmp	ax, ':A'
+	je	getad0
+	dec	si
+	dec	si
+	jmp	getad9
+getad0:	pop	ax
+	push	dx
+getad9:	mov	dl, 2
+	
 getad1:	mov	[amod], dl
 	call	value
 	mov	al, [byte high val]
 	jnc	getad2
 	sbb	al, al
-getad2:	mov	dl, [amod]
+getad2:	pop	dx
+	and	al, dl
+	or	al, dh
+	mov	dl, [amod]
 	cmp	dl, 1
 	je	getart
 	cmp	dl, 10
@@ -702,6 +771,24 @@ p_srt:	call	getadr
 	je	ilamod
 	jmp	putcmd
 	
+p_inw:	call	getadr
+	cmp	al, 6
+	jnb	ilamod
+	sub	al, 2
+	jb	ilamod
+	mov	bx, offset inwtab
+	xlat
+	push	ax
+	call	putcmd
+	inc	[val]
+	mov	ax, 03d0h
+	test	[amod], 1
+	jz	p_iw1
+	dec	ah
+p_iw1:	call	savwor
+	pop	ax
+	jmp	putcmd
+
 p_ldi:	call	getadr
 	cmp	al, 1
 	jb	ilamod
@@ -835,7 +922,7 @@ nolabl:	mov	ax, offset e_label
 
 p_org:	call	getval
 	jc	unknow
-	cmp	[pass], 1
+p_org1:	cmp	[pass], 1
 	jnb	org1
 	call	putorg
 	stc
@@ -862,6 +949,13 @@ putorg:	mov	bx, [orgvec]
 
 tmorgs:	mov	ax, offset e_orgs
 	jmp	panica
+
+p_rui:	mov	ah, 2
+	mov	[val], ax
+	call	p_org1
+	call	getval
+	mov	ax, [val]
+	jmp	savwor
 
 valuco:	call	value
 	jc	unknow
@@ -1009,7 +1103,7 @@ dtat1:	mov	di, offset tlabel
 	dec	si
 	xor	ah, ah
 dtat2:	push	si
-	mov	si, di
+	mov	si, dx
 dtatm:	lodsb
 	xor	al, ah
 	cmp	[cod], 'D'
@@ -1032,21 +1126,46 @@ dtanxt:	lodsb
 	dec	si
 	ret
 
-p_icl:	call	spaces
-	mov	di, offset fname
-	call	rstr
+p_icl:	call	rfname
 	pop	ax
 	call	linend
 	jmp	opfile
+
+p_ins:	call	rfname
+	call	fopen
+	push	si
+p_in1:	mov	cx, 256
+	mov	dx, offset tlabel
+	call	fread
+	jz	p_in2
+	add	[origin], ax
+	cwde
+	mov	bx, [iclen]
+	mov	bx, [(icl bx).prev]
+	add	[(icl bx).line], eax
+	cmp	[pass], 1
+	jb	p_in1
+	add	[bytes], eax
+	sta	cx
+	mov	bx, [ohand]
+	mov	dx, offset tlabel
+	file	40h, e_writ
+	jmp	p_in1
+p_in2:	call	fclose
+	pop	si
+	ret
 
 p_end:	pop	ax
 	call	linend
 	jmp	filend
 
+; addressing modes:
+; 0-@ 1-# 2-A 3-Z 4-A,X 5-Z,X 6-A,Y 7-Z,Y 8-(Z,X) 9-(Z),Y 10-(A)
 lentab	db	1,2,3,2,3,2,3,2,2,2,3
 acctab	db	0,9,0dh,5,1dh,15h,19h,19h,1,11h,0
 srttab	db	0ah,0,0eh,6,1eh,16h
 lditab	db	0,0,0ch,4,1ch,14h,1ch,14h
+inwtab	db	0eeh,0e6h,0feh,0f6h
 
 comtab:	cmd	ADC60p_acc
 	cmd	ADD18p_ads
@@ -1078,6 +1197,9 @@ comtab:	cmd	ADC60p_acc
 	cmd	EQU00p_equ
 	cmd	ICL00p_icl
 	cmd	INCe0p_srt
+	cmd	INIe2p_rui
+	cmd	INS00p_ins
+	cmd	INW00p_inw
 	cmd	INXe8p_imp
 	cmd	INYc8p_imp
 	cmd	JCCb0p_juc
@@ -1106,6 +1228,7 @@ comtab:	cmd	ADC60p_acc
 	cmd	ROR60p_srt
 	cmd	RTI40p_imp
 	cmd	RTS60p_imp
+	cmd	RUNe0p_rui
 	cmd	SBCe0p_acc
 	cmd	SEC38p_imp
 	cmd	SEDf8p_imp
@@ -1122,13 +1245,13 @@ comtab:	cmd	ADC60p_acc
 	cmd	TYA98p_imp
 comend:
 
-hello	db	'X-Assembler 1.1 by Fox/Taquart',eot
+hello	db	'X-Assembler 1.2 by Fox/Taquart',eot
 usgtxt	db	'Give a source filename. Default extension is .ASX.',eol
 	db	'Destination will have the same name and .COM extension.',eot
 lintxt	db	' lines assembled',eot
 byttxt	db	' bytes written',eot
 dectxt	db	10 dup(' '),'$'
-errtxt	db	') ERROR: $'
+errtxt	db	' ERROR: $'
 e_open	db	'Can''t open file',eot
 e_read	db	'Disk read error',eot
 e_creat	db	'Can''t write destination',eot
@@ -1156,7 +1279,7 @@ e_spac	db	'Space expected',eot
 pass	dw	0
 lines	dd	0
 bytes	dd	0
-filidx	dw	t_icl-6
+iclen	dw	t_icl
 laben	dw	t_lab
 p1laben	dw	0
 pslaben	dw	-1
@@ -1178,7 +1301,6 @@ obyte	db	?
 undef	db	?
 labvec	dw	?
 fnad	dw	?
-fnen	dw	?
 
 fname	db	80 dup(?)
 line	db	258 dup(?)
