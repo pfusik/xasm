@@ -42,8 +42,12 @@ nam	db	?
 	ENDS
 
 STRUC	movt
-m_code	db	?
-m_vec	dw	?
+m_lcod	db	?
+m_lvec	dw	?
+m_scod	db	?
+m_svec	dw	?
+m_inc	db	?
+m_dec	db	?
 	ENDS
 
 ;[flags]
@@ -2040,17 +2044,17 @@ stop:	mov	eax, [dword val]
 	stosw
 	ret
 
-mcall1:	mov	al, [(movt bx).m_code]
+mcall1:	mov	al, [(movt bx).m_lcod]
 	mov	[cod], al
 	push	bx
-	call	[(movt bx).m_vec]
+	call	[(movt bx).m_lvec]
 	pop	bx
 	ret
 
-mcall2:	mov	al, [(movt bx+3).m_code]
+mcall2:	mov	al, [(movt bx).m_scod]
 	mov	[cod], al
 	push	bx
-	call	[(movt bx+3).m_vec]
+	call	[(movt bx).m_svec]
 	pop	bx
 	ret
 
@@ -2081,12 +2085,26 @@ p_mw1:	call	mcall1
 	je	p_mwi
 	inc	[val]
 	jmp	p_mw2
-p_mwi:	movzx	eax, [byte high val]
-	cmp	[ukp1], ah	;0
+p_mwi:
+	cmp	[ukp1], 0
 	jnz	p_mwh
-	cmp	al, [byte val]
+	mov	dx, [val]
+	cmp	dl, dh
 	je	p_mw3
-p_mwh:	mov	[dword val], eax
+	dec	dh
+	mov	al, [(movt bx).m_inc]
+	cmp	dl, dh
+	je	p_mw4
+	add	dh, 2
+	cmp	dl, dh
+	jne	p_mwh
+	mov	al, [(movt bx).m_dec]
+p_mw4:	test	al, al
+	jz	p_mwh
+	call	savbyt
+	jmp	p_mw3
+
+p_mwh:	shr	[dword val], 8
 p_mw2:	call	mcall1
 p_mw3:	lea	si, [op2]
 	call	ldop
@@ -2587,9 +2605,9 @@ inwtab	db	0eeh,0e6h,0feh,0f6h
 ; +8-,0) +16-),0
 sfxtab	db	0,0,0e8h,0cah,0c8h,088h
 
-movtab	movt	<0a0h,p_ac1>,<080h,p_ac1>
-	movt	<0a2h,p_ld1>,<086h,p_st1>
-	movt	<0a0h,p_ld1>,<084h,p_st1>
+movtab	movt	<0a0h,p_ac1,080h,p_ac1,0,0>
+	movt	<0a2h,p_ld1,086h,p_st1,0e8h,0cah>
+	movt	<0a0h,p_ld1,084h,p_st1,0c8h,088h>
 
 comtab:	cmd	ADC0060p_acc
 	cmd	ADD8018p_ads
@@ -2646,11 +2664,11 @@ comtab:	cmd	ADC0060p_acc
 	cmd	LDY00a0p_ldi
 	cmd	LSR0040p_srt
 	cmd	MVA8000p_mvs
-	cmd	MVX8006p_mvs
-	cmd	MVY800cp_mvs
+	cmd	MVX8008p_mvs
+	cmd	MVY8010p_mvs
 	cmd	MWA8000p_mws
-	cmd	MWX8006p_mws
-	cmd	MWY800cp_mws
+	cmd	MWX8008p_mws
+	cmd	MWY8010p_mws
 	cmd	NOP00eap_imp
 	cmd	OPTe000p_opt
 	cmd	ORA0000p_acc
@@ -2739,7 +2757,7 @@ cndvec	dw	pofend,0,p_ift,0,p_eli,0,p_els,0,p_eif
 
 swilet	db	'UTSONLIEC'
 
-hello	db	'X-Assembler 2.4.-6'
+hello	db	'X-Assembler 2.4.-5'
 	ifdef	SET_WIN_TITLE
 titfin	db	0
 	else
