@@ -608,6 +608,8 @@ nolabl:	lodsb
 	je	lstrem
 	cmp	al, ':'
 	jne	s_one
+	cmp	[skflag], 0
+	jnz	lstrem
 	call	getuns
 	jc	unknow
 	sta	cx
@@ -2913,7 +2915,7 @@ cndvec	dw	pofend,0,p_ift,0,p_eli,0,p_els,0,p_eif
 
 swilet	db	'UTSQPONLIEDC'
 
-hello	db	'X-Assembler 2.4.1'
+hello	db	'X-Assembler 2.4.2'
 	ifdef	SET_WIN_TITLE
 titfin	db	0
 	else
