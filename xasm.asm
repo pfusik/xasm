@@ -12,14 +12,14 @@ ENDIF
 	CODESEG
 
 ; comment out to disable
-SET_WIN_TITLE	=	1
+; SET_WIN_TITLE	=	1
 
 ; compak	=	1d00h
 
 l_icl	=	1024
 l_org	=	4096
 IFDEF	EXE
-l_lab	=	55000
+l_lab	=	54000
 ELSE
 l_lab	=	48000
 ENDIF
@@ -92,9 +92,10 @@ b_swn	=	4
 m_swn	=	10h
 m_swo	=	20h
 m_swp	=	40h
-m_sws	=	80h
-m_swt	=	100h
-m_swu	=	200h
+m_swq	=	80h
+m_sws	=	100h
+m_swt	=	200h
+m_swu	=	400h
 
 ;[flist]
 m_lsti	=	4
@@ -103,6 +104,7 @@ m_lsto	=	10h
 m_lsts	=	m_lsto+m_lstl+m_lsti
 
 nhand	=	-1	;null handle
+STDERR	=	2
 cr	equ	13
 eol	equ	13,10
 eot	equ	13,10,'$'
@@ -279,7 +281,7 @@ ENDIF
 	int	2fh
 	mov	[titfin], ' '
 	endif
-	print	hello
+;	print	hello
 IFDEF	EXE
 	mov	si, offset tlabel+3
 ELSE
@@ -310,13 +312,13 @@ parg1:	lodsb
 	mov	[fslen], di
 	jmp	parg0
 
-usg:	print	usgtxt		; usage - instrukcja
+usg:	print	hello		; usage - instrukcja
 	dos	4c03h
 
 popt1:	lodsb
 	and	al, 0dfh	; mala litera -> duza
 	mov	di, offset swilet
-	mov	cx, 10
+	mov	cx, 11
 	repne	scasb
 	jne	usg		; nie ma takiego switcha
 	bts	[swits], cx	; sprawdz bit i ustaw
@@ -341,7 +343,11 @@ popt2:	lodsb
 pargx:
 	cmp	[(icl t_icl).nam], 0	; czy jest nazwa?
 	je	usg
-	mov	di, offset lstnam
+	testsw	m_swq
+	jnz	nohelo
+	mov	[usgtxt], '$'
+	print	hello
+nohelo:	mov	di, offset lstnam
 	mov	eax, 'TSL'
 	call	defnam
 	mov	di, offset objnam
@@ -407,7 +413,7 @@ ELSE
 	push	cs
 ENDIF
 	pop	ds
-	print	envtxt
+	call	prenvt
 	dos	4c02h
 
 renvx:
@@ -450,7 +456,8 @@ opfile:	call	fopen
 	pop	eax
 	cmp	eax, [objmod]
 	ja	main
-	print	oldtxt
+	mov	si, offset oldtxt
+	call	prline
 	dos	4c00h
 
 main:	mov	bx, [iclen]
@@ -740,7 +747,9 @@ skiret:	ret
 ; ERROR
 errln:	call	ppline
 erron:	call	prname
-	print	errtxt
+	mov	dx, offset errtxt
+	mov	cx, errtxl
+	call	prerr
 	pop	si
 	call	msgenv
 	dos	4c02h
@@ -748,41 +757,50 @@ erron:	call	prname
 ; WARNING
 warln:	call	ppline
 	call	prname
-	print	wartxt
+	mov	dx, offset wartxt
+	mov	cx, wartxl
+	call	prerr
 	pop	ax
 	pop	si
 	push	ax
 	mov	[byte exitcod], 1
 msgenv:	call	prline
 	btr	[flags], b_enve
-	jnc	msgenx
-	print	envtxt
-msgenx:	ret
+	jnc	skiret
+prenvt:	mov	si, offset envtxt
+	jmp	prline
 
 prname:	mov	bx, [iclen]
 	cmp	bx, offset t_icl
-	jna	msgenx
+	jna	skiret
 	mov	di, [(icl bx).prev]
 	push	di
 	lea	dx, [(icl di).nam]
-	mov	[byte bx-1], '$'
+;	mov	[byte bx-1], '$'
+	lea	cx, [bx-1]
+	sub	cx, dx
 	mov	[envnam], dx
 	sub	bx, dx
 	mov	[envlen], bx
-	print
-	mov	dl, ' '
-	dos	2
-	mov	dl, '('
-	dos	2
+	call	prerr
+	mov	al, ' '
+	call	putchar
+	mov	al, '('
+	call	putchar
 	pop	bx
 	mov	eax, [(icl bx).line]
-	call	pridec
-	mov	dl, ')'
-	dos	2
-	mov	dl, ' '
-	dos	2
+	call	numdet
+	mov	dx, di
+	mov	[envnum], di
+	mov	cx, offset dectxt+10
+	sub	cx, di
+	call	prerr
+	mov	al, ')'
+	call	putchar
+	mov	al, ' '
+	call	putchar
 	testsw	m_swe
-	jz	msgenx
+	jz	skiret
 	les	di, [dword envofs]
 	mov	ax, [es:3]
 	shl	ax, 4
@@ -798,7 +816,7 @@ prname:	mov	bx, [iclen]
 	stosd
 	mov	si, [envnam]
 senv1:	movsb
-	cmp	[byte si], '$'
+	cmp	[byte si], 0	;'$'
 	jne	senv1
 	xor	al, al
 	stosb
@@ -820,13 +838,21 @@ senve:	setfl	m_enve
 	ret
 
 ppline:	mov	si, offset line
-prline:	mov	dl, [si]
-	dos	2
-	inc	si
+prline:	mov	dx, si
+	xor	cx, cx
+prli1:	inc	si
+	inc	cx
 	cmp	[byte si-1], 0dh
-	jne	prline
-	mov	dl, 0ah
-	dos	2
+	jne	prli1
+	mov	bx, STDERR
+	dos	40h
+	mov	al, 0ah
+putchar:
+	mov	[chbuf], al
+	mov	dx, offset chbuf
+	mov	cx, 1
+prerr:	mov	bx, STDERR
+	dos	40h
 	ret
 
 miseif:	push	offset e_meif
@@ -898,6 +924,8 @@ lata4:	call	phword
 	jb	lata1
 
 nlata:	call	lclose
+	testsw	m_swq
+	jnz	zrbyt
 	mov	eax, [lines]
 	shr	eax, 1
 	call	pridec
@@ -987,8 +1015,10 @@ putblk:	jpass1	putx		; zapisz blok
 	xor	cx, cx
 	file	3ch, e_crobj
 	mov	[ohand], ax
+	testsw	m_swq
+	jnz	noobjt
 	print	objtxt
-	pop	dx cx
+noobjt:	pop	dx cx
 putb1:	mov	bx, [ohand]
 	file	40h, e_wrobj
 	movzx	ecx, cx
@@ -1184,8 +1214,10 @@ opnlst:	mov	dx, offset lstnam
 opntab:	xor	cx, cx
 	file	3ch, e_crlst
 	mov	[lhand], ax
+	testsw	m_swq
+	jnz	nolstt
 	print	lsttxt
-	mov	dx, offset hello
+nolstt:	mov	dx, offset hello
 	mov	cx, hellen
 	jmp	putlad
 
@@ -1209,6 +1241,7 @@ adex2:	mov	[byte di-1], '.'
 adexr:	ret
 
 ; Zapisz dziesietnie eax; di-koniec liczby
+numdet:	mov	di, offset dectxt+10
 numdec:	mov	ebx, 10
 numde1:	cdq
 	div	ebx
@@ -1220,10 +1253,9 @@ numde1:	cdq
 	ret
 
 ; Wyswietl dziesietnie eax
-pridec:	mov	di, offset dectxt+10
-	call	numdec
+pridec:	call	numdet
 	mov	dx, di
-	mov	[envnum], di
+;	mov	[envnum], di
 	print
 	ret
 
@@ -1261,8 +1293,8 @@ clfna:
 	je	clfx
 	cmp	al, 9
 	je	clfx
-	cmp	al, '/'
-	je	clfx
+;	cmp	al, '/'
+;	je	clfx
 	cmp	al, 0dh
 	jne	clf1
 clfx:	xor	al, al
@@ -2831,29 +2863,31 @@ optvec	dw	optl0,optl1,opth0,opth1,opto0,opto1
 cndtxt	dd	'DNE','TFI','ILE','SLE','FIE'
 cndvec	dw	pofend,0,p_ift,0,p_eli,0,p_els,0,p_eif
 
-swilet	db	'UTSPONLIEC'
+swilet	db	'UTSQPONLIEC'
 
-hello	db	'X-Assembler 2.4.-3'
+hello	db	'X-Assembler 2.4.-2'
 	ifdef	SET_WIN_TITLE
 titfin	db	0
 	else
 	db	' '
 	endif
-	db	'by Fox/Taquart',eot
-hellen	=	$-hello-1
+	db	'by Fox/Taquart',eol
+hellen	=	$-hello
 usgtxt	db	"Syntax: XASM source [options]",eol
-	db	"/c         List code excluded by ift/els/eli",eol
-	db	"/e         Set environment variables ERRFILE and ERRLINE if error occurs",eol
-	db	"/i         Don't list included files",eol
-	db	"/l[:fname] Generate listing",eol
-	db	"/n         Assemble only if source file is newer than object file",eol
-	db	"/o:fname   Write object file as 'fname'",eol
-	db	"/p         Print fully qualified file names in listing and error messages",eol
-	db	"/s         Don't convert spaces to tabs in listing",eol
-	db	"/t[:fname] List label table",eol
-	db	"/u         Warn of unused labels",eot
-oldtxt	db	'Source file is older than object file - not assembling',eot
-envtxt	db	'Can''t change environment',eot
+	db	"/c             Include false conditionals in listing",eol
+;	db	"/d:label=value Define a label",eol
+	db	"/e             Set environment variables ERRFILE and ERRLINE",eol
+	db	"/i             Don't list included files",eol
+	db	"/l[:filename]  Generate listing",eol
+	db	"/n             Assemble only if source file is newer than object file",eol
+	db	"/o:filename    Set object file name",eol
+	db	"/p             Print fully qualified file names in listing and error messages",eol
+	db	"/q             Suppress info messages",eol
+	db	"/s             Don't convert spaces to tabs in listing",eol
+	db	"/t[:filename]  List label table",eol
+	db	"/u             Warn of unused labels",eot
+oldtxt	db	'Source file is older than object file - not assembling',cr
+envtxt	db	'Can''t change environment',cr
 objtxt	db	'Writing object file...',eot
 lsttxt	db	'Writing listing file...'
 eoltxt	db	eot
@@ -2864,13 +2898,15 @@ tabtxl	=	$-tabtxt
 lintxt	db	' lines of source assembled',eot
 byttxt	db	' bytes written to the object file',eot
 dectxt	db	10 dup(' '),'$'
-wartxt	db	'WARNING: $'
+wartxt	db	'WARNING: '
+wartxl	=	$-wartxt
 w_bugjp	db	'Buggy indirect jump',eol
 w_bras	db	'Branch would be sufficient',eol
 w_ulab	db	'Unused label',eol
 w_skif	db	'Skipping only first instruction',eol
 w_repl	db	'Repeating only last instruction',eol
-errtxt	db	'ERROR: $'
+errtxt	db	'ERROR: '
+errtxl	=	$-errtxt
 e_open	db	'Can''t open file',cr
 e_read	db	'Disk read error',cr
 e_crobj	db	'Can''t write to the object file',cr
@@ -2968,6 +3004,7 @@ envseg	dw	?
 envnam	dw	?
 envnum	dw	?
 envlen	dw	?
+chbuf	db	?
 
 var	=	$
 MACRO	bb	_name
