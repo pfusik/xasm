@@ -1338,7 +1338,9 @@ v_par0:	call	get
 	jne	v_n1a
 	sub	di, offset opert0-noper1-noper2
 	call	goprpa
+	dec	bh
 	push	di bx
+	inc	bh
 	jmp	v_par0
 
 v_n1a:	cmp	al, '('
@@ -2757,7 +2759,7 @@ cndvec	dw	pofend,0,p_ift,0,p_eli,0,p_els,0,p_eif
 
 swilet	db	'UTSONLIEC'
 
-hello	db	'X-Assembler 2.4.-5'
+hello	db	'X-Assembler 2.4.-4'
 	ifdef	SET_WIN_TITLE
 titfin	db	0
 	else
