@@ -4,13 +4,12 @@
 	P386
 	MODEL	TINY
 	CODESEG
-zero	db	100h dup(?)
-start:
-	db	5*1024 dup(0)	;for packing
 
-l_icl	=	1000
-l_org	=	1000*2
-l_lab	=	48000
+compak	=	6*1024
+
+l_icl	=	1024
+l_org	=	4096
+l_lab	=	50000
 
 STRUC	com
 cod	db	?
@@ -41,9 +40,32 @@ cod	db	?
 vec	dw	?
 	ENDS
 
-m_pass	=	80h
-m_eofl	=	40h
-m_skip	=	20h
+;[flags]
+m_pass	=	1
+m_eofl	=	2
+m_skip	=	4
+m_norg	=	8
+m_rorg	=	10h
+m_rqff	=	20h
+b_hdr	=	6
+m_hdr	=	40h
+
+;[swits]
+m_swc	=	1
+m_swi	=	2
+m_swl	=	4
+m_swo	=	8
+m_sws	=	10h
+m_swt	=	20h
+
+;[flist]
+m_lstc	=	1
+m_lsti	=	2
+m_lstl	=	4
+m_lsto	=	8
+m_lsts	=	m_lsto+m_lstl+m_lsti
+
+nhand	=	-1	;null handle
 
 eol	equ	13,10
 eot	equ	13,10,'$'
@@ -78,7 +100,9 @@ MACRO	dos	_func
 	ENDM
 
 MACRO	file	_func, _errtx
+	IFNB	<_errtx>
 	mov	bp, offset _errtx
+	ENDIF
 	IF	_func and 0ff00h
 	mov	ax, _func
 	ELSE
@@ -129,7 +153,28 @@ _tp	CATSTR	<v_>, _tp
 	dw	_tp
 	ENDM
 
+MACRO	undata
+	db	6 dup(?)
+lstnum	db	5 dup(?)
+lstspa	db	?
+lstorg	db	26 dup(?)
+line	db	258 dup(?)
+tlabel	db	256 dup(?)
+objnam	db	128 dup(?)
+lstnam	db	128 dup(?)
+tabnam	db	128 dup(?)
+t_icl	db	l_icl dup(?)
+t_org	db	l_org dup(?)
+	ENDM
+
 ;*****************************
+
+zero	db	100h dup(?)
+start:
+IFDEF	compak
+	undata
+	db	compak+start-$ dup(?)
+ENDIF
 
 	print	hello
 	mov	di, 81h
@@ -140,7 +185,7 @@ _tp	CATSTR	<v_>, _tp
 	je	usg
 	dec	di
 	inc	cx
-	mov	[fnad], di
+	mov	si, di
 	mov	al, '?'
 	repne	scasb
 	jne	begin
@@ -148,23 +193,93 @@ _tp	CATSTR	<v_>, _tp
 usg:	print	usgtxt
 	dos	4c02h
 
-begin:	mov	[origin], 0
-	call	ldname
+begin:	lodsb
+	cmp	al, '/'
+	je	usg
+	mov	di, offset (icl t_icl).nam+1
+	lea	dx, [di-1]
+	xor	ah, ah
+	mov	[tabnam], ah
+dinam	equ	di-t_icl-offset (icl).nam
+mnam1:	dec	di
+	mov	[objnam+dinam], ax
+	mov	[lstnam+dinam], ax
+	stosw
+	lodsb
+	cmp	al, ' '
+	je	mnam2
+	cmp	al, '/'
+	je	mnam2
+	cmp	al, 0dh
+	jne	mnam1
+mnam2:	dec	si
+	call	adasx
+	mov	[fslen], di
+chex1:	dec	di
+	cmp	[byte di], '.'
+	jne	chex1
+	mov	[byte objnam+dinam], '.'
+	mov	[dword objnam+dinam+1], 'XBO'
+	mov	[byte lstnam+dinam], '.'
+	mov	[dword lstnam+dinam+1], 'TSL'
 
-opfile:	mov	bx, offset (icl).nam
-	add	bx, [iclen]
-	mov	si, di
-srex2:	dec	si
-	cmp	[byte si], '\'
-	je	adex2
-	cmp	[byte si], '.'
-	je	lvex2
-	cmp	si, bx
-	ja	srex2
-adex2:	mov	[byte di-1], '.'
-	mov	eax, 'xsa'
-	stosd
-lvex2:	call	fopen
+gsw1:	lodsb
+	cmp	al, ' '
+	je	gsw1
+	cmp	al, 0dh
+	je	gswx
+	cmp	al, '/'
+	jne	usg
+	lodsb
+	and	al,0dfh
+	mov	di, offset swilet
+	mov	cx, 6
+	repne	scasb
+	jne	usg
+	bts	[word swits], cx
+	jc	usg
+	mov	di, offset lstnam
+	mov	ecx, 'TSL'
+	cmp	al, 'L'
+	je	gsw2
+	mov	di, offset tabnam
+	mov	ecx, 'BAL'
+	cmp	al, 'T'
+	je	gsw2
+	cmp	al, 'O'
+	jne	gsw1
+	cmp	[byte si], ':'
+	jne	usg
+	mov	di, offset objnam
+	mov	ecx, 'XBO'
+
+gsw2:	cmp	[byte si], ':'
+	jne	gsw1
+	inc	si
+	mov	dx, di
+gsw3:	lodsb
+	stosb
+	cmp	al, ' '
+	je	gsw4
+	cmp	al, '/'
+	je	gsw4
+	cmp	al, 0dh
+	jne	gsw3
+gsw4:	mov	[byte di-1], 0
+	lda	ecx
+	call	adext
+	dec	si
+	jmp	gsw1
+gswx:	mov	al, [swits]
+	not	al
+	and	al, m_lstl+m_lstc
+	or	al, m_lsto
+	mov	[flist], al
+
+npass:	mov	[orgvec], offset t_org-2
+	mov	di, [fslen]
+
+opfile:	call	fopen
 
 main:	test	[flags], m_eofl
 	jnz	filend
@@ -172,33 +287,40 @@ main:	test	[flags], m_eofl
 	mov	bx, [(icl bx).prev]
 	inc	[(icl bx).line]
 	inc	[lines]
-	mov	di, offset line-1
+	mov	di, offset line
+	test	[swits], m_swi
+	jz	gline1
+	and	[flist], not m_lsti
+	cmp	bx, offset t_icl
+	jbe	gline1
+	or	[flist], m_lsti
 
-gline1:	cmp	di, offset line+255
+gline1:	cmp	di, offset line+256
 	jnb	linlon
 	mov	cx, 1
-	lea	dx, [di+1]
-	push	dx
+	mov	dx, di
 	call	fread
-	pop	di
+	mov	ax, 0a0dh
 	jz	eof
-	cmp	[byte di], 0ah
+	dec	di
+	scasw
 	jne	gline1
 	jmp	syntax
 
 eof:	or	[flags], m_eofl
-	mov	[word di], 0a0dh
+	stosw
 
-syntax:	mov	si, offset line
+syntax:	call	lsplen
+	mov	si, offset line
 	mov	al, [si]
 	cmp	al, 0dh
-	je	main
+	je	lsteol
 	cmp	al, '*'
-	je	main
+	je	lstrem
 	cmp	al, ';'
-	je	main
+	je	lstrem
 	cmp	al, '|'
-	je	main
+	je	lstrem
 	test	[flags], m_skip
 	jz	nskip
 skip1:	call	get
@@ -207,7 +329,7 @@ skip1:	call	get
 	cmp	al, 9
 	jne	skip1
 skip2:	call	space1
-	push	offset main
+	push	offset sklist
 	lodsd
 	and	eax, 0dfdfdfh
 	cmp	eax, 'TFI'
@@ -231,6 +353,20 @@ skels:	call	btself
 	cmp	[sift], 0
 	jnz	skret
 	jmp	fliski
+sklist:	test	[flist], m_lsts+m_lstc
+	jmp	lstcon
+
+lsteol:	test	[flist], m_lsts
+	jnz	main
+	mov	di, offset lstspa
+	call	lspeol
+	jmp	lstlnm
+lstrem:	test	[flist], m_lsts
+lstcon:	jnz	main
+	mov	di, offset lstspa+1
+	call	putspa
+lstlnm:	call	putlnm
+	jmp	main
 
 nskip:	mov	[labvec], 0
 	cmp	al, ' '
@@ -273,16 +409,30 @@ s_cmd:	lodsb
 	cmp	al, 0dh
 	jne	s_cmd1
 	cmp	[byte high labvec], 0
-	je	main
+	je	lsteol
 	jmp	uneol
 s_cmd1:	dec	si
+	mov	di, offset lstorg
+	test	[flags], m_norg
+	jnz	nlorg
+	mov	ax, [origin]
+	call	phword
+	mov	al, ' '
+	stosb
+nlorg:	mov	[lstidx], di
 	lodsw
  	and	ax, 0dfdfh
 	xchg	al, ah
 	shl	eax, 16
 	mov	ah, 0dfh
 	and	ah, [si]
-	inc	si
+	test	[flags], m_norg
+	jz	lbnox
+	cmp	[byte high labvec], 0
+	je	lbnox
+	cmp	eax, 'EQU' shl 8
+	jne	noorg
+lbnox:	inc	si
 	mov	di, offset comtab
 	mov	bx, 64*size com
 sfcmd1:	mov	al, [(com di+bx).cod]
@@ -294,7 +444,6 @@ sfcmd1:	mov	al, [(com di+bx).cod]
 	call	[(com di+bx).vec]
 	call	linend
 	jmp	main
-
 sfcmd2:	add	di, bx
 	cmp	di, offset comend
 	jb	sfcmd3
@@ -314,34 +463,59 @@ filend:	and	[flags], not m_eofl
 
 	cmp	[elflag], 1
 	jne	miseif
-	or	[flags], m_pass
-	call	putorg
-	call	ldname
-	mov	si, di
-srex1:	dec	si
-	cmp	[byte si], '\'
-	je	adex1
-	cmp	[byte si], '.'
-	je	chex1
-	cmp	si, offset (icl t_icl).nam
-	ja	srex1
-	jmp	adex1
-chex1:	lea	di, [si+1]
-adex1:	mov	[byte di-1], '.'
-	mov	[dword di], 'moc'
-	mov	dx, offset (icl t_icl).nam
-	xor	cx, cx
-	file	3ch, e_creat
-	mov	[ohand], ax
-	mov	ax, 0ffffh
-	call	putwor
-	mov	[orgvec], offset t_org
-	xor	ax, ax
-	call	pheadr
-	jmp	begin
+	or	[flags], m_pass+m_norg+m_rorg+m_rqff+m_hdr
+	and	[flist], not m_lsto
+	jmp	npass
 
 fin:	mov	bx, [ohand]
-	file	3eh, e_writ
+	mov	bp, offset e_wrobj
+	call	hclose
+	test	[swits], m_swt
+	jz	nlata
+	cmp	[laben], offset t_lab
+	jbe	nlata
+	cmp	[byte tabnam], 0
+	jnz	oplata
+	cmp	[lhand], nhand
+	jne	latt1
+	call	opnlst
+	jmp	latt2
+latt1:	call	plseol
+	jmp	latt2
+oplata:	call	lclose
+	mov	dx, offset tabnam
+	call	opntab
+latt2:	mov	dx, offset tabtxt
+	mov	cx, tabtxl
+	call	putlad
+	mov	si, offset t_lab
+lata1:	mov	di, offset lstnum
+	mov	eax, '    '
+	test	[(lab si).flags], m_lnus
+	jz	lata2
+	mov	al, 'n'
+lata2:	test	[(lab si).flags], m_ukp1
+	jz	lata3
+	mov	ah, '2'
+lata3:	stosd
+	mov	ax, [(lab si).val]
+	test	[(lab si).flags], m_sign
+	jz	lata4
+	mov	[byte di-1], '-'
+	neg	ax
+lata4:	call	phword
+	mov	al, ' '
+	stosb
+	mov	cx, (offset (lab)-offset (lab).nam) and 0ffh
+	add	cl, [(lab si).len]
+	add	si, offset (lab).nam
+	rep	movsb
+	call	lspeol
+	call	putlst
+	cmp	si, [laben]
+	jb	lata1
+
+nlata:	call	lclose
 	mov	eax, [lines]
 	shr	eax, 1
 	call	pridec
@@ -415,6 +589,14 @@ xdisk:	push	bp
 icler:	push	offset e_icl
 	jmp	erron
 
+lclose:	mov	bx, [lhand]
+	mov	bp, offset e_wrlst
+	mov	[lhand], nhand
+hclose:	cmp	bx, nhand
+	je	cloret
+	file	3eh
+cloret:	ret
+
 fopen:	cmp	di, offset t_icl+l_icl-2
 	jnb	icler
 	mov	bx, [iclen]
@@ -440,7 +622,10 @@ freacl:	mov	bx, [iclen]
 fclose:	mov	ah, 3eh
 	call	freacl
 	mov	bx, [iclen]
-	mov	bx, [(icl bx).prev]
+	cmp	bx, [srcen]
+	jne	fclos1
+	mov	[srcen], 0
+fclos1:	mov	bx, [(icl bx).prev]
 	mov	[iclen], bx
 	ret
 
@@ -448,42 +633,216 @@ putwor:	push	ax
 	call	putbyt
 	pop	ax
 	mov	al, ah
-putbyt:	mov	cx, 1
-	jpass1	putx
-	mov	[oper], al
-	mov	dx, offset oper
-	mov	bx, [ohand]
-	file	40h, e_writ
+putbyt:	jpass1	putx
+	mov	[obyte], al
+	cmp	[ohand], nhand
+	jne	putb1
+	mov	dx, offset objnam
+	xor	cx, cx
+	file	3ch, e_crobj
+	mov	[ohand], ax
+	print	objtxt
+putb1:	mov	bx, [ohand]
+	mov	dx, offset obyte
+	mov	cx, 1
+	file	40h, e_wrobj
 	inc	[bytes]
 putx:	ret
 
-savwor:	inc	[origin]
-	inc	[origin]
+orgwor:	push	ax
+	call	phword
+	pop	ax
 	jmp	putwor
 
-savbyt:	inc	[origin]
-	jmp	putbyt
+chorg:	test	[flags], m_norg
+	jz	putx
+noorg:	error	e_norg
 
-; Przepisuje nazwe z linii komend
-ldname:	mov	si, [fnad]
-	mov	di, offset (icl t_icl).nam
-ldnam1:	lodsb
+tmorgs:	error	e_orgs
+
+savwor:	push	ax
+	call	savbyt
+	pop	ax
+	mov	al, ah
+
+savbyt:	mov	[sbyte], al
+	call	chorg
+	test	[flags], m_hdr
+	jz	savb1
+	mov	ax, [origin]
+	test	[flags], m_rorg
+	jnz	borg1
+	cmp	ax, [curorg]
+	je	borg3
+borg1:	add	[orgvec], 2
+	jpass1	borg2
+	mov	di, offset lstorg
+	test	[flags], m_rqff
+	jz	noff
+	mov	ax, 0ffffh
+	call	orgwor
+	mov	ax, ' >'
+	stosw
+	mov	ax, [origin]
+noff:	call	orgwor
+	mov	al, '-'
 	stosb
+	mov	bx, [orgvec]
+	mov	ax, [bx]
+	call	orgwor
+	mov	ax, ' >'
+	stosw
+	mov	[lstidx], di
+	mov	ax, [origin]
+borg2:	and	[flags], not (m_rorg+m_rqff)
+borg3:	jpass2	borg4
+	mov	di, [orgvec]
+	stosw
+borg4:	inc	ax
+	mov	[curorg], ax
+
+savb1:	inc	[origin]
+	test	[flist], m_lsts
+	jnz	lsbpop
+	mov	di, [lstidx]
+	cmp	di, offset line-3
+	jae	lstxtr
+	mov	al, [sbyte]
+	call	phbyte
+	mov	al, ' '
+lstpls:	stosb
+	mov	[lstidx], di
+lsbpop:	mov	al, [sbyte]
+	jmp	putbyt
+lstxtr:	ja	lsbpop
+	mov	al, '+'
+	jmp	lstpls
+
+; Stwierdza blad, jesli nie spacja, tab lub eol
+linend:	lodsb
 	cmp	al, 0dh
-	jne	ldnam1
-	mov	[byte di-1], 0
+	je	linen1
+	cmp	al, ' '
+	je	linen1
+	cmp	al, 9
+	je	linen1
+	error	e_xtra
+linen1:	test	[flist], m_lsts
+	jnz	linret
+	mov	di, [lstidx]
+	call	putspa
+; Listuje linie z numerem
+putlnm:	mov	di, offset lstspa
+	mov	bx, [iclen]
+	mov	bx, [(icl bx).prev]
+	mov	eax, [(icl bx).line]
+	call	numdec
+lstlsp:	dec	di
+	mov	[byte di], ' '
+	cmp	di, offset lstnum
+	ja	lstlsp
+
+	mov	bx, [iclen]
+	cmp	bx, [srcen]
+	je	nlsrc
+	mov	[srcen], bx
+	cmp	[lhand], nhand
+	jne	lsrc1
+	call	opnlst
+lsrc1:	mov	dx, offset srctxt
+	mov	cx, offset srctxl
+	call	putlad
+	mov	bx, [iclen]
+	mov	cx, bx
+	mov	bx, [(icl bx).prev]
+	lea	dx, [(icl bx).nam]
+	stc
+	sbb	cx, dx
+	call	putlad
+	call	plseol
+nlsrc:
+	test	[swits], m_sws
+	jnz	putlst
+	mov	si, offset lstnum
+	mov	di, si
+spata1:	xor	dl, dl
+spata2:	lodsb
+	stosb
+	cmp	al, 0ah
+	je	spatax
+	cmp	al, 9
+	je	spata1
+	dec	dx
+	cmp	al, ' '
+	jne	spata2
+	and	dx, 7
+	jz	spata2
+	mov	cx, dx
+	mov	bx, si
+spata3:	cmp	al, [bx]
+	jne	spata2
+	inc	bx
+	loop	spata3
+	mov	[byte di-1], 9
+	mov	si, bx
+	jmp	spata1
+spatax:	call	lsplen
+
+; Zapis linii lstnum o dlug. linlen
+putlst:	mov	dx, offset lstnum
+	mov	cx, [linlen]
+putlad:	mov	bx, [lhand]
+	file	40h, e_wrlst
+linret:	ret
+
+opnlst:	mov	dx, offset lstnam
+opntab:	xor	cx, cx
+	file	3ch, e_crlst
+	mov	[lhand], ax
+	print	lsttxt
+	mov	dx, offset hello
+	mov	cx, hellen
+	jmp	putlad
+
+plseol:	mov	dx, offset eoltxt
+	mov	cx, 2
+	jmp	putlad
+
+lspeol:	mov	ax, 0a0dh
+	stosw
+lsplen:	lea	ax, [di+zero-lstnum]
+	mov	[linlen], ax
 	ret
 
-; Wyswietla dziesietnie EAX
-pridec:	mov	di, offset dectxt+10
-	mov	ebx, 10
-pride1:	cdq
+adasx:	mov	eax, 'XSA'
+; Dodaje rozszerzenie nazwy, gdy go nie ma
+; we: dx,di-poczatek,koniec nazwy; eax-rozsz.
+adext:	mov	bx, di
+adex1:	dec	bx
+	cmp	[byte bx], '\'
+	je	adex2
+	cmp	[byte bx], '.'
+	je	adexr
+	cmp	bx, dx
+	ja	adex1
+adex2:	mov	[byte di-1], '.'
+	stosd
+adexr:	ret
+
+; Zapisuje dziesietnie EAX; di-koniec liczby
+numdec:	mov	ebx, 10
+numde1:	cdq
 	div	ebx
 	add	dl, '0'
 	dec	di
 	mov	[di], dl
 	test	eax, eax
-	jnz	pride1
+	jnz	numde1
+	ret
+
+; Wyswietla dziesietnie EAX
+pridec:	mov	di, offset dectxt+10
+	call	numdec
 	mov	dx, di
 	print
 	ret
@@ -528,15 +887,13 @@ space1:	call	get
 	dec	si
 rstret:	ret
 
-; Stwierdza blad, jesli nie spacja, tab lub eol
-linend:	lodsb
-	cmp	al, 0dh
-	je	rstret
-	cmp	al, ' '
-	je	rstret
-	cmp	al, 9
-	je	rstret
-	error	e_xtra
+; Zapisuje spacje od di do line
+putspa:	mov	cx, offset line
+	sub	cx, di
+	mov	al, ' '
+	rep	stosb
+	mov	[lstspa], ' '
+	ret
 
 ; Czyta nazwe pliku
 rfname:	call	spaces
@@ -701,10 +1058,12 @@ vlukp1:	mov	[ukp1], 0ffh
 vlabkn:	bt	[word (lab bx).flags], b_sign
 	sbb	eax, eax
 	mov	ax, [(lab bx).val]
+	and	[(lab bx).flags], not m_lnus
 	pop	bx
 	jmp	value1
 
-valorg:	mov	ax, [origin]
+valorg:	call	chorg
+	mov	ax, [origin]
 	jmp	value1
 
 valchr:	mov	dl, al
@@ -896,7 +1255,8 @@ v_equ:	cmp	eax, ecx
 	je	v_one
 v_zer:	xor	eax, eax
 	ret
-v_one:	mov	eax, 1
+v_one:	stc
+	sbb	eax, eax
 	ret
 
 v_neq:	cmp	eax, ecx
@@ -1310,7 +1670,40 @@ p_mw3:	mov	si, offset op2
 	inc	[val]
 	jmp	p_mvx
 
-p_opt:	error	e_opt
+p_opt:	call	spaces
+	xor	cx, cx
+opt1:	lodsw
+	and	al, 0dfh
+	cmp	al, 'L'
+	je	optlst
+	cmp	al, 'H'
+	je	opthdr
+	jcxz	opter
+	dec	si
+	dec	si
+	ret
+opter:	error	e_opt
+optlst:	inc	cx
+	cmp	ah, '+'
+	je	optl1
+	cmp	ah, '-'
+	jne	opter
+	or	[flist], m_lsto
+	jmp	opt1
+optl1:	jpass1	opt1
+	and	[flist], not m_lsto
+	jmp	opt1
+opthdr:	inc	cx
+	cmp	ah, '+'
+	je	opth1
+	cmp	ah, '-'
+	jne	opter
+	and	[flags], not m_hdr
+	jmp	opt1
+opth1:	bts	[word flags], b_hdr
+	jc	opt1
+	or	[flags], m_rorg
+	jmp	opt1
 
 p_ert:	call	spaval
 	jpass1	equret
@@ -1329,45 +1722,46 @@ p_equ:	mov	di, [labvec]
 	or	[(lab di).flags], m_ukp1
 equ1:	mov	[(lab di).val], ax
 	test	eax, eax
-	jns	equret
+	jns	equ2
 	or	[(lab di).flags], m_sign
+equ2:	test	[flist], m_lsts
+	jnz	equret
+	sta	dx
+	mov	di, offset lstorg
+	mov	ax, ' ='
+	test	eax, eax
+	jns	equ3
+	mov	ah, '-'
+	neg	dx
+equ3:	stosw
+	lda	dx
+	call	phword
+	mov	[lstidx], di
 equret:	ret
 
 nolabl:	error	e_label
 
-p_org:	call	spauns
+p_org:	call	spaces
+	and	[flags], not m_norg
+	lodsw
+	and	al, 0dfh
+	cmp	ax, ':F'
+	je	orgff
+	cmp	ax, ':A'
+	je	orgaf
+	dec	si
+	dec	si
+	jmp	orget
+orgff:	or	[flags], m_rqff
+orgaf:	or	[flags], m_rorg
+orget:	call	getuns
 	jc	unknow
-p_org1:	jpass2	org1
-	call	putorg
-	stc
-org1:	mov	ax, [val]
 	mov	[origin], ax
-	jc	pheart
-pheadr:	mov	bx, [orgvec]
-	cmp	ax, [bx]
-	je	pheart
-	call	putwor
-	mov	bx, [orgvec]
-	mov	ax, [bx]
-	dec	ax
-	call	putwor
-pheart:	add	[orgvec], 2
 	ret
-
-putorg:	mov	bx, [orgvec]
-	cmp	bx, offset t_org+l_org-2
-	jnb	tmorgs
-	mov	ax, [origin]
-	mov	[bx], ax
-	ret
-
-tmorgs:	error	e_orgs
 
 p_rui:	mov	ah, 2
-	mov	[val], ax
-	call	p_org1
+	mov	[origin], ax
 	call	spauns
-	mov	ax, [val]
 	jmp	savwor
 
 valuco:	call	getval
@@ -1413,7 +1807,6 @@ dtan2:	lodsd
 	mov	[sinamp], ax
 	call	getuns
 	jc	unknow
-	mov	ax, [val]
 	test	ax, ax
 	jz	badsin
 	mov	[sinsiz], ax
@@ -1431,7 +1824,6 @@ dtan2:	lodsd
 	mov	[sinmin], ax
 	call	getuns
 	jc	unknow
-	mov	ax, [val]
 	cmp	ax, [sinmin]
 	jb	badsin
 	mov	[sinmax], ax
@@ -1455,21 +1847,21 @@ gensin:	fild	[sinmin]
 	
 dtansi:	sub	si, 4
 	call	getval
-dtasto:	jpass1	dtan3
-	mov	al, [cod]
-	cmp	al, 'B'
-	je	dtanb
+dtasto:	mov	al, [cod]
+	cmp	al, 'A'
+	je	dtana
+	jpass1	dtans
 	cmp	al, 'L'
 	je	dtanl
 	cmp	al, 'H'
 	je	dtanh
-	mov	ax, [val]
-	call	savwor
-	jmp	dtanx
-
-dtanb:	mov	eax, [dword val]
+	mov	eax, [dword val]
 	call	brange
 	jmp	dtans
+
+dtana:	mov	ax, [val]
+	call	savwor
+	jmp	dtanx
 
 dtanl:	mov	al, [byte low val]
 	jmp	dtans
@@ -1477,11 +1869,6 @@ dtanl:	mov	al, [byte low val]
 dtanh:	mov	al, [byte high val]
 
 dtans:	call	savbyt
-	jmp	dtanx
-
-dtan3:	cmp	[cod], 'A'+1
-	adc	[origin], 1
-	
 dtanx:	mov	ax, [sinmin]
 	cmp	ax, [sinmax]
 	jbe	gensin
@@ -1516,9 +1903,9 @@ dtatm:	lodsb
 	je	ascinx
 	sub	al, 60h
 ascin1:	add	al, 40h
-ascinx:	push	ax cx si
+ascinx:	push	ax cx
 	call	savbyt
-	pop	si cx ax
+	pop	cx ax
 	loop	dtatm
 	pop	si
 dtanxt:	lodsb
@@ -1652,7 +2039,12 @@ getdig:	call	get
 
 p_icl:	call	rfname
 	pop	ax
+	push	di
 	call	linend
+	mov	dx, offset (icl).nam
+	add	dx, [iclen]
+	pop	di
+	call	adasx
 	jmp	opfile
 
 p_ins:	call	rfname
@@ -1661,20 +2053,20 @@ p_ins:	call	rfname
 p_in1:	mov	cx, 256
 	mov	dx, offset tlabel
 	call	fread
-	jz	p_in2
-	add	[origin], ax
+	jz	p_inx
 	cwde
 	mov	bx, [iclen]
 	mov	bx, [(icl bx).prev]
 	add	[(icl bx).line], eax
-	jpass1	p_in1
-	add	[bytes], eax
+	mov	si, offset tlabel
 	sta	cx
-	mov	bx, [ohand]
-	mov	dx, offset tlabel
-	file	40h, e_writ
+p_in2:	lodsb
+	push	cx
+	call	savbyt
+	pop	cx
+	loop	p_in2
 	jmp	p_in1
-p_in2:	call	fclose
+p_inx:	call	fclose
 	pop	si
 	ret
 
@@ -1835,11 +2227,26 @@ noper2	=	($-opert2)/2
 opert1	db	'+-*/%&|^=<>'
 noper1	=	$-opert1
 
-hello	db	'X-Assembler 1.8 by Fox/Taquart',eot
-usgtxt	db	'Give a source filename. Default extension is .ASX.',eol
-	db	'Object file will be written with .COM extension.',eot
-lintxt	db	' lines assembled',eot
-byttxt	db	' bytes written',eot
+swilet	db	'TSOLIC'
+
+hello	db	'X-Assembler 2.0à by Fox/Taquart',eot
+hellen	=	$-hello-1
+usgtxt	db	"Syntax: XASM source [options]",eol
+	db	"/c         List false conditionals",eol
+	db	"/i         Don't list included source",eol
+	db	"/l[:fname] Generate listing",eol
+	db	"/o:fname   Write object as 'fname'",eol
+	db	"/s         Don't convert spaces to tabs in listing",eol
+	db	"/t[:fname] List label table",eot
+objtxt	db	'Writing object...',eot
+lsttxt	db	'Writing listing...'
+eoltxt	db	eot
+srctxt	db	'Source: '
+srctxl	=	$-srctxt
+tabtxt	db	'Label table:',eol
+tabtxl	=	$-tabtxt
+lintxt	db	' lines of source assembled',eot
+byttxt	db	' bytes written to object',eot
 dectxt	db	10 dup(' '),'$'
 wartxt	db	'WARNING: $'
 w_bugjp	db	'Buggy indirect jump',eol
@@ -1847,8 +2254,10 @@ w_bras	db	'Branch would be sufficient',eol
 errtxt	db	'ERROR: $'
 e_open	db	'Can''t open file',eol
 e_read	db	'Disk read error',eol
-e_creat	db	'Can''t write destination',eol
-e_writ	db	'Disk write error',eol
+e_crobj	db	'Can''t write object',eol
+e_wrobj	db	'Error writing object',eol
+e_crlst	db	'Can''t write listing',eol
+e_wrlst	db	'Error writing listing',eol
 e_icl	db	'Too many files nested',eol
 e_long	db	'Line too long',eol
 e_uneol	db	'Unexpected eol',eol
@@ -1867,7 +2276,7 @@ e_bra	db	'Branch out of range by $'
 brout	db	'     bytes',eol
 e_sin	db	'Bad or missing sinus parameter',eol
 e_spac	db	'Space expected',eol
-e_opt	db	'OPT directive not supported',eol
+e_opt	db	'Invalid options',eol
 e_over	db	'Arithmetic overflow',eol
 e_div0	db	'Divide by zero',eol
 e_range	db	'Value out of range',eol
@@ -1881,41 +2290,50 @@ e_tmift	db	'Too many IFTs nested',eol
 e_eifex	db	'EIF expected',eol
 e_mift	db	'Missing IFT',eol
 e_meif	db	'Missing EIF',eol
+e_norg	db	'No ORG specified',eol
 
 exitcod	dw	4c00h
-flags	db	0
+ohand	dw	nhand
+lhand	dw	nhand
+flags	db	m_norg+m_rorg+m_rqff+m_hdr
+swits	db	0
+sift	db	0
 lines	dd	0
 bytes	dd	0
+srcen	dw	0
 iclen	dw	t_icl
 laben	dw	t_lab
 pslab	dw	t_lab
-orgvec	dw	t_org
-sift	dw	0
 elflag	dd	1
 sinmin	dw	1
 sinmax	dw	0
 sinadd	dw	?
 sinamp	dw	?
 sinsiz	dw	?
-ohand	dw	?
 val	dw	?,?
 amod	db	?,?
 ukp1	db	?,?
-oper	db	?
+flist	db	?
+obyte	db	?
+sbyte	db	?
 cod	db	?
 origin	dw	?
+curorg	dw	?
+orgvec	dw	?
+fslen	dw	?
 labvec	dw	?
-fnad	dw	?
+linlen	dw	?
+lstidx	dw	?
 tempsi	dw	?
 op1	dd	?
 	dw	?
 op2	dd	?
 	dw	?
 
-line	db	258 dup(?)
-tlabel	db	256 dup(?)
-t_icl	db	l_icl dup(?)
-t_org	db	l_org dup(?)
+IFNDEF	compak
+	undata
+ENDIF
+
 t_lab	db	l_lab dup(?)
 
 	ENDS
