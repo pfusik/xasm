@@ -1060,6 +1060,7 @@ vlabel:	push	bx
 	jpass1	vlukp1
 	error	e_undec
 vlabfn:	jpass1	vlchuk
+	and	[(lab bx).flags], not m_lnus
 	cmp	bx, [pslab]
 	jb	vlchuk
 	test	[(lab bx).flags], m_ukp1
@@ -1071,7 +1072,6 @@ vlukp1:	mov	[ukp1], 0ffh
 vlabkn:	bt	[word (lab bx).flags], b_sign
 	sbb	eax, eax
 	mov	ax, [(lab bx).val]
-	and	[(lab bx).flags], not m_lnus
 	pop	bx
 	jmp	value1
 
@@ -1172,7 +1172,7 @@ v_xit:	mov	[dword val], eax
 	cmp	[ukp1], 1
 	cmc
 	jc	v_ret
-	cmp	eax, 10000h
+wrange:	cmp	eax, 10000h
 	cmc
 	jnb	v_ret
 	cmp	eax, -0ffffh
@@ -1829,9 +1829,9 @@ dtan2:	lodsd
 	cmp	eax, '(NIS'
 	jne	dtansi
 	call	valuco
-	mov	[sinadd], ax
+	mov	[sinadd], eax
 	call	valuco
-	mov	[sinamp], ax
+	mov	[sinamp], eax
 	call	getpos
 	mov	[sinsiz], ax
 	mov	[sinmin], 0
@@ -1863,10 +1863,11 @@ gensin:	fild	[sinmin]
 	fmul	st, st(1)
 	fsin
 	fimul	[sinamp]
-	fistp	[val]
+	fiadd	[sinadd]
+	fistp	[dword val]
 	inc	[sinmin]
-	mov	ax, [sinadd]
-	add	[val], ax
+	mov	eax, [dword val]
+	call	wrange
 	jmp	dtasto
 	
 dtansi:	sub	si, 4
@@ -2288,7 +2289,7 @@ noper1	=	$-opert1
 
 swilet	db	'TSOLIC'
 
-hello	db	'X-Assembler 2.0á3 by Fox/Taquart',eot
+hello	db	'X-Assembler 2.0 by Fox/Taquart',eot
 hellen	=	$-hello-1
 usgtxt	db	"Syntax: XASM source [options]",eol
 	db	"/c         List false conditionals",eol
@@ -2368,8 +2369,8 @@ pslab	dw	t_lab
 elflag	dd	1
 sinmin	dw	1
 sinmax	dw	0
-sinadd	dw	?
-sinamp	dw	?
+sinadd	dd	?
+sinamp	dd	?
 sinsiz	dw	?
 val	dw	?,?
 amod	db	?,?
