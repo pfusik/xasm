@@ -77,9 +77,7 @@ m_enve	=	100h
 m_wobj	=	200h
 m_times	=	400h
 m_first	=	800h
-b_skif	=	12
-m_skif	=	1000h
-b_repl	=	13
+m_5200	=	1000h
 m_repl	=	2000h
 b_ski2	=	14
 m_ski2	=	4000h
@@ -106,6 +104,12 @@ m_lsti	=	8
 m_lstl	=	10h
 m_lsto	=	20h
 m_lsts	=	m_lsto+m_lstl+m_lsti
+
+; [fillfl]
+m_fillen	=	1	; fill enabled
+m_fillpo	=	2	; fill possible
+b_fillrq	=	2	; fill requested
+m_fillrq	=	4
 
 nhand	=	-1	;null handle
 STDERR	=	2
@@ -179,14 +183,17 @@ MACRO	error	_err
 	ENDM
 
 MACRO	testfl	_mask
+; testflag is tasm's optimized version of test
 	testflag [flags], _mask
 	ENDM
 
 MACRO	resfl	_mask
+; maskflag is tasm's optimized version of and
 	maskflag [flags], not (_mask)
 	ENDM
 
 MACRO	setfl	_mask
+; setflag is tasm's optimized version of or
 	setflag	[flags], _mask
 	ENDM
 
@@ -467,6 +474,7 @@ noswn:	mov	bp, offset var
 
 npass:	mov	[orgvec], offset t_org-2
 	mov	[defvec], offset t_def
+	mov	[fillfl], 0
 	mov	di, [fslen]
 
 opfile:	call	fopen
@@ -1090,6 +1098,10 @@ nenorg:	jz	putx
 
 tmorgs:	error	e_orgs
 
+filer:	error	e_fill
+
+;;internal: error	e_fatal
+
 incorg:	inc	[origin]
 	ret
 
@@ -1101,13 +1113,32 @@ savwor:	push	ax
 savbyt:	jopcod	xopco
 	testfl	m_wobj
 	jz	incorg
+	btr	[fillfl], b_fillrq
+	jnc	nofill
+	push	ax
+	resfl	m_rorg+m_rqff
+	mov	ax, [origin]
+	sub	ax, [curorg]
+	jz	fillfi
+	jb	filer
+fillop:	push	ax
+	mov	dx, offset fillbyt
+	mov	cx, 1
+	call	putblk
+	pop	ax
+	dec	ax
+	jnz	fillop
+	mov	ax, [origin]
+	mov	[curorg], ax
+fillfi:	pop	ax
+nofill:
 	mov	di, [obufpt]
 	stosb
 	mov	[obufpt], di
-	testfl	m_hdr
-	jz	savb1
-	call	chorg
 	mov	ax, [origin]
+	testfl	m_hdr
+	jz	borg4
+	call	chorg
 	testfl	m_rorg
 	jnz	borg1
 	cmp	ax, [curorg]
@@ -1140,8 +1171,10 @@ borg3:	jpass2	borg4
 	stosw
 borg4:	inc	ax
 	mov	[curorg], ax
-
-savb1:	inc	[origin]
+	setflag	[fillfl], m_fillpo
+	inc	[origin]
+;;	cmp	ax, [origin]
+;;	je	internal
 	cmp	[obufpt], offset obufen
 	jb	oflur
 	testfl	m_skit
@@ -1585,7 +1618,14 @@ valreg:	call	get
 	cmp	al, 4
 	ja	ilchar
 	add	al, 0d0h
-	mov	ah, al
+	testfl	m_5200
+	jz	no5200
+	cmp	al, 0d3h
+	je	nopia
+	cmp	al, 0d2h
+	jne	no5200
+	mov	al, 0e8h
+no5200:	mov	ah, al
 	call	get
 	cmp	al, '9'
 	jbe	valre1
@@ -1595,11 +1635,17 @@ valreg:	call	get
 	add	al, '0'+10-'A'
 valre1:	sub	al, '0'
 	cmp	al, 0fh
-	ja	ilchar	
+	ja	ilchar
 	cmp	ah, 0d1h
-	jne	value1
+	ja	value1
+	jne	valre2
 	sub	ax, 0f0h
+valre2:	testfl	m_5200
+	jz	value1
+	mov	ah, 0c0h
 	jmp	value1
+
+nopia:	error	e_5200
 
 valquo:	jopcod	rcopco
 	push	bx
@@ -2271,7 +2317,7 @@ opt1:	shr	cx, 1
 	call	[word di-2+optvec-opttxt]
 opt0:	lodsw
 	and	al, 0dfh
-	mov	cx, 6
+	mov	cx, 10
 	mov	di, offset opttxt
 	repne	scasw
 	je	opt1
@@ -2283,17 +2329,27 @@ opt0:	lodsw
 
 opter:	error	e_opt
 
-optl0:	or	[flist], m_lsto
+optf0:
+;	maskflag	[fillfl], not (m_fillen+m_fillrq)
+	maskflag	[fillfl], not m_fillen
 	ret
-optl1:	jpass1	optr
-	and	[flist], not m_lsto
-optr:	ret
+optf1:	setflag	[fillfl], m_fillen
+	ret
+optg0:	resfl	m_5200
+	ret
+optg1:	setfl	m_5200
+	ret
 opth0:	resfl	m_hdr+m_rqff
 	ret
 opth1:	bts	[flags], b_hdr
 	jc	optr
 	setfl	m_rorg
 	ret
+optl0:	or	[flist], m_lsto
+	ret
+optl1:	jpass1	optr
+	and	[flist], not m_lsto
+optr:	ret
 opto0:	resfl	m_wobj
 	ret
 opto1:	setfl	m_wobj
@@ -2354,15 +2410,23 @@ orgaf:	setfl	m_rorg
 	call	chkhon
 orget:	call	getuns
 	jc	unknow
+	testflag [fillfl], m_fillpo
+	jz	nforg
+	setflag	[fillfl], m_fillrq
+	testflag [fillfl], m_fillen
+	jnz	setorg
+nforg:	maskflag [fillfl], not m_fillrq
 setorg:	resfl	m_norg
 	mov	[origin], ax
 	ret
 
 p_rui:	call	chkhon
 	mov	ah, 2
-	call	setorg
+	call	nforg
 	call	spauns
-	jmp	savwor
+	call	savwor
+	maskflag [fillfl], not m_fillpo
+	ret
 
 valuco:	call	getval
 	jc	unknow
@@ -2907,15 +2971,15 @@ noper1	=	$-opert1
 opert0	db	'+-<>!~'
 noper0	=	$-opert0
 
-opttxt	db	'L-L+H-H+O-O+'
-optvec	dw	optl0,optl1,opth0,opth1,opto0,opto1
+opttxt	db	'F-F+G-G+H-H+L-L+O-O+'
+optvec	dw	optf0,optf1,optg0,optg1,opth0,opth1,optl0,optl1,opto0,opto1
 
 cndtxt	dd	'DNE','TFI','ILE','SLE','FIE'
 cndvec	dw	pofend,0,p_ift,0,p_eli,0,p_els,0,p_eif
 
 swilet	db	'UTSQPONLIEDC'
 
-hello	db	'X-Assembler 2.4.2'
+hello	db	'X-Assembler 2.5'
 	ifdef	SET_WIN_TITLE
 titfin	db	0
 	else
@@ -3005,9 +3069,13 @@ e_mopco	db	'Missing ''}''',cr
 e_pair	db	'Can''t pair this directive',cr
 e_skit	db	'Can''t skip over it',cr
 e_repa	db	'No instruction to repeat',cr
+e_5200	db	'There''s no PIA chip in Atari 5200',cr
+e_fill	db	'Can''t fill from higher to lower memory location',cr
+;;e_fatal	db	'Internal error. Please report to fox@scene.pl',cr
 clitxt	db	'command line'
 clitxl	=	$-clitxt
 
+fillbyt	db	0ffh
 exitcod	dw	4c00h
 ohand	dw	nhand
 lhand	dw	nhand
@@ -3028,6 +3096,7 @@ sinmax	dw	0
 sinadd	dd	?
 sinamp	dd	?
 sinsiz	dw	?
+fillfl	dw	?
 flist	db	?
 fslen	dw	?
 times	dw	?
