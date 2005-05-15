@@ -1,4 +1,17 @@
-; xasm
+; xasm 2.6.1
+; by Piotr Fusik <fox@scene.pl>
+
+; - No more "Arithmetic overflow" and "Division by zero" errors when correctly using forward-referenced labels
+;   (bug found by Marcin Lewandowski)
+; - The following now assembles:
+;    ift 0
+;   foo equ 1
+;    ift foo
+;    eif
+;    eif
+;   (bug found by Adrian Matoga)
+; - Issue errors for non-existing INC @ and DEC @
+; - Negative numbers fixed in the listing
 
 EXE                  =	1	; EXE vs COM, not sure if COM still works
 COMPAK               =	0	; 1d00h, only if COM
@@ -1922,7 +1935,10 @@ v_com:	pop	cx
 	jae	v_r1a
 	sta	ecx
 	pop	eax
-v_r1a:	push	offset v_com
+v_r1a:	jpass2	v_run
+	cmp	[ukp1], 1
+	jnb	v_com
+v_run:	push	offset v_com
 	push	dx
 	ret
 v_xcm:	cmp	bl, 1
@@ -2308,9 +2324,9 @@ p_srt:	call	getadr
 	mov	bx, offset srttab
 	xlat
 	or	al, [cod]
-	cmp	al, 0c0h
+	cmp	al, 0cah
 	je	ilamod
-	cmp	al, 0e0h
+	cmp	al, 0eah
 	je	ilamod
 putsfx:	call	putcmd
 	mov	al, [amod+1]
@@ -2322,7 +2338,7 @@ putsfx:	call	putcmd
 putret:	ret
 	
 p_inw:	call	getadr
-	cmp	al, 6
+	cmp	ax, 6
 	jnb	ilamod
 	sub	al, 2
 	jb	ilamod
@@ -2659,6 +2675,9 @@ ENDIF
 	jns	equ3
 	mov	ah, '-'
 	neg	dx
+IF	LABELS_32
+	xor	eax, 0ffff0000h
+ENDIF
 equ3:	stosw
 	lda	dx
 IF	LABELS_32
@@ -3074,7 +3093,9 @@ p_ift:	shl	[elflag], 1
 	jc	etmift
 	shl	[cmflag], 1
 	shl	[skflag], 1
-ift1:	call	spaval
+ift1:	cmp	[skflag], 0
+	jnz	cndret
+	call	spaval
 	jc	unknow
 	test	eax, eax
 	jnz	ift2
@@ -3088,7 +3109,8 @@ ift2:	bts	[cmflag], 0
 	maskflag [skflag], not 1
 cndret:	ret
 
-p_eli:	testflag [elflag], 1
+p_eli:	maskflag [skflag], not 1
+	testflag [elflag], 1
 	jz	ift1
 cnderr:	cmp	[elflag], 1
 	je	emift
@@ -3287,7 +3309,7 @@ ENDIF
 	db	'LIEDC'
 NUM_SWITCHES =	$-swilet
 
-hello	db	'xasm 2.6.0'
+hello	db	'xasm 2.6.1'
 IF	SET_WIN_TITLE
 titfin	db	0,10
 ELSE
