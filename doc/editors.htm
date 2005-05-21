@@ -15,39 +15,45 @@
 </ul>
 <p>Of course these features are not available in the <i>Windows Notepad</i>,
 so you must pick another text editor. Fortunately there are many
-general-purpose text editors for Windows. I'll fucus on four of them:</p>
+general-purpose text editors for Windows. I'll focus on the following:</p>
 <ul>
 <li><i>EditPlus</i>
 (<a href="http://www.editplus.com">www.editplus.com</a>)</li>
 <li><i>ConTEXT</i>
-(<a href="http://www.fixedsys.com/context">www.fixedsys.com/context</a>)</li>
+(<a href="http://www.context.cx">www.context.cx</a>)</li>
 <li><i>Code-Genie</i>
-(<a href="http://www.code-genie.com">www.code-genie.com</a>)</li>
+(<a href="http://www.code-genie.com">www.code-genie.com</a>,
+looks like the editor is no longer supported)</li>
 <li><i>PSPad</i>
-(<a href="http://pspad.zde.cz">pspad.zde.cz</a>)</li>
+(<a href="http://www.pspad.com">www.pspad.com</a>)</li>
+<li><i>Programmers Notepad 2</i>
+(<a href="http://www.pnotepad.org">www.pnotepad.org</a>)</li>
+<li><i>Crimson Editor</i>
+(<a href="http://www.crimsoneditor.com">www.crimsoneditor.com</a>)</li>
+<li><i>SciTE</i>
+(<a href="http://www.scintilla.org">www.scintilla.org</a>),
+also available for Linux</li>
 </ul>
-<p>All of these have similar features. Personally I prefer
-<i>Code-Genie</i>.</p>
 <h3>Highlighting xasm mnemonics</h3>
 <p>In the <tt>syntax</tt> subdirectory you'll find xasm syntax definitions
 for all of these editors.</p>
 <ul>
-<li>Installation for <i>EditPlus</i>:
+<li><i>EditPlus</i>:
 Select <b>Tools/Preferences</b>, then <b>Files/Settings &amp; syntax</b>,
 then <b>Add</b>. Type <b>Description</b> (<tt>xasm</tt>),
 <b>File extensions</b> (<tt>asx</tt>), click <b>...</b> next to <b>Syntax
 file</b> and locate the <tt>xasm.stx</tt> file. Then click
 <b>Syntax colors</b> and select your favourite colors.</li>
-<li>Installation for <i>ConTEXT</i>: Just copy <tt>xasm.chl</tt>
+<li><i>ConTEXT</i>: Just copy <tt>xasm.chl</tt>
 to the <tt>Highlighters</tt> subdirectory of the <i>ConTEXT</i>
 directory.</li>
-<li>Installation for <i>Code-Genie</i>:
+<li><i>Code-Genie</i>:
 Copy <tt>xasm.cgsyn</tt> to the <tt>syn</tt> subdirectory in the
 <i>Code-Genie</i> directory. Edit <tt>cgenie.conf</tt>, you can do it by
 selecting <b>View/Settings</b>. Type:<br/>
 <tt>DefaultSyntax&nbsp;xasm&nbsp;asx</tt><br/>
 near other <tt>DefaultSyntax</tt> lines.</li>
-<li>Installation for <i>PSPad</i>: Copy <tt>xasm.ini</tt> to the
+<li><i>PSPad</i>: Copy <tt>xasm.ini</tt> to the
 <tt>Syntax</tt> subdirectory of the <i>PSPad</i> directory. Edit
 <tt>PSPad.ini</tt>. In the <tt>[Config]</tt> section set:<br/>
 <tt>UserHighLighterName=xasm</tt><br/>
@@ -66,6 +72,22 @@ Reserved word=00FF000080000005000
 Space=0080800080000005000
 String=0080008080000005000
 Symbol=8000000880000005000
+</pre></li>
+<li><i>Programmers Notepad 2</i>: Copy <tt>xasm.scheme</tt>
+to the <tt>schemes</tt> subdirectory of the <i>Programmers Notepad</i>
+directory. You have to select the xasm scheme each time you open a source
+file, as I don't know how to associate the scheme with the <tt>asx</tt>
+extension.</li>
+<li><i>Crimson Editor</i>: Copy <tt>xasm.key</tt>
+and <tt>xasm.spc</tt> to the <tt>spec</tt> subdirectory
+of the <i>Crimson Editor</i>. Copy <tt>extension.asx</tt> to the <tt>link</tt>
+subdirecory of the <i>Crimson Editor</i>.</li>
+<li><i>SciTE</i>: Copy <tt>xasm.properties</tt> to the <i>SciTE</i> directory.
+Add the following line to <tt>menu.language</tt> in <tt>SciTEGlobal.properties</tt>:
+<pre>xasm|asx||\
+</pre>
+Add the following line at the end of <tt>SciTEGlobal.properties</tt>:
+<pre>import xasm
 </pre></li>
 </ul>
 <h3>Single-keystroke assembly</h3>
@@ -97,9 +119,18 @@ Compilator ParsLog=%F (%L) *
 Compilator Capture=1
 </pre>
 (replace the paths to xasm and the emulator).</li>
+<li> <i>Programmers Notepad 2</i>: Select <b>Tools/Add tools</b>. Select
+<b>Scheme</b>: <tt>xasm</tt>. Click <b>Add</b>. Fill: <b>Name</b>,
+<b>Command</b>, <b>Folder</b> (<tt>%d</tt>) and <b>Parameters</b> (<tt>%f</tt>).
+For error parsing, you should fill a custom pattern on the <b>Console I/O</b>
+tab. However, PN 2.0.5.48 <b>crashes</b> when entering <tt>"("</tt> !</li>
+<li> <i>Crimson Editor</i>: Select <b>Tools/Conf. User Tools</b>. Select
+an empty slot, fill <b>Menu Text</b>, <b>Command</b>, <b>Argument</b>
+and <b>Initial Dir</b>. Check <b>Capture output</b>.</li>
+<li> <i>SciTE</i>: The configuration is already in <tt>xasm.properties</tt>.</li>
 </ul>
 <h3>Placing the cursor where an assembly error occured</h3>
-<p>This works same for all these four editors: just double-click the line
+<p>This works same for all these editors: just double-click the line
 with the error message.</p>
 </body>
 </html>

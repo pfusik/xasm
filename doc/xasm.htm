@@ -2,7 +2,7 @@
  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<title>xasm 2.6.0</title>
+<title>xasm 2.6.1</title>
 <meta name="Author" content="Piotr Fusik"/>
 </head>
 <body>
@@ -57,8 +57,8 @@ Prevents <b>xasm</b> from printing its name and the summary (how many lines
 assembled and bytes written). Good if you are building a project from many
 source files and don't want tons of messages.</dd>
 <dt><tt>/t[:filename]</tt></dt>
-<dd>List label table. If no <tt>filename</tt> given, the table is written
-at the end of listing or to <tt>source.tab</tt>.</dd>
+<dd>List label table. If no <tt>filename</tt> given, the table is appended
+to the listing.</dd>
 <dt><a name="new_unlabels"/><tt>/u</tt></dt>
 <dd>Warn of unused labels. A warning message will be issued for each label,
 whose value is never used.</dd>
@@ -560,6 +560,21 @@ in all 6502 commands and pseudo-commands, except for
  cmd (z),0- =  ldy #0    : cmd (z),y : dey
 </pre>
 <h2>CHANGES</h2>
+<h3>Version 2.6.1 (2005-05-21)</h3>
+<ul>
+<li>no more "Arithmetic overflow" and "Division by zero" errors when correctly
+using forward-referenced labels (bug found by Marcin Lewandowski)</li>
+<li>the following now assembles:
+<pre> ift 0
+foo equ 1
+ ift foo
+ eif
+ eif
+</pre>
+(bug found by Adrian Matoga)</li>
+<li>errors for non-existing <tt>INC @</tt> and <tt>DEC @</tt></li>
+<li>negative numbers fixed in the listing</li>
+</ul>
 <h3>Version 2.6.0 (2005-02-07)</h3>
 <ul>
 <li>long file names are supported under Windows</li>
