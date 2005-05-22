@@ -3,31 +3,30 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <title>xasm</title>
-<meta name="Description" content="xasm is a 6502 cross-assembler for DOS/Windows."/>
+<meta name="Description" content="xasm is a 6502 cross-assembler for DOS/Windows/Linux."/>
 <meta name="Keywords" content="xasm,6502,cross-assembler,atari"/>
 <meta name="Author" content="Piotr Fusik"/>
+<style type="text/css">
+body { background-color: #c0f0c0; color: #000000; font-family: Verdana, Arial, Helvetica, sans-serif; }
+h1 { background-color: #008080; color: #ffffff; padding-left: 10px; }
+h3 { background-color: #008080; color: #ffffff; padding-left: 10px; }
+th { background-color: #008080; color: #ffffff; }
+table { margin-bottom: 12px; }
+td { background-color: #40a090; color: #ffffff; text-align: left; padding-left: 10px; padding-right: 10px; }
+td a { color: #ffffff; }
+hr { color: #008080; height: 5px; }
+</style>
 </head>
-<body style="background-color: #c0ffc0">
+<body>
 <h1>xasm.atari.org</h1>
-<p><b>xasm</b> is a 6502 cross-assembler for DOS/Windows.
+<p><b>xasm</b> is a 6502 cross-assembler.
 It is mainly targeted at Atari 8-bit computers,
 but it can be also used for programming
 Atari 2600/5200/Lynx, Commodore C64, Apple ][ and others.
 <b>xasm</b> is freeware.</p>
-<p><a href="xasm260.zip">Download version 2.6.0
-(22 KB, includes full documentation)</a></p>
-<p><b>xasm</b> no longer includes the tools X-BOOT, X-LOAD and X-HEAD.
-If you really need them,
-<a href="xasm252.zip">download version 2.5.2 (38 KB)</a>.</p>
-<h3>Target audience</h3>
-<p><b>xasm</b> is for people who are fluent in the 6502 assembly language.
-There is no sample code for beginners, no easy-to-use libraries.
-You are warned that programming 8-bit machines in the assembly language
-is a tedious work.</p>
-<p>There are several 6502 cross-assemblers to choose from and new ones
-still appear. Just search the web. Make sure to not overlook
-the <a href="http://www.cc65.org">cc65</a> compiler which includes
-a cross-assembler, portable across many host and target platforms.</p>
+<p>Version 3.0.0 is a complete rewrite from the x86 assembly language
+to the <a href="http://www.digitalmars.com/d">D programming language</a>.
+<b>xasm</b> is now available for Linux.</p>
 <h3>Features</h3>
 <p>Although <b>xasm</b> does not support user-defined macros, it has a rich
 set of built-in facilities.</p>
@@ -71,8 +70,32 @@ do_line
 <p>Although <b>xasm</b> comes with no editor, the documentation
 describes integration (syntax highlighting and single-keystroke compilation)
 with a few general-purpose text editors. Here is a screenshot
-of the <a href="http://www.code-genie.com">Code-Genie</a> editor:</p>
+of the Code-Genie editor:</p>
 <p><img src="cgenie.gif" alt="6502 code in Code-Genie"/></p>
+<h3>Download</h3>
+<div style="text-align: center">
+<table>
+<tr><th>File</th><th>Size</th><th>Description</th></tr>
+<tr><td><a href="xasm-3.0.0-win32.zip">xasm-3.0.0-win32.zip</a></td>
+<td style="text-align: right">98 KB</td><td>xasm 3.0.0 for Windows</td></tr>
+<tr><td><a href="xasm-3.0.0-linux.tar.gz">xasm-3.0.0-linux.tar.gz</a></td>
+<td style="text-align: right">128 KB</td><td>xasm 3.0.0 for Linux</td></tr>
+<tr><td><a href="xasm-3.0.0-src.zip">xasm-3.0.0-src.zip</a></td>
+<td style="text-align: right">16 KB</td><td>xasm 3.0.0 source code</td></tr>
+<tr><td><a href="xasm261.zip">xasm261.zip</a></td>
+<td style="text-align: right">25 KB</td><td>xasm 2.6.1 for DOS/Windows</td></tr>
+<tr><td><a href="xasm252.zip">xasm252.zip</a></td>
+<td style="text-align: right">38 KB</td><td>xasm 2.5.2 for DOS/Windows (includes
+X-BOOT, X-LOAD and X-HEAD)</td></tr>
+</table>
+</div>
+<h3>Links</h3>
+<ul>
+<li><a href="http://www.cc65.org">cc65</a></li>
+<li><a href="http://g2f.atari8.info/mads/">Mad-Assembler</a></li>
+<li><a href="http://www.npsnet.com/danf/cbm/cross-development.html">6502
+Cross-Development Languages and Tools List</a></li>
+</ul>
 <hr/>
 <p><i>Hosted by <a href="http://atariarea.histeria.pl">Atari Area</a></i></p>
 </body>

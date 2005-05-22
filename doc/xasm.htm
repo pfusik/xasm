@@ -2,7 +2,7 @@
  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
-<title>xasm 2.6.1</title>
+<title>xasm 3.0.0</title>
 <meta name="Author" content="Piotr Fusik"/>
 </head>
 <body>
@@ -14,9 +14,9 @@
 <p><b>xasm</b> is a cross-assembler which generates code for the 6502
 processor.</p>
 <p><tt>source</tt> is the name of the source file. If no filename extension
-is given, <tt>.ASX</tt> is appended. The default action (when invoked without
+is given, <tt>.asx</tt> is appended. The default action (when invoked without
 options) is to assembly <tt>source</tt>, writing the result to a file with
-the <tt>.OBX</tt> extension.</p>
+the <tt>.obx</tt> extension.</p>
 <h2>OPTIONS</h2>
 <dl>
 <dt><tt>/c</tt></dt>
@@ -29,14 +29,6 @@ Lines skipped due to a false condition are not listed by default.</dd>
 to labels defined in the source file).
 You may use several <tt>/d</tt> options to define many labels
 from the command line.</dd>
-<dt><a name="new_environment"/><tt>/e</tt></dt>
-<dd>Enable setting environment variables pointing at the error location.
-With this option, <b>xasm</b> sets two environment variables:
-<tt>ERRFILE</tt> and <tt>ERRLINE</tt>.
-They may be used in a batch file to locate the error and set editor's
-insertion point on it. If there was no error, the variables point at the last
-issued warning. If no warning occured, they are removed from
-the environment.</dd>
 <dt><tt>/i</tt></dt>
 <dd>Disable listing included sources. Only main source file will be
 listed.</dd>
@@ -50,7 +42,8 @@ You may use the null device (<tt>/o:nul</tt>) to generate no object file.</dd>
 <dt><a name="new_fullpaths"/><tt>/p</tt></dt>
 <dd>Print fully qualified file names in listing and error messages.
 This option is useful for the Code-Genie editor, which can jump to the error
-location only if the full path is given.</dd>
+location only if the full path is given.
+This option works only on Windows and is silently ignored on Linux.</dd>
 <dt><a name="new_quiet"/><tt>/q</tt></dt>
 <dd>Suppress info messages.
 Prevents <b>xasm</b> from printing its name and the summary (how many lines
@@ -63,17 +56,17 @@ to the listing.</dd>
 <dd>Warn of unused labels. A warning message will be issued for each label,
 whose value is never used.</dd>
 </dl>
+<p>Alternatively, you may use Unix-style options, for example:</p>
+<pre>xasm -i -d DEBUG=1 -l listing.lst source.asx
+</pre>
 <h2>SYNTAX</h2>
-<p>Source files should be plain ASCII files. Although different line
-terminators are supported, CR/LF is recommended because it is the standard
-in the DOS/Windows environment. Lines must be no longer than 256
-characters. <b>xasm</b> is not case-sensitive, so you can mix upper-
-and lower-case for labels and instructions.</p>
+<p>Source files should be plain ASCII files. Supported are LF, CR, CR/LF
+and Atari line terminators. <b>xasm</b> is not case-sensitive, so you can mix
+upper- and lower-case for labels and instructions.</p>
 <p><b>xasm</b> is backward compatible with Quick Assembler.
-If you want to assembly QA sources with <b>xasm</b>, simply convert the text
-file to CR/LF terminators and replace ATASCII specific characters with their
-integer representation. You also have to change all <tt>OPT</tt> directives,
-but usually you only need to remove them.</p>
+If you want to assembly QA sources with <b>xasm</b>, simply replace ATASCII
+specific characters with their integer representation. You also have to change
+all <tt>OPT</tt> directives, but usually you only need to remove them.</p>
 <p>A <i>label</i> is a symbol that represents a 32-bit signed integer.
 You can define a label by putting its name at the beginning of a line
 (with no spaces before). If you do not use the <tt>EQU</tt> directive,
@@ -345,12 +338,15 @@ Examples of <tt>DTA</tt>:
 <dd>Specifies another file to be included in the assembly as if the contents
 of the referenced file appeared in place of the <tt>ICL</tt> statement.
 The included file may contain other <tt>ICL</tt> statements.
-The <tt>.ASX</tt> extension is added if none given.<br/>
+The <tt>.asx</tt> extension is added if none given.<br/>
 Examples:
 <pre>
  icl 'macros.asx'
- icl 'c:\atari\xasm\fileio'
-</pre></dd>
+ icl 'lib/fileio'
+</pre>
+Note: for portability, you should use only relative paths and slash
+as the separator. This guarantees that your sources will compile under Windows
+and Linux.</dd>
 <dt><tt><b>END</b></tt> - end assembling file</dt>
 <dd>Remaining part of the file is not assembled. If this statement does
 not occur, the assembler stops assembling when it encounters the end
@@ -560,6 +556,19 @@ in all 6502 commands and pseudo-commands, except for
  cmd (z),0- =  ldy #0    : cmd (z),y : dey
 </pre>
 <h2>CHANGES</h2>
+<h3>Version 3.0.0 (2005-05-22)</h3>
+<ul>
+<li>rewritten from the x86 assembly language to the
+<a href="http://www.digitalmars.com/d">D programming language</a>
+- Linux version is now available and plain DOS is no longer supported</li>
+<li>no limits for the line length, number of <tt>ICL</tt>s, <tt>ORG</tt>s,
+<tt>IFT</tt>s and labels</li>
+<li>Unix-style command-line options are supported:
+<pre>xasm -i -d DEBUG=1 -l listing.lst source.asx
+</pre></li>
+<li><tt>/e</tt> option is no longer supported</li>
+<li>the label table is now sorted alphabetically</li>
+</ul>
 <h3>Version 2.6.1 (2005-05-21)</h3>
 <ul>
 <li>no more "Arithmetic overflow" and "Division by zero" errors when correctly
@@ -668,8 +677,7 @@ for generating smaller code</a></li>
 <li>origin setting not required until it is used</li>
 <li>Unix ($0a), Macintosh ($0d) and Atari ($9b) EOLs allowed in the source</li>
 <li>value of 'true' changed to 1</li>
-<li><a href="#new_environment">setting environment variables on error
-option</a></li>
+<li>setting environment variables on error option</li>
 <li>assembling only if source newer than object option</li>
 <li><a href="#new_opcode">op-code extracting</a></li>
 <li><a href="#new_linerep">line repeating</a></li>
