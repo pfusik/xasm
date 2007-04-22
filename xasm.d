@@ -1,11 +1,10 @@
-// xasm 3.0.0 by Piotr Fusik <fox@scene.pl>
-// See the homepage at http://xasm.atari.org.
-// This source code is free, redistributable and modifiable
-// under the terms of the Artistic License (attached as artistic.txt).
+// xasm 3.0.1 by Piotr Fusik <fox@scene.pl>
+// http://xasm.atari.org
 
-private import std.math;
-private import std.stream;
-private import std.string;
+import std.math;
+import std.stream;
+import std.cstream;
+import std.string;
 
 version (Windows) {
 
@@ -32,7 +31,7 @@ version (Windows) {
 	const char[] OPTION_P_DESC = "Ignored for compatibility";
 }
 
-const char[] TITLE = "xasm 3.0.0";
+const char[] TITLE = "xasm 3.0.1";
 
 char[] sourceFilename = null;
 
@@ -214,10 +213,10 @@ bit getOption(char letter) {
 }
 
 void warning(char[] msg) {
-	if (!(line is null)) {
-		stderr.printf("%.*s\n", line);
+	if (line !is null) {
+		derr.printf("%.*s\n", line);
 	}
-	stderr.printf("%.*s (%d) WARNING: %.*s\n",
+	derr.printf("%.*s (%d) WARNING: %.*s\n",
 		currentLocation.filename,
 		currentLocation.lineNo, msg
 	);
@@ -310,7 +309,7 @@ char[] readLabel() {
 		column--;
 		break;
 	}
-	return label >= "A" ? label : cast(char[]) null;
+	return label >= "A" ? label : null;
 }
 
 void readComma() {
@@ -835,7 +834,7 @@ debug int testValue(char[] l) {
 	line = l;
 	column = 0;
 	readValue();
-	printf("Value of %.*s is %x\n", line, value);
+	dout.printf("Value of %.*s is %x\n", line, value);
 	return value;
 }
 
@@ -1111,7 +1110,7 @@ debug AddrMode testAddrMode(char[] l) {
 	line = l;
 	column = 0;
 	readAddrMode();
-	printf("Addressing mode of \"%.*s\" is %x\n", line, addrMode);
+	dout.printf("Addressing mode of \"%.*s\" is %x\n", line, addrMode);
 	return addrMode;
 }
 
@@ -1195,7 +1194,7 @@ void ensureListingFileOpen(char letter, char[] msg) {
 	if (listingStream is null) {
 		listingStream = openOutputFile(letter, ".lst");
 		if (!getOption('q')) {
-			printf(msg);
+			dout.printf(msg);
 		}
 		listingStream.printf(TITLE ~ "\r\n");
 	}
@@ -1258,7 +1257,7 @@ void listCommentLine() {
 }
 
 void listLabelTable() {
-	if (!(optionParameters['t' - 'a'] is null) && !(listingStream is null)) {
+	if (optionParameters['t' - 'a'] !is null && listingStream !is null) {
 		listingStream.close();
 		listingStream = null;
 	}
@@ -1292,7 +1291,7 @@ void objectByte(ubyte b) {
 		if (objectStream is null) {
 			objectStream = openOutputFile('o', ".obx");
 			if (!getOption('q')) {
-				printf("Writing object file...\n");
+				dout.printf("Writing object file...\n");
 			}
 		}
 		try {
@@ -1346,7 +1345,8 @@ void putByte(ubyte b) {
 		objectByte(b);
 	}
 	if (pass2) {
-		debug; else {
+		debug {
+		}else {
 			objectByte(b);
 		}
 		if (listingColumn < 29) {
@@ -1357,15 +1357,17 @@ void putByte(ubyte b) {
 			listingColumn = 30;
 		}
 	}
-	if (origin >= 0) {
+	if (optionHeaders) {
+		if (origin < 0)
+			throw new AssemblyError("No ORG specified");
 		assert(blockIndex >= 0);
 		if (!pass2) {
 			blockEnds[blockIndex] = cast(ushort) loadOrigin;
 		}
+	}
+	if (origin >= 0) {
 		origin++;
 		loadingOrigin = ++loadOrigin;
-	} else if (optionHeaders) {
-		throw new AssemblyError("No ORG specified");
 	}
 }
 
@@ -2074,7 +2076,6 @@ void assemblyDtaNumbers(char letter) {
 		case 'r':
 			assemblyDtaReal();
 			break;
-			
 		}
 		switch (readChar()) {
 		case ')':
@@ -2443,7 +2444,7 @@ void assemblyIns() {
 }
 
 void assemblyInstruction(char[] instruction) {
-	if (!inOpcode && origin < 0 && !(currentLabel is null) && instruction != "EQU") {
+	if (!inOpcode && origin < 0 && currentLabel !is null && instruction != "EQU") {
 		throw new AssemblyError("No ORG specified");
 	}
 	instructionBegin = true;
@@ -2768,11 +2769,11 @@ debug ubyte[] testInstruction(char[] l) {
 	line = l;
 	column = 0;
 	assemblyInstruction(readInstruction());
-	printf("%.*s assembles to", line);
+	dout.printf("%.*s assembles to", line);
 	foreach (ubyte b; objectBuffer) {
-		printf(" %02x", b);
+		dout.printf(" %02x", b);
 	}
-	printf("\n");
+	dout.printf("\n");
 	return objectBuffer;
 }
 
@@ -2811,7 +2812,7 @@ void assemblyPair() {
 
 void assemblyLine() {
 	debug {
-		printf("%.*s\n", line);
+		dout.printf("%.*s\n", line);
 	}
 	currentLocation.lineNo++;
 	totalLines++;
@@ -2823,7 +2824,7 @@ void assemblyLine() {
 	}
 	char[] label = readLabel();
 	currentLabel = null;
-	if (!(label is null)) {
+	if (label !is null) {
 		if (!inFalseCondition()) {
 			if (!pass2) {
 				if (label in labelTable) {
@@ -2930,7 +2931,7 @@ void assemblyFile(char[] filename) {
 	if (filenameExt(filename) < 0) {
 		filename ~= ".asx";
 	}
-	if (!(currentLocation is null)) {
+	if (currentLocation !is null) {
 		locations ~= currentLocation;
 	}
 	if (getOption('p')) {
@@ -3090,7 +3091,7 @@ int main(char[][] args) {
 			}
 			continue;
 		}
-		if (!(sourceFilename is null)) {
+		if (sourceFilename !is null) {
 			exitCode = 3;
 		}
 		sourceFilename = arg;
@@ -3099,10 +3100,10 @@ int main(char[][] args) {
 		exitCode = 3;
 	}
 	if (!getOption('q')) {
-		printf(TITLE ~ "\n");
+		dout.printf(TITLE ~ "\n");
 	}
 	if (exitCode != 0) {
-		printf(
+		dout.printf(
 			"Syntax: xasm source [options]\n"
 			"/c             Include false conditionals in listing\n"
 			"/d:label=value Define a label\n"
@@ -3124,25 +3125,25 @@ int main(char[][] args) {
 			listLabelTable();
 		}
 	} catch (AssemblyError e) {
-		if (!(line is null)) {
-			stderr.printf("%.*s\n", line);
+		if (line !is null) {
+			derr.printf("%.*s\n", line);
 		}
-		stderr.printf("%.*s (%d) ERROR: %.*s\n",
+		derr.printf("%.*s (%d) ERROR: %.*s\n",
 			currentLocation.filename,
 			currentLocation.lineNo, e.msg
 		);
 		exitCode = 2;
 	}
-	if (!(listingStream is null)) {
+	if (listingStream !is null) {
 		listingStream.close();
 	}
-	if (!(objectStream is null)) {
+	if (objectStream !is null) {
 		objectStream.close();
 	}
 	if (exitCode <= 1 && !getOption('q')) {
-		printf("%d lines of source assembled\n", totalLines);
+		dout.printf("%d lines of source assembled\n", totalLines);
 		if (objectBytes > 0) {
-			printf("%d bytes written to the object file\n", objectBytes);
+			dout.printf("%d bytes written to the object file\n", objectBytes);
 		}
 	}
 	return exitCode;

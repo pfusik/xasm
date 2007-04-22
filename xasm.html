@@ -1,8 +1,8 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
- "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head>
-<title>xasm 3.0.0</title>
+<title>xasm 3.0.1</title>
 <meta name="Author" content="Piotr Fusik"/>
 </head>
 <body>
@@ -20,9 +20,8 @@ the <tt>.obx</tt> extension.</p>
 <h2>OPTIONS</h2>
 <dl>
 <dt><tt>/c</tt></dt>
-<dd>Enable listing false conditionals.
-Lines skipped due to a false condition are not listed by default.</dd>
-<dt><a name="new_deflabel"/><tt>/d:label=value</tt></dt>
+<dd>List lines skipped due to a false condition.</dd>
+<dt><a id="new_deflabel"/><tt>/d:label=value</tt></dt>
 <dd>Define a label.
 <tt>label</tt> should be a valid label name.
 <tt>value</tt> may be any expression (it may use forward references
@@ -30,49 +29,42 @@ to labels defined in the source file).
 You may use several <tt>/d</tt> options to define many labels
 from the command line.</dd>
 <dt><tt>/i</tt></dt>
-<dd>Disable listing included sources. Only main source file will be
-listed.</dd>
+<dd>Do not list included files. Only main source file will be listed.</dd>
 <dt><tt>/l[:filename]</tt></dt>
-<dd>Enable listing. If no <tt>filename</tt> is given, the listing is written
+<dd>Generate a listing. If no <tt>filename</tt> is given, the listing is written
 to <tt>source.lst</tt>, where <tt>source</tt> is the name of the source file
-(without the extension).</dd>
+without the extension.</dd>
 <dt><tt>/o:filename</tt></dt>
-<dd>Specify object file name. The default is <tt>source.obx</tt>.
+<dd>Set object file name. The default is <tt>source.obx</tt>.
 You may use the null device (<tt>/o:nul</tt>) to generate no object file.</dd>
-<dt><a name="new_fullpaths"/><tt>/p</tt></dt>
+<dt><a id="new_fullpaths"/><tt>/p</tt></dt>
 <dd>Print fully qualified file names in listing and error messages.
-This option is useful for the Code-Genie editor, which can jump to the error
-location only if the full path is given.
-This option works only on Windows and is silently ignored on Linux.</dd>
-<dt><a name="new_quiet"/><tt>/q</tt></dt>
+This option works only on Windows and is silently ignored on other platforms.</dd>
+<dt><a id="new_quiet"/><tt>/q</tt></dt>
 <dd>Suppress info messages.
-Prevents <b>xasm</b> from printing its name and the summary (how many lines
-assembled and bytes written). Good if you are building a project from many
-source files and don't want tons of messages.</dd>
+Quiet mode. Prevents <b>xasm</b> from printing the logo and the summary.</dd>
 <dt><tt>/t[:filename]</tt></dt>
-<dd>List label table. If no <tt>filename</tt> given, the table is appended
+<dd>List label table. If <tt>filename</tt> is omitted then the table is appended
 to the listing.</dd>
-<dt><a name="new_unlabels"/><tt>/u</tt></dt>
-<dd>Warn of unused labels. A warning message will be issued for each label,
-whose value is never used.</dd>
+<dt><a id="new_unlabels"/><tt>/u</tt></dt>
+<dd>Issue a warning message for each label whose value is unused.</dd>
 </dl>
 <p>Alternatively, you may use Unix-style options, for example:</p>
 <pre>xasm -i -d DEBUG=1 -l listing.lst source.asx
 </pre>
 <h2>SYNTAX</h2>
-<p>Source files should be plain ASCII files. Supported are LF, CR, CR/LF
-and Atari line terminators. <b>xasm</b> is not case-sensitive, so you can mix
-upper- and lower-case for labels and instructions.</p>
+<p>Source files should be plain ASCII files. LF, CR, CR/LF and Atari line terminators
+are supported. Labels and instructions are case-insensitive.</p>
 <p><b>xasm</b> is backward compatible with Quick Assembler.
-If you want to assembly QA sources with <b>xasm</b>, simply replace ATASCII
-specific characters with their integer representation. You also have to change
-all <tt>OPT</tt> directives, but usually you only need to remove them.</p>
+To compile QA sources with <b>xasm</b>, simply replace ATASCII-specific characters
+with their integer codes. You also have to change all <tt>OPT</tt> directives,
+but usually you can simply remove them.</p>
 <p>A <i>label</i> is a symbol that represents a 32-bit signed integer.
 You can define a label by putting its name at the beginning of a line
-(with no spaces before). If you do not use the <tt>EQU</tt> directive,
+(with no spaces before). Unless you use the <tt>EQU</tt> directive,
 the label is assigned the current value of the origin counter.</p>
-<p>Instructions and directives must be preceded with
-whitespace. Note that in <b>xasm</b> you can use instruction and directive
+<p>Instructions and directives must be preceded with some whitespace.
+Note that in <b>xasm</b> you can use instruction and directive
 names as label names. For example</p>
 <pre>nop
 </pre><p>defines a label called <tt>nop</tt>, whereas</p>
@@ -85,23 +77,21 @@ of full comment lines:</p>
  * so it is
 label | and this too
 </pre>
-<p><a name="new_linerep"/>Lines with instructions (and some directives)
+<p><a id="new_linerep"/>Lines with instructions (and some directives)
 may be <i>repeated</i>. A single line may be assembled several times,
 for example:</p>
 <pre>:4 asl @
 table :32*5 dta 5
 </pre>
-<p>In lines with instructions or directives, a comment starts after
-the instruction/directive has been successfully parsed. That is, <b>xasm</b>
-does not require a special character to start a comment. However,
-you still can use one, because it is usually required for correct syntax
-highlighting in text editors.</p>
+<p>In lines with instructions or directives, a comment starts immediately
+after the instruction/directive has been successfully parsed.
+That is, <b>xasm</b> does not require a special character to start a comment.</p>
 <pre> lda foo ; this is a comment
  sta bar so it is
- tax #0  tax requires no operand, so #0 starts a comment
+ tax #0  tax has no operand, therefore #0 starts this comment
 </pre>
-<p><a name="new_pairing"/>You may put two instructions on the same line.
-In this case they have the same operand. For example:</p>
+<p><a id="new_pairing"/>You may put two instructions in one line
+so they share the operand. For example:</p>
 <pre> eor:sta foo
 </pre>
 <p>is equivalent to</p>
@@ -110,29 +100,28 @@ In this case they have the same operand. For example:</p>
 </pre>
 <p>Note that</p>
 <pre> lda:tax #0
-</pre><p>is allowed (<tt>#0</tt> is a comment for <tt>tax</tt>).</p>
+</pre><p>is allowed because <tt>#0</tt> is treated as a comment for <tt>tax</tt>.</p>
 <h2>EXPRESSIONS</h2>
 <p>Expressions are numbers combined with operators and brackets.
 You should use square brackets, because parentheses are reserved
-for the indirect addressing.</p>
-<p>Numbers are 32-bit signed integers, in the range of -$7fffffff..$7fffffff.
-A number may be:</p>
+for 6502 indirect addressing.</p>
+<p>Numbers can be expressed as:</p>
 <ul>
-<li>a decimal number, e.g. <tt>-12345</tt></li>
-<li>a hexadecimal number, e.g. <tt>$abcd</tt></li>
-<li>a binary number, e.g. <tt>%10100101</tt></li>
+<li>a 32-bit decimal integer, e.g. <tt>-12345</tt></li>
+<li>a 32-bit hexadecimal integer, e.g. <tt>$abcd</tt></li>
+<li>a 32-bit binary integer, e.g. <tt>%10100101</tt></li>
 <li>an ASCII character, e.g. <tt>'a'</tt> or <tt>"a"</tt></li>
-<li>the origin counter value: <tt>*</tt></li>
+<li>origin counter: <tt>*</tt></li>
 <li>a hardware register, e.g. <tt>^4e</tt></li>
-<li><a name="new_opcode"/>an op-code, e.g. <tt>{lda #0}</tt> equals
+<li><a id="new_opcode"/>an op-code, e.g. <tt>{lda #0}</tt> equals
 <tt>$a9</tt></li>
-<li><a name="new_linecnt"/>the line repeat counter: <tt>#</tt></li>
+<li><a id="new_linecnt"/>the line repeat counter: <tt>#</tt></li>
 </ul>
 <p>Abbreviations of Atari hardware registers are provided to save you
 the trouble of typing two extra characters (<tt>^4e</tt> vs <tt>$d40e</tt>)
 and to ease porting software between Atari 8-bit computers and the Atari 5200
 console. These are very similar machines, one of the biggest differences is
-different location of hardware registers.</p>
+the location of hardware registers.</p>
 <table>
 <tr><th>Syntax</th><th>Chip</th>
 <th>Value in the Atari 8-bit<br/>computer mode (<tt>opt g-</tt>)</th>
@@ -150,17 +139,17 @@ different location of hardware registers.</p>
 <td><tt>$D40x</tt></td><td><tt>$D40x</tt></td></tr>
 </table>
 <p>An op-code is the single-byte op-code of the instruction inside braces.
-The operand of the instruction is discarded and is necessary only for
-identifying the addressing mode. The instruction should begin just after
+The operand of the instruction is discarded and is necessary only
+to recognize the addressing mode. The instruction should begin right after
 the left brace and the right brace should immediately follow the operand
 or the instruction.
-<a name="new_op_op"/>You can skip the operand if the addressing mode
+<a id="new_op_op"/>You can skip the operand if the addressing mode
 is fixed. Examples:
 <tt>{lda #}</tt>, <tt>{jsr}</tt>, <tt>{bne}</tt>, <tt>{jmp ()}</tt>,
 <tt>{sta a:,x}</tt>.</p>
 <p>You can use the line repeat counter (<tt>#</tt>) in the repeated lines.
 It counts the iterations starting from zero. Examples:</p>
-<pre>:3 dta # ; generates three bytes: 00, 01, 02.
+<pre>:3 dta # ; generates three bytes: 0, 1, 2.
 line_lo :192 dta l(screen+40*#)
 line_hi :192 dta h(screen+40*#)
 dl :59 dta $4f,a(screen+40*#),0,$4f,a(screen+40*#),0
@@ -188,7 +177,7 @@ dl :59 dta $4f,a(screen+40*#),0,$4f,a(screen+40*#),0
 <li><tt>&amp;&amp;</tt> Logical AND</li>
 <li><tt>||</tt> Logical OR</li>
 </ul>
-<p><a name="new_unary"/>The following unary operators are supported:</p>
+<p><a id="new_unary"/>The following unary operators are supported:</p>
 <ul>
 <li><tt>+&nbsp;</tt> Plus (does nothing)</li>
 <li><tt>-&nbsp;</tt> Minus (changes the sign)</li>
@@ -221,25 +210,24 @@ and Java, their priorities are different than in these languages.</p>
 <p>Compare and logical operators assume that zero is false and a non-zero
 is true. They return 1 for true.</p>
 <p>While calculating an expression, signed 32-bit arithmetic is used.
-When range of 32 bits is exceeded, the '<tt>Arithmetic overflow</tt>' error
-is generated.</p>
+When range of 32 bits is exceeded, an '<tt>Arithmetic overflow</tt>' error
+occurs.</p>
 <h2>DIRECTIVES</h2>
 <dl>
 <dt><tt><b>EQU</b></tt> - assign a value of an expression to the label</dt>
-<dd>Note that a label represents a number, not a text macro.<br/>
-Examples:
+<dd>Examples:
 <pre>five equ 5
 here equ *
 </pre></dd>
-<dt><a name="new_opt"/><tt><b>OPT</b></tt> - set assembly options</dt>
+<dt><a id="new_opt"/><tt><b>OPT</b></tt> - set assembly options</dt>
 <dd>Five options are available:
 <ul>
 <li><tt>F</tt> - fill the space between <tt>ORG</tt>s
-with <tt>$FF</tt> bytes</li>
+with <tt>$FF</tt></li>
 <li><tt>G</tt> - Atari 5200 mode for hardware register abbreviations</li>
 <li><tt>H</tt> - generate Atari executable headers</li>
-<li><tt>L</tt> - generate listing</li>
-<li><tt>O</tt> - generate object file</li>
+<li><tt>L</tt> - write to the listing</li>
+<li><tt>O</tt> - write to the object file</li>
 </ul>
 You can turn any of these on or off.<br/>
 The default (if no <tt>OPT</tt> specified) is <tt>opt f-g-h+l+o+</tt>.<br/>
@@ -249,15 +237,13 @@ Examples:
  opt f+g+h- useful for Atari 5200 cartridges - raw output format, 5200 hw regs
 </pre></dd>
 <dt><tt><b>ORG</b></tt> - change value of the origin counter</dt>
-<dd>You can set some options applied to the new header (if headers are
-enabled):
+<dd>If Atari executable headers are enabled, you can use a prefix:
 <ul>
-<li><tt>a:</tt> tells <b>xasm</b> to always make a header, even it is
-unnecessary, like in <tt>ORG *</tt>.</li>
-<li><tt>f:</tt> works same as <tt>a:</tt>, but additionally tells to generate
-a <tt>$FF,$FF</tt> prefix before the header. <b>xasm</b> adds it
-at the beginning of the file by default, so use this option only if you want
-the <tt>$FF</tt>'s somewhere inside.</li>
+<li><tt>a:</tt> starts a new block even if it is not necessary because
+the new address equals the current address.</li>
+<li><tt>f:</tt> is same as <tt>a:</tt>, but additionally generates
+a <tt>$FF,$FF</tt> prefix before the new header. The prefix is automatically
+generated at the beginning of the file.</li>
 </ul>
 Examples:
 <pre> org $600
@@ -267,13 +253,12 @@ table org *+100
 In the latter example <tt>table</tt> points to 100 bytes
 of uninitialized data (label is assigned to <tt>*</tt>
 before the <tt>ORG</tt> directive is executed).
-<p><a name="new_orgr"/>Starting with version 2.6.0, <b>xasm</b> supports code
+<p><a id="new_orgr"/>Starting with version 2.6.0, <b>xasm</b> supports code
 that is relocated in the memory at runtime. Let's say you want your code
-to be run at the zero page. Typically you can't load it directly into this
-place, so you load it at a different address and then move at the runtime.
-<b>xasm</b> differentiates between the address that it used
-for code generation from the address that is used for generating
-Atari executable headers. <tt>org r:</tt> affects only the former one.
+to be located on the zero page. You can't normally load it directly into this
+place, so you load it at a different address and then move in your program.
+<tt>org r:</tt> changes the address that it used for code generation
+but not the address used for generating Atari executable headers.
 Example:</p>
 <pre> org $8000
  ldx #code_length-1
@@ -292,8 +277,8 @@ because I think this is not useful. If you really need it, you can
 always type something like:</p>
 <pre>where_am_i equ *-code_zpage+code_loaded
 </pre></dd>
-<dt><a name="new_dta"/><tt><b>DTA</b></tt> - define data</dt>
-<dd>There are various data types:
+<dt><a id="new_dta"/><tt><b>DTA</b></tt> - define data</dt>
+<dd>
 <ul>
 <li>integers
 <ul>
@@ -311,21 +296,20 @@ where:
 <li><tt>center</tt> is a number which is added to every sine value</li>
 <li><tt>amp</tt> is the sine amplitude</li>
 <li><tt>size</tt> is the sine period</li>
-<li><tt>first,last</tt> define range of values in the table.
+<li><tt>first,last</tt> define the range of sine arguments.
 They are optional. The default are <tt>0,size-1</tt>.</li>
 </ul>
 Example: <tt>dta a(sin(0,1000,256,0,63))</tt> defines a table of 64 words
 representing a quarter of sine with the amplitude of 1000.</li>
 <li>real numbers: <tt>r(-1.23456e12)</tt><br/>
-Real numbers are written in the 6-byte Atari Floating-Point format.</li>
+Real numbers are stored in the 6-byte Atari Floating-Point format.</li>
 <li>text strings
 <ul>
 <li>ASCII strings: <tt>c'Text'</tt> or <tt>c"Text"</tt></li>
 <li>ANTIC strings: <tt>d'Text'</tt> or <tt>d"Text"</tt></li>
 </ul>
 A character string consists of any of characters surrounded by quotation
-marks. Within a string, a single quotation mark character is
-represented by two succesive quotation marks.<br/>
+marks. You can include the quotation marks in the string by doubling them.<br/>
 Placing a <tt>*</tt> character after a string inverts
 the highest bit in every byte of the string.</li>
 </ul>
@@ -345,7 +329,7 @@ Examples:
  icl 'lib/fileio'
 </pre>
 Note: for portability, you should use only relative paths and slash
-as the separator. This guarantees that your sources will compile under Windows
+as the separator. This assures that your sources will compile under Windows
 and Linux.</dd>
 <dt><tt><b>END</b></tt> - end assembling file</dt>
 <dd>Remaining part of the file is not assembled. If this statement does
@@ -358,23 +342,20 @@ Example:
 <dt><tt><b>INS</b></tt> - insert contents of file</dt>
 <dd>Copies every byte of the specified file into the object file and updates
 the origin counter, as if these bytes were defined with <tt>DTA</tt>.<br/>
-You may specify a range of the inserted file. The syntax is following:
+You may specify a range of the file to insert. The syntax is:
 <pre>
  ins 'file'[,offset[,length]]
 </pre>
 The first byte in a file has the offset of zero.<br/>
-If the offset is negative, it is counted from the end of the file.<br/>
+If the offset is negative, it counts from the end of the file.<br/>
 Examples:
 <pre>
  ins 'picture.raw'
  ins 'file',-256  insert last 256 bytes of file
  ins 'file',10,10 insert bytes 10..19 of file
 </pre></dd>
-<dt><tt><b>RUN</b></tt> - generate run address</dt>
-<dd>An Atari executable program should specify a run address.
-A program may be loaded in many areas of the memory and started from any
-address.
-<pre> run addr
+<dt><tt><b>RUN</b></tt> - set run address in the Atari executable format</dt>
+<dd><pre> run addr
 </pre>
 is equivalent to:
 <pre> org $2e0
@@ -383,18 +364,16 @@ is equivalent to:
 Example:
 <pre> run main
 </pre></dd>
-<dt><tt><b>INI</b></tt> - generate init address</dt>
-<dd>An Atari executable program may have some routines which are executed
-during the loading process. There may be many init blocks in one file.<br/>
-Example:
+<dt><tt><b>INI</b></tt> - set init address in the Atari executable format</dt>
+<dd>Example:
 <pre> ini showpic
 </pre></dd>
-<dt><tt><b>ERT</b></tt> - generate an error if an expression is true</dt>
+<dt><tt><b>ERT</b></tt> - generate error if expression evaluates to true</dt>
 <dd>Examples:
 <pre> ert *&gt;$c000
  ert len1&gt;$ff||len2&gt;$ff
 </pre></dd>
-<dt><a name="new_eli"/><tt><b>IFT</b></tt> - assemble if expression is
+<dt><a id="new_eli"/><tt><b>IFT</b></tt> - assemble if expression is
 true<br/>
 <tt><b>ELI</b></tt> - else if<br/>
 <tt><b>ELS</b></tt> - else<br/>
@@ -433,11 +412,11 @@ to use a <tt>CLC</tt> before <tt>ADC</tt> for every simple addition.<br/>
 <tt>CLC</tt> and <tt>ADC</tt>.</dd>
 <dt><tt><b>SUB</b></tt> - subtraction</dt>
 <dd>It is <tt>SEC</tt> and <tt>SBC</tt>.</dd>
-<dt><a name="new_repskip"/><tt><b>RCC, RCS, REQ, RMI, RNE, RPL, RVC,
+<dt><a id="new_repskip"/><tt><b>RCC, RCS, REQ, RMI, RNE, RPL, RVC,
 RVS</b></tt> - conditional repeat</dt>
 <dd>These are branches to the previous instruction.
 They take no operand, because the branch target
-is the address of previously assembled instruction.<br/>
+is the address of the previously assembled instruction.<br/>
 Example:
 <pre> ldx #0
  mva:rne $500,x $600,x+
@@ -465,7 +444,7 @@ In the above example the word-sized variable $80 is incremented by 40.</dd>
 jumps</dt>
 <dd>These are a kind of 'long' branches. While standard branches
 (such as <tt>BNE</tt>) have range of -128..+127, these jumps have range
-of all 64 kB.<br/>
+of 64 kB.<br/>
 Example:
 <pre> jne dest
 </pre>is equivalent to:
@@ -486,28 +465,28 @@ and substitutes two commands:
  mvx source dest = ldx source : stx dest
  mvy source dest = ldy source : sty dest
 </pre></dd>
-<dt><a name="new_mwinde"/><tt><b>MWA, MWX, MWY</b></tt> - move word using
+<dt><a id="new_mwinde"/><tt><b>MWA, MWX, MWY</b></tt> - move word using
 accumulator, X or Y</dt>
 <dd>These pseudo-commands require two operands
 and are combinations of two <tt>MV*</tt>'s:
 one to move the low byte, and the other to move the high byte.<br/>
 You can't use indirect nor pseudo addressing mode with <tt>MW*</tt>.
-Destination must be an absolute address (optionally indexed).<br/>
-When source is also absolute, an <tt>mw* source dest</tt> will be:
+Destination must be an absolute address, optionally indexed.<br/>
+When source is also an absolute address, an <tt>mw* source dest</tt> expands to:
 <pre> mv* source  dest
  mv* source+1 dest+1
 </pre>
-When source is an immediate, an <tt>mw* #immed dest</tt> will be:
+When source is an immediate value, an <tt>mw* #immed dest</tt> expands to:
 <pre> mv* &lt;immed dest
  mv* &gt;immed dest+1
 </pre>
 When <tt>&lt;immed</tt> equals <tt>&gt;immed</tt> and <tt>immed</tt>
-is not forward-referenced, <b>xasm</b> uses an optimization:
+is not forward-referenced, <b>xasm</b> skips the second <tt>LD*</tt>:
 <pre> mv* &lt;immed dest
  st* dest+1
 </pre>
 If possible, <tt>MWX</tt> and <tt>MWY</tt> use increment/decrement
-commands. E.g. <tt>mwx #1 dest</tt> is assembled as:
+commands. For example, <tt>mwx #1 dest</tt> expands to:
 <pre> ldx #1
  stx dest
  dex
@@ -523,24 +502,24 @@ the <tt>@</tt> character (as in Quick Assembler).</p>
 which use the low/high byte of a 16-bit word constant.
 They are for Quick Assembler compatibility.
 You can use traditional <tt>#&lt;</tt> and <tt>#&gt;</tt>.
-Note <tt>lda &gt;$ff+5</tt> loads 1 (<tt>&gt;$104</tt>),
+Note that <tt>lda &gt;$ff+5</tt> loads 1 (<tt>&gt;$104</tt>),
 while <tt>lda #&gt;$ff+5</tt>
 loads 5 (<tt>0+5</tt>) to the accumulator, because the unary operator
 <tt>&gt;</tt> has a higher priority than the binary plus.</p>
-<p>In absolute addressing modes, <b>xasm</b> examines the expression
-and uses zero-page addressing mode if it supposes it's possible.
-You may override it with <tt>a:</tt> and <tt>z:</tt> prefixes.</p>
+<p>You can explicitly choose absolute (<tt>a:</tt>)
+and zero-page (<tt>z:</tt>) addressing modes.</p>
 <p>Examples:</p>
 <pre>
  nop
  asl @
- lda &gt;$1234	assembles to lda #$12
+ lda &gt;$1234  assembles to lda #$12
  lda $100,x
- lda a:0	generates 16-bit address
+ lda 0       zero-page (8-bit address)
+ lda a:0     absolute (16-bit address)
  jmp ($0a)
  lda ($80),y
 </pre>
-<p>There are also pseudo addressing modes, which are similar to
+<p>There are pseudo addressing modes, which are similar to
 pseudo-commands. You may use them just like standard addressing modes
 in all 6502 commands and pseudo-commands, except for
 <tt>MWA</tt>, <tt>MWX</tt> and <tt>MWY</tt>:</p>
@@ -552,10 +531,16 @@ in all 6502 commands and pseudo-commands, except for
  cmd (z),y- =  cmd (z),y : dey
  cmd (z,0)  =  ldx #0    : cmd (z,x)
  cmd (z),0  =  ldy #0    : cmd (z),y
-<a name="new_adrmodes"/> cmd (z),0+ =  ldy #0    : cmd (z),y : iny
+<a id="new_adrmodes"/> cmd (z),0+ =  ldy #0    : cmd (z),y : iny
  cmd (z),0- =  ldy #0    : cmd (z),y : dey
 </pre>
-<h2>CHANGES</h2>
+<h2>HISTORY</h2>
+<h3>Version 3.0.1 (2007-04-22)</h3>
+<ul>
+<li>fixed a bug in <tt>OPT H-</tt> mode</li>
+<li>made <b>xasm</b> compilable with the latest D compiler v1.010
+(there were incompatible changes in the D language and library)</li>
+</ul>
 <h3>Version 3.0.0 (2005-05-22)</h3>
 <ul>
 <li>rewritten from the x86 assembly language to the
@@ -714,8 +699,6 @@ addressing modes</a></li>
 <h2>AUTHOR</h2>
 <p>Piotr Fusik (<a href="mailto:fox@scene.pl">fox@scene.pl</a>)</p>
 <h2>SEE ALSO</h2>
-<p><a href="editors.htm">How to configure a text editor for a convenient use
-of xasm</a></p>
 <p>xasm home page
 (<a href="http://xasm.atari.org">http://xasm.atari.org</a>)</p>
 </body>
