@@ -1,5 +1,20 @@
-// xasm 3.0.1 by Piotr Fusik <fox@scene.pl>
+// xasm 3.0.2 by Piotr Fusik <fox@scene.pl>
 // http://xasm.atari.org
+// Can be compiled with DMD v1.030.
+
+// Poetic License:
+//
+// This work 'as-is' we provide.
+// No warranty express or implied.
+// We've done our best,
+// to debug and test.
+// Liability for damages denied.
+//
+// Permission is granted hereby,
+// to copy, share, and modify.
+// Use as is fit,
+// free or for profit.
+// These rights, on this notice, rely.
 
 import std.math;
 import std.stream;
@@ -7,8 +22,10 @@ import std.cstream;
 import std.string;
 
 version (Windows) {
+	import std.c.windows.windows;
 
 	extern (Windows) export int GetFullPathNameA(char* lpFileName, int nBufferLength, char* lpBuffer, char** lpFilePart);
+	extern (Windows) HANDLE GetStdHandle(DWORD nStdHandle);
 
 	char[] getFullPath(char[] filename) {
 		char[260] fullPath;
@@ -31,7 +48,7 @@ version (Windows) {
 	const char[] OPTION_P_DESC = "Ignored for compatibility";
 }
 
-const char[] TITLE = "xasm 3.0.1";
+const char[] TITLE = "xasm 3.0.2";
 
 char[] sourceFilename = null;
 
@@ -40,6 +57,10 @@ bit[26] options;
 char[][26] optionParameters;
 
 char[][] commandLineDefinitions = null;
+
+char[] makeTarget = null;
+
+char[] makeSources = "";
 
 int exitCode = 0;
 
@@ -212,14 +233,26 @@ bit getOption(char letter) {
 	return options[letter - 'a'];
 }
 
-void warning(char[] msg) {
+void warning(char[] msg, bool error = false) {
+	dout.flush();
+	version (Windows) {
+		HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
+		CONSOLE_SCREEN_BUFFER_INFO csbi;
+		GetConsoleScreenBufferInfo(h, &csbi);
+		SetConsoleTextAttribute(h, (csbi.wAttributes & ~0xf) | (error ? 12 : 14));
+	}
 	if (line !is null) {
 		derr.printf("%.*s\n", line);
 	}
-	derr.printf("%.*s (%d) WARNING: %.*s\n",
+	derr.printf("%.*s (%d) %.*s: %.*s\n",
 		currentLocation.filename,
-		currentLocation.lineNo, msg
+		currentLocation.lineNo,
+		error ? "ERROR" : "WARNING",
+		msg
 	);
+	version (Windows) {
+		SetConsoleTextAttribute(h, csbi.wAttributes);
+	}
 	exitCode = 1;
 }
 
@@ -1163,7 +1196,12 @@ unittest {
 	assert(filenameExt("test\\foo.bar") == 8);
 }
 
+char[] makeEscape(char[] s) {
+	return replace(s, "$", "$$");
+}
+
 Stream openInputFile(char[] filename) {
+	makeSources ~= ' ' ~ makeEscape(filename);
 	try {
 		return new BufferedFile(filename, FileMode.In);
 	} catch (OpenException e) {
@@ -1182,6 +1220,9 @@ Stream openOutputFile(char letter, char[] defaultExt) {
 		filename ~= defaultExt;
 	} else {
 		filename = optionParameters[letter - 'a'];
+	}
+	if (letter == 'o') {
+		makeTarget = makeEscape(filename);
 	}
 	try {
 		return new BufferedFile(filename, FileMode.OutNew);
@@ -1716,7 +1757,7 @@ ubyte calculateBranch(int offset) {
 	if (offset < -0x80 || offset > 0x7f) {
 		int dist;
 		if (offset < 0) {
-			dist = 0x80 - offset;
+			dist = -offset - 0x80;
 		} else {
 			dist = offset - 0x7f;
 		}
@@ -3043,9 +3084,12 @@ int main(char[][] args) {
 		char[] arg = args[i];
 		if (isOption(arg)) {
 			char letter = arg[1];
+			if (letter >= 'A' && letter <= 'Z')
+				letter += 'a' - 'A';
 			switch (letter) {
 			case 'c':
 			case 'i':
+			case 'm':
 			case 'p':
 			case 'q':
 			case 'u':
@@ -3110,6 +3154,7 @@ int main(char[][] args) {
 			"/i             Don't list included files\n"
 			"/l[:filename]  Generate listing\n"
 			"/o:filename    Set object file name\n"
+			"/M             Print Makefile rule\n"
 			"/p             " ~ OPTION_P_DESC ~ "\n"
 			"/q             Suppress info messages\n"
 			"/t[:filename]  List label table\n"
@@ -3125,13 +3170,7 @@ int main(char[][] args) {
 			listLabelTable();
 		}
 	} catch (AssemblyError e) {
-		if (line !is null) {
-			derr.printf("%.*s\n", line);
-		}
-		derr.printf("%.*s (%d) ERROR: %.*s\n",
-			currentLocation.filename,
-			currentLocation.lineNo, e.msg
-		);
+		warning(e.msg, true);
 		exitCode = 2;
 	}
 	if (listingStream !is null) {
@@ -3140,10 +3179,48 @@ int main(char[][] args) {
 	if (objectStream !is null) {
 		objectStream.close();
 	}
-	if (exitCode <= 1 && !getOption('q')) {
-		dout.printf("%d lines of source assembled\n", totalLines);
-		if (objectBytes > 0) {
-			dout.printf("%d bytes written to the object file\n", objectBytes);
+	if (exitCode <= 1) {
+		if (!getOption('q')) {
+			dout.printf("%d lines of source assembled\n", totalLines);
+			if (objectBytes > 0) {
+				dout.printf("%d bytes written to the object file\n", objectBytes);
+			}
+		}
+		if (getOption('m')) {
+			dout.printf("%.*s:%.*s\n\txasm", makeTarget, makeSources);
+			for (int i = 1; i < args.length; i++) {
+				char[] arg = args[i];
+				if (isOption(arg)) {
+					char letter = arg[1];
+					if (letter >= 'A' && letter <= 'Z')
+						letter += 'a' - 'A';
+					switch (letter) {
+					case 'm':
+						break;
+					case 'o':
+						if (arg[0] == '/') {
+							dout.printf(" /%c:$@", arg[1]);
+						} else {
+							dout.printf(" -%c $@", arg[1]);
+							++i;
+						}
+						break;
+					default:
+						if (arg[0] == '-'
+						 && (letter == 'd' || letter == 'l' || letter == 't')
+						 && i + 1 < args.length && !isOption(args[i + 1])) {
+							dout.printf(" %.*s %.*s", arg, makeEscape(args[++i]));
+						}
+						else {
+							dout.printf(" %.*s", makeEscape(arg));
+						}
+						break;
+					}
+					continue;
+				}
+				dout.printf(" $<");
+			}
+			dout.printf("\n");
 		}
 	}
 	return exitCode;

@@ -1,0 +1,112 @@
+xasm - 6502 cross-assembler
+===========================
+
+xasm is a free tool for programming 
+http://en.wikipedia.org/wiki/Atari_8-bit_family[Atari 8-bit family computers].
+
+History
+-------
+
+First version of xasm was written in 1998. I needed a cross-assembler
+that could understand the syntax of Quick Assembler
+which I used for 8-bit Atari programming before I got a PC.
+Initially xasm supported the syntax of QA and nothing more.
+I quickly realized that I could extend the syntax to make it more expressive.
+This led to xasm 2.0, still in 1998. I added some more features
+next year. In 2002 I released many versions which contained
+mostly bugfixes. In 2005 there were some minor enhancements and bug fixes,
+as well as the whole assembler was rewritten from the x86 assembly language
+it was initially written in to the http://www.digitalmars.com/d/[D programming language].
+Current version 3.0.2 was released 17th October 2009.
+
+Syntax
+------
+
+6502 assembler code is usually full of LDA, STA, LDA, STA sequences.
+With xasm you can use MVA as a shortcut for LDA/STA pair
+or even MWA for 16-bit transfers. You can avoid defining labels
+when you need short jumps, thanks to conditional skip
+and repeat pseudo-instructions. You can put two instructions
+that share their argument in one line.
+These are just some of the features that help you program
+in a more concise way. Let's look at typical 6502 code
+(which is also valid in xasm):
+
+-----------------------------
+        lda #<dest
+        sta ptr
+        lda #>dest
+        sta ptr+1
+        ldx #192
+do_line
+        ldy #39
+do_byte
+        lda pattern,y
+        sta (ptr),y
+        dey
+        bpl do_byte
+        lda #40
+        clc
+        adc ptr
+        sta ptr
+        bcc skip
+        inc ptr+1
+skip
+        dex
+        bne do_line
+-----------------------------
+
+Using xasm's features this code can be rewritten to:
+
+-----------------------------
+        mwa     #dest ptr
+        ldx     #192
+do_line
+        ldy     #39
+        mva:rpl pattern,y (ptr),y-
+        lda #40
+        add:sta ptr
+        scc:inc ptr+1
+        dex:bne do_line
+-----------------------------
+
+
+Usage
+-----
+
+xasm is a command-line tool.
+Therefore you additionally need a programmer's text editor.
+
+I use http://www.scintilla.org/SciTE.html[SciTE].
+Syntax highlighting definition for it is included with xasm.
+To install it, copy `xasm.properties` to the SciTE directory,
+select _Options / Open Global Options File_, type `import xasm`
+at the end and save the global configuration file.
+
+image::scite.png[xasm code in SciTE]
+
+Download
+--------
+
+- link:xasm-3.0.2-windows.zip[xasm 3.0.2 for Windows]
+- link:xasm-3.0.2-src.zip[xasm 3.0.2 source code]
+- link:xasm261.zip[xasm 2.6.1 for DOS]
+
+For other systems, such as GNU/Linux and MacOS X, install a D 1.x compiler
+and compile xasm from source code.
+
+Inflate
+-------
+
+Do you need a good decompression routine for 6502?
+See my link:inflate.html[inflate routine].
+
+Links
+-----
+
+- http://atari800.sourceforge.net/[Atari800 emulator] - portable emulator of Atari 8-bit computers
+- http://sources.pigwa.net/[Atari XL/XE Source Archive] - source code of Atari demos, utilities and games
+- http://www.cc65.org/[cc65] - C cross-compiler targeting 6502-based systems
+- http://epi.atari8.info/hcasm.php[HardCore Assembler] - 6502/65816 cross-assembler, partially supporting xasm's syntax
+- http://mads.atari8.info/[MADS] - another 6502/65816 cross-assembler, partially supporting xasm's syntax
+- http://wudsn.com/[WUDSN IDE] - Eclipse plugin, front-end to several 6502 cross-assemblers including xasm
