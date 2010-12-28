@@ -1,6 +1,6 @@
 // xasm 3.0.2 by Piotr Fusik <fox@scene.pl>
 // http://xasm.atari.org
-// Can be compiled with DMD v1.030.
+// Can be compiled with DMD v2.051.
 
 // Poetic License:
 //
@@ -16,10 +16,11 @@
 // free or for profit.
 // These rights, on this notice, rely.
 
+import std.stdio;
 import std.math;
 import std.stream;
-import std.cstream;
 import std.string;
+import std.conv;
 
 version (Windows) {
 	import std.c.windows.windows;
@@ -52,31 +53,31 @@ const char[] TITLE = "xasm 3.0.2";
 
 char[] sourceFilename = null;
 
-bit[26] options;
+bool[26] options;
 
 char[][26] optionParameters;
 
 char[][] commandLineDefinitions = null;
 
-char[] makeTarget = null;
+char[] makeTarget;
 
-char[] makeSources = "";
+char[] makeSources;
 
-int exitCode = 0;
+int exitCode;
 
 int totalLines;
 
-bit pass2 = false;
+bool pass2;
 
-bit optionFill; // opt f
+bool optionFill; // opt f
 
-bit option5200; // opt g
+bool option5200; // opt g
 
-bit optionHeaders; // opt h
+bool optionHeaders; // opt h
 
-bit optionListing; // opt l
+bool optionListing; // opt l
 
-bit optionObject; // opt o
+bool optionObject; // opt o
 
 char[] line;
 
@@ -84,11 +85,11 @@ int column;
 
 class Location {
 
-	char[] filename;
+	string filename;
 
 	int lineNo = 0;
 
-	this(char[] filename) {
+	this(string filename) {
 		this.filename = filename;
 	}
 }
@@ -97,11 +98,15 @@ Location[] locations;
 
 Location currentLocation;
 
-bit foundEnd;
+bool foundEnd;
 
 class AssemblyError : Exception {
 
-	this(char[] msg) {
+	this(in char[] msg) {
+		super(msg.idup);
+	}
+
+	this(string msg) {
 		super(msg);
 	}
 }
@@ -110,24 +115,24 @@ class Label {
 
 	int value;
 
-	bit unused = true;
+	bool unused = true;
 
-	bit unknownInPass1 = false;
+	bool unknownInPass1 = false;
 
-	bit passed = false;
+	bool passed = false;
 
 	this(int value) {
 		this.value = value;
 	}
 }
 
-Label[char[]] labelTable;
+Label[string] labelTable;
 
 Label currentLabel;
 
 typedef int function(int a, int b) OperatorFunction;
 
-bit inOpcode = false;
+bool inOpcode = false;
 
 struct ValOp {
 
@@ -142,7 +147,7 @@ ValOp[] valOpStack;
 
 int value;
 
-bit unknownInPass1;
+bool unknownInPass1;
 
 enum AddrMode {
 	ACCUMULATOR = 0,
@@ -175,17 +180,17 @@ ushort[] blockEnds;
 
 int blockIndex;
 
-bit repeating; // line
+bool repeating; // line
 
 int repeatCounter; // line
 
-bit instructionBegin;
+bool instructionBegin;
 
-bit pairing;
+bool pairing;
 
-bit willSkip;
+bool willSkip;
 
-bit skipping;
+bool skipping;
 
 ushort[] skipOffsets;
 
@@ -193,7 +198,7 @@ int skipOffsetsIndex = 0;
 
 int repeatOffset; // instruction repeat
 
-bit wereManyInstructions;
+bool wereManyInstructions;
 
 typedef void function(int move) MoveFunction;
 
@@ -207,11 +212,11 @@ AddrMode addrMode2;
 
 struct IfContext {
 
-	bit condition;
+	bool condition;
 
-	bit wasElse;
+	bool wasElse;
 
-	bit aConditionMatched;
+	bool aConditionMatched;
 }
 
 IfContext[] ifContexts;
@@ -222,37 +227,35 @@ char[32] listingLine;
 
 int listingColumn;
 
-char[] lastListedFilename = null;
+string lastListedFilename;
 
-Stream objectStream = null;
+Stream objectStream;
 
 int objectBytes = 0;
 
-bit getOption(char letter) {
+bool getOption(char letter) {
 	assert(letter >= 'a' && letter <= 'z');
 	return options[letter - 'a'];
 }
 
-void warning(char[] msg, bool error = false) {
-	dout.flush();
+void warning(in char[] msg, bool error = false) {
+	stdout.flush();
 	version (Windows) {
 		HANDLE h = GetStdHandle(STD_ERROR_HANDLE);
 		CONSOLE_SCREEN_BUFFER_INFO csbi;
 		GetConsoleScreenBufferInfo(h, &csbi);
 		SetConsoleTextAttribute(h, (csbi.wAttributes & ~0xf) | (error ? 12 : 14));
+		scope (exit) SetConsoleTextAttribute(h, csbi.wAttributes);
 	}
 	if (line !is null) {
-		derr.printf("%.*s\n", line);
+		stderr.writeln(line);
 	}
-	derr.printf("%.*s (%d) %.*s: %.*s\n",
+	stderr.writefln("%s (%d) %s: %s",
 		currentLocation.filename,
 		currentLocation.lineNo,
 		error ? "ERROR" : "WARNING",
 		msg
 	);
-	version (Windows) {
-		SetConsoleTextAttribute(h, csbi.wAttributes);
-	}
 	exitCode = 1;
 }
 
@@ -260,7 +263,7 @@ void illegalCharacter() {
 	throw new AssemblyError("Illegal character");
 }
 
-bit eol() {
+bool eol() {
 	return column >= line.length;
 }
 
@@ -327,7 +330,7 @@ void readSpaces() {
 }
 
 char[] readLabel() {
-	char[] label = "";
+	char[] label;
 	while (!eol()) {
 		char c = line[column++];
 		if (c >= '0' && c <= '9' || c == '_') {
@@ -352,7 +355,7 @@ void readComma() {
 }
 
 char[] readInstruction() {
-	char[] r = "";
+	char[] r;
 	for (int i = 0; i < 3; i++) {
 		char c = readChar() & 0xdf;
 		if (c < 'A' || c > 'Z') {
@@ -364,12 +367,12 @@ char[] readInstruction() {
 }
 
 char[] readFunction() {
-	if (column + 5 >= line.length) return "";
-	if (line[column + 3] != '(') return "";
-	char[] r = "";
+	if (column + 5 >= line.length) return null;
+	if (line[column + 3] != '(') return null;
+	char[] r;
 	for (int i = 0; i < 3; i++) {
 		char c = line[column + i] & 0xdf;
-		if (c < 'A' || c > 'Z') return "";
+		if (c < 'A' || c > 'Z') return null;
 		r ~= c;
 	}
 	column += 4;
@@ -377,7 +380,7 @@ char[] readFunction() {
 }
 
 char[] readFilename() {
-	char[] filename = "";
+	char[] filename;
 	readSpaces();
 	char delimiter = readChar();
 	switch (delimiter) {
@@ -391,6 +394,7 @@ char[] readFilename() {
 	default:
 		illegalCharacter();
 	}
+	assert(0);
 }
 
 void readStringChar(char c) {
@@ -413,7 +417,7 @@ ubyte[] readString() {
 				if (line[column] != delimiter) {
 					if (line[column] == '*') {
 						column++;
-						foreach (inout ubyte b; r) {
+						foreach (ref b; r) {
 							b ^= 0x80;
 						}
 					}
@@ -548,7 +552,7 @@ int operatorShiftLeft(int a, int b) {
 	if (b < 0) {
 		return operatorShiftRight(a, -b);
 	}
-	if (a != 0 & b >= 32) {
+	if (a != 0 && b >= 32) {
 		throw new AssemblyError("Arithmetic overflow");
 	}
 	long r = cast(long) a << b;
@@ -672,8 +676,8 @@ void readValue() {
 			}
 			ValOp[] savedValOpStack = valOpStack;
 			AddrMode savedAddrMode = addrMode;
-			bit savedUnknownInPass1 = unknownInPass1;
-			bit savedInstructionBegin = instructionBegin;
+			bool savedUnknownInPass1 = unknownInPass1;
+			bool savedInstructionBegin = instructionBegin;
 			valOpStack.length = 0;
 			inOpcode = true;
 			assemblyInstruction(readInstruction());
@@ -863,11 +867,11 @@ void readValue() {
 	valOpStack.length = 0;
 }
 
-debug int testValue(char[] l) {
-	line = l;
+debug int testValue(in char[] l) {
+	line = l.dup;
 	column = 0;
 	readValue();
-	dout.printf("Value of %.*s is %x\n", line, value);
+	writefln("Value of %s is %x", line, value);
 	return value;
 }
 
@@ -1139,11 +1143,11 @@ void readAbsoluteAddrMode() {
 	addrMode = AddrMode.ABSOLUTE;
 }
 
-debug AddrMode testAddrMode(char[] l) {
-	line = l;
+debug AddrMode testAddrMode(in char[] l) {
+	line = l.dup;
 	column = 0;
 	readAddrMode();
-	dout.printf("Addressing mode of \"%.*s\" is %x\n", line, addrMode);
+	writefln("Addressing mode of \"%s\" is %x", line, addrMode);
 	return addrMode;
 }
 
@@ -1166,14 +1170,14 @@ unittest {
 	inOpcode = false;
 }
 
-bit inFalseCondition() {
+bool inFalseCondition() {
 	foreach (IfContext ic; ifContexts) {
 		if (!ic.condition) return true;
 	}
 	return false;
 }
 
-int filenameExt(char[] filename) {
+int filenameExt(in char[] filename) {
 	int i = filename.length;
 	while (--i >= 0) {
 		switch (filename[i]) {
@@ -1197,19 +1201,19 @@ unittest {
 }
 
 char[] makeEscape(char[] s) {
-	return replace(s, "$", "$$");
+	return replace(s.idup, "$", "$$").dup;
 }
 
 Stream openInputFile(char[] filename) {
 	makeSources ~= ' ' ~ makeEscape(filename);
 	try {
-		return new BufferedFile(filename, FileMode.In);
+		return new BufferedFile(filename.idup, FileMode.In);
 	} catch (OpenException e) {
 		throw new AssemblyError(e.toString());
 	}
 }
 
-Stream openOutputFile(char letter, char[] defaultExt) {
+Stream openOutputFile(char letter, string defaultExt) {
 	char[] filename;
 	if (optionParameters[letter - 'a'] is null) {
 		filename = sourceFilename;
@@ -1225,24 +1229,24 @@ Stream openOutputFile(char letter, char[] defaultExt) {
 		makeTarget = makeEscape(filename);
 	}
 	try {
-		return new BufferedFile(filename, FileMode.OutNew);
+		return new BufferedFile(filename.idup, FileMode.OutNew);
 	} catch (OpenException e) {
 		throw new AssemblyError(e.toString());
 	}
 }
 
-void ensureListingFileOpen(char letter, char[] msg) {
+void ensureListingFileOpen(char letter, in char[] msg) {
 	if (listingStream is null) {
 		listingStream = openOutputFile(letter, ".lst");
 		if (!getOption('q')) {
-			dout.printf(msg);
+			write(msg);
 		}
-		listingStream.printf(TITLE ~ "\r\n");
+		listingStream.writeLine(TITLE);
 	}
 }
 
 void listNibble(int x) {
-	listingLine[listingColumn++] = x <= 9 ? x + '0' : x + ('A' - 10);
+	listingLine[listingColumn++] = cast(char) (x <= 9 ? x + '0' : x + ('A' - 10));
 }
 
 void listByte(ubyte x) {
@@ -1268,13 +1272,13 @@ void listLine() {
 	}
 	ensureListingFileOpen('l', "Writing listing file...\n");
 	if (currentLocation.filename != lastListedFilename) {
-		listingStream.printf("Source: %.*s\n", currentLocation.filename);
+		listingStream.writefln("Source: %s", currentLocation.filename);
 		lastListedFilename = currentLocation.filename;
 	}
 	int i = 4;
 	int x = currentLocation.lineNo;
 	while (x > 0 && i >= 0) {
-		listingLine[i--] = '0' + x % 10;
+		listingLine[i--] = cast(char) ('0' + x % 10);
 		x /= 10;
 	}
 	while (i >= 0) {
@@ -1284,7 +1288,7 @@ void listLine() {
 	while (listingColumn < 32) {
 		listingLine[listingColumn++] = ' ';
 	}
-	listingStream.printf("%.32s%.*s\r\n", cast(char*) listingLine, line);
+	listingStream.writefln("%.32s%s", listingLine, line);
 }
 
 void listCommentLine() {
@@ -1303,8 +1307,8 @@ void listLabelTable() {
 		listingStream = null;
 	}
 	ensureListingFileOpen('t', "Writing label table...\n");
-	listingStream.printf("Label table:\r\n");
-	foreach (char[] name; labelTable.keys.sort) {
+	listingStream.writefln("Label table:");
+	foreach (name; labelTable.keys.sort) {
 		Label l = labelTable[name];
 		listingStream.write(l.unused ? 'n' : ' ');
 		listingStream.write(l.unknownInPass1 ? '2' : ' ');
@@ -1314,8 +1318,8 @@ void listLabelTable() {
 			sign = '-';
 			value = -value;
 		}
-		listingStream.printf(
-			(l.value & 0xffff0000) != 0 ? " %c%08X %.*s\r\n" : "     %c%04X %.*s\r\n",
+		listingStream.writefln(
+			(l.value & 0xffff0000) != 0 ? " %s%08X %s" : "     %s%04X %s",
 			sign, value, name
 		);
 	}
@@ -1332,7 +1336,7 @@ void objectByte(ubyte b) {
 		if (objectStream is null) {
 			objectStream = openOutputFile('o', ".obx");
 			if (!getOption('q')) {
-				dout.printf("Writing object file...\n");
+				writeln("Writing object file...");
 			}
 		}
 		try {
@@ -1438,7 +1442,7 @@ void putCommand(ubyte b) {
 	case AddrMode.ABSOLUTE_X:
 	case AddrMode.ABSOLUTE_Y:
 	case AddrMode.INDIRECT:
-		putWord(value);
+		putWord(cast(ushort) value);
 		break;
 	}
 	switch (addrMode) {
@@ -1525,37 +1529,37 @@ void assemblyAccumulator(ubyte b, ubyte prefix, int move) {
 			// STA #
 			illegalAddrMode();
 		}
-		putCommand(b + 9);
+		putCommand(cast(ubyte) (b + 9));
 		break;
 	case AddrMode.ABSOLUTE:
-		putCommand(b + 0xd);
+		putCommand(cast(ubyte) (b + 0xd));
 		break;
 	case AddrMode.ZEROPAGE:
-		putCommand(b + 5);
+		putCommand(cast(ubyte) (b + 5));
 		break;
 	case AddrMode.ABSOLUTE_X:
-		putCommand(b + 0x1d);
+		putCommand(cast(ubyte) (b + 0x1d));
 		break;
 	case AddrMode.ZEROPAGE_X:
-		putCommand(b + 0x15);
+		putCommand(cast(ubyte) (b + 0x15));
 		break;
 	case AddrMode.ZEROPAGE_Y:
 		addrMode -= 1;
 		goto case AddrMode.ABSOLUTE_Y;
 	case AddrMode.ABSOLUTE_Y:
-		putCommand(b + 0x19);
+		putCommand(cast(ubyte) (b + 0x19));
 		break;
 	case AddrMode.INDIRECT_X:
 		if ((addrMode & AddrMode.ZERO) != 0) {
 			putWord(0x00a2);
 		}
-		putCommand(b + 1);
+		putCommand(cast(ubyte) (b + 1));
 		break;
 	case AddrMode.INDIRECT_Y:
 		if ((addrMode & AddrMode.ZERO) != 0) {
 			putWord(0x00a0);
 		}
-		putCommand(b + 0x11);
+		putCommand(cast(ubyte) (b + 0x11));
 		break;
 	}
 }
@@ -1568,19 +1572,19 @@ void assemblyShift(ubyte b) {
 			// INC @, DEC @
 			illegalAddrMode();
 		}
-		putByte(b + 0xa);
+		putByte(cast(ubyte) (b + 0xa));
 		break;
 	case AddrMode.ABSOLUTE:
-		putCommand(b + 0xe);
+		putCommand(cast(ubyte) (b + 0xe));
 		break;
 	case AddrMode.ZEROPAGE:
-		putCommand(b + 6);
+		putCommand(cast(ubyte) (b + 6));
 		break;
 	case AddrMode.ABSOLUTE_X:
-		putCommand(b + 0x1e);
+		putCommand(cast(ubyte) (b + 0x1e));
 		break;
 	case AddrMode.ZEROPAGE_X:
-		putCommand(b + 0x16);
+		putCommand(cast(ubyte) (b + 0x16));
 		break;
 	default:
 		illegalAddrMode();
@@ -1594,10 +1598,10 @@ void assemblyCompareIndex(ubyte b) {
 		putCommand(b);
 		break;
 	case AddrMode.ABSOLUTE:
-		putCommand(b + 0xc);
+		putCommand(cast(ubyte) (b + 0xc));
 		break;
 	case AddrMode.ZEROPAGE:
-		putCommand(b + 4);
+		putCommand(cast(ubyte) (b + 4));
 		break;
 	default:
 		illegalAddrMode();
@@ -1761,7 +1765,7 @@ ubyte calculateBranch(int offset) {
 		} else {
 			dist = offset - 0x7f;
 		}
-		throw new AssemblyError("Branch out of range by " ~ toString(dist) ~ " bytes");
+		throw new AssemblyError("Branch out of range by " ~ to!string(dist) ~ " bytes");
 	}
 	return cast(ubyte) offset;
 }
@@ -1844,7 +1848,7 @@ void assemblyMove() {
 	readAddrMode();
 	value1 = value;
 	addrMode1 = addrMode;
-	bit unknown1 = unknownInPass1;
+	bool unknown1 = unknownInPass1;
 	readAddrMode();
 	value2 = value;
 	addrMode2 = addrMode;
@@ -1971,7 +1975,7 @@ void assemblyDtaInteger(char letter) {
 	storeDtaNumber(value, letter);
 }
 
-bit realSign;
+bool realSign;
 
 int realExponent;
 
@@ -2009,7 +2013,7 @@ void putReal() {
 	putByte(cast(ubyte) realMantissa);
 }
 
-bit readSign() {
+bool readSign() {
 	switch (readChar()) {
 	case '+':
 		return false;
@@ -2022,7 +2026,7 @@ bit readSign() {
 }
 
 void readExponent() {
-	bit sign = readSign();
+	bool sign = readSign();
 	char c = readChar();
 	if (c < '0' || c > '9') {
 		illegalCharacter();
@@ -2165,11 +2169,11 @@ void assemblyDta() {
 			foreach (ubyte b; s) {
 				switch (b & 0x60) {
 				case 0x00:
-					putByte(b + 0x40);
+					putByte(cast(ubyte) (b + 0x40));
 					break;
 				case 0x20:
 				case 0x40:
-					putByte(b - 0x20);
+					putByte(cast(ubyte) (b - 0x20));
 					break;
 				case 0x60:
 					putByte(b);
@@ -2307,7 +2311,7 @@ void assemblyErt() {
 	}
 }
 
-bit readOption() {
+bool readOption() {
 	switch (readChar()) {
 	case '-':
 		return false;
@@ -2316,6 +2320,7 @@ bit readOption() {
 	default:
 		illegalCharacter();
 	}
+	assert(0);
 }
 
 void assemblyOpt() {
@@ -2356,7 +2361,7 @@ void originWord(ushort value, char listingChar) {
 	listingLine[listingColumn++] = listingChar;
 }
 
-void setOrigin(int addr, bit requestedHeader, bit requestedFFFF) {
+void setOrigin(int addr, bool requestedHeader, bool requestedFFFF) {
 	origin = loadOrigin = addr;
 	if (requestedHeader || loadingOrigin < 0 || (addr != loadingOrigin && !optionFill)) {
 		blockIndex++;
@@ -2395,8 +2400,8 @@ void checkHeadersOn() {
 void assemblyOrg() {
 	noRepeatSkipDirective();
 	readSpaces();
-	bit requestedFFFF = false;
-	bit requestedHeader = false;
+	bool requestedFFFF = false;
+	bool requestedHeader = false;
 	if (column + 2 < line.length && line[column + 1] == ':') {
 		switch (line[column]) {
 		case 'F':
@@ -2433,7 +2438,7 @@ void assemblyRunIni(ushort addr) {
 	setOrigin(addr, false, false);
 	readSpaces();
 	readUnsignedWord();
-	putWord(value);
+	putWord(cast(ushort) (value));
 	loadingOrigin = -1; // don't fill
 }
 
@@ -2463,6 +2468,7 @@ void assemblyIns() {
 		}
 	}
 	Stream stream = openInputFile(filename);
+	scope (exit) stream.close();
 	try {
 		stream.seek(offset, offset >= 0 ? SeekPos.Set : SeekPos.End);
 	} catch (SeekException e) {
@@ -2481,7 +2487,6 @@ void assemblyIns() {
 		putByte(b);
 		if (length > 0) length--;
 	}
-	// stream.close(); bug in Phobos
 }
 
 void assemblyInstruction(char[] instruction) {
@@ -2805,16 +2810,16 @@ void assemblyInstruction(char[] instruction) {
 	skipping = false;
 }
 
-debug ubyte[] testInstruction(char[] l) {
+debug ubyte[] testInstruction(in char[] l) {
 	objectBuffer.length = 0;
-	line = l;
+	line = l.dup;
 	column = 0;
 	assemblyInstruction(readInstruction());
-	dout.printf("%.*s assembles to", line);
+	write(line, " assembles to");
 	foreach (ubyte b; objectBuffer) {
-		dout.printf(" %02x", b);
+		writef(" %02x", b);
 	}
-	dout.printf("\n");
+	writeln();
 	return objectBuffer;
 }
 
@@ -2853,14 +2858,14 @@ void assemblyPair() {
 
 void assemblyLine() {
 	debug {
-		dout.printf("%.*s\n", line);
+		writeln(line);
 	}
 	currentLocation.lineNo++;
 	totalLines++;
 	column = 0;
 	listingColumn = 6;
 	if (origin >= 0) {
-		listWord(origin);
+		listWord(cast(ushort) origin);
 		listingLine[listingColumn++] = ' ';
 	}
 	char[] label = readLabel();
@@ -2872,7 +2877,7 @@ void assemblyLine() {
 					throw new AssemblyError("Label declared twice");
 				}
 				currentLabel = new Label(origin);
-				labelTable[label] = currentLabel;
+				labelTable[label.idup] = currentLabel;
 			} else {
 				assert(label in labelTable);
 				currentLabel = labelTable[label];
@@ -2978,48 +2983,45 @@ void assemblyFile(char[] filename) {
 	if (getOption('p')) {
 		filename = getFullPath(filename);
 	}
-	currentLocation = new Location(filename);
+	currentLocation = new Location(filename.idup);
 	foundEnd = false;
 	Stream stream = openInputFile(filename);
-	line = "";
-	try {
-		readChar: while (!foundEnd) {
-			ubyte c;
+	scope (exit) stream.close();
+	line = null;
+	readChar: while (!foundEnd) {
+		ubyte c;
+		try {
+			stream.read(c);
+		} catch (ReadException e) {
+			break;
+		}
+		switch (c) {
+		case '\r':
+			assemblyLine();
+			line = null;
 			try {
 				stream.read(c);
 			} catch (ReadException e) {
-				break;
+				break readChar;
 			}
-			switch (c) {
-			case '\r':
-				assemblyLine();
-				line = "";
-				try {
-					stream.read(c);
-				} catch (ReadException e) {
-					break readChar;
-				}
-				if (c != '\n') {
-					line ~= cast(char) c;
-				}
-				break;
-			case '\n':
-			case '\x9b':
-				assemblyLine();
-				line = "";
-				break;
-			default:
+			if (c != '\n') {
 				line ~= cast(char) c;
-				break;
 			}
-		}
-		if (!foundEnd) {
+			break;
+		case '\n':
+		case '\x9b':
 			assemblyLine();
+			line = null;
+			break;
+		default:
+			line ~= cast(char) c;
+			break;
 		}
-		foundEnd = false;
-	} finally {
-//		stream.close(); // bug in Phobos
 	}
+	if (!foundEnd) {
+		assemblyLine();
+	}
+	foundEnd = false;
 	if (locations.length > 0) {
 		currentLocation = locations[locations.length - 1];
 		locations.length = locations.length - 1;
@@ -3042,8 +3044,8 @@ void assemblyPass() {
 	wereManyInstructions = false;
 	if (commandLineDefinitions.length > 0) {
 		currentLocation = new Location("command line");
-		foreach (char[] definition; commandLineDefinitions) {
-			int i = find(definition, '=');
+		foreach (definition; commandLineDefinitions) {
+			int i = indexOf(definition, '=');
 			assert(i >= 0);
 			line = definition[0 .. i] ~ " equ " ~ definition[i + 1 .. definition.length];
 			assemblyLine();
@@ -3061,7 +3063,7 @@ void assemblyPass() {
 	}
 }
 
-bit isOption(char[] arg) {
+bool isOption(char[] arg) {
 	if (arg.length < 2) return false;
 	if (arg[0] == '-') return true;
 	if (arg[0] != '/') return false;
@@ -3102,12 +3104,12 @@ int main(char[][] args) {
 				char[] definition = null;
 				if (arg[0] == '/') {
 					if (arg.length >= 3 && arg[2] == ':') {
-						definition = arg[3..arg.length];
+						definition = arg[3 .. arg.length];
 					}
 				} else if (i + 1 < args.length && !isOption(args[i + 1])) {
 					definition = args[++i];
 				}
-				if (definition is null || find(definition, '=') < 0) {
+				if (definition is null || indexOf(definition, '=') < 0) {
 					exitCode = 3;
 				}
 				commandLineDefinitions ~= definition;
@@ -3119,7 +3121,7 @@ int main(char[][] args) {
 				char[] filename = null;
 				if (arg[0] == '/') {
 					if (arg.length >= 3 && arg[2] == ':') {
-						filename = arg[3..arg.length];
+						filename = arg[3 .. arg.length];
 					}
 				} else if (i + 1 < args.length && !isOption(args[i + 1])) {
 					filename = args[++i];
@@ -3144,10 +3146,10 @@ int main(char[][] args) {
 		exitCode = 3;
 	}
 	if (!getOption('q')) {
-		dout.printf(TITLE ~ "\n");
+		writeln(TITLE);
 	}
 	if (exitCode != 0) {
-		dout.printf(
+		write(
 			"Syntax: xasm source [options]\n"
 			"/c             Include false conditionals in listing\n"
 			"/d:label=value Define a label\n"
@@ -3181,13 +3183,13 @@ int main(char[][] args) {
 	}
 	if (exitCode <= 1) {
 		if (!getOption('q')) {
-			dout.printf("%d lines of source assembled\n", totalLines);
+			writefln("%d lines of source assembled", totalLines);
 			if (objectBytes > 0) {
-				dout.printf("%d bytes written to the object file\n", objectBytes);
+				writefln("%d bytes written to the object file", objectBytes);
 			}
 		}
 		if (getOption('m')) {
-			dout.printf("%.*s:%.*s\n\txasm", makeTarget, makeSources);
+			writef("%s:%s\n\txasm", makeTarget, makeSources);
 			for (int i = 1; i < args.length; i++) {
 				char[] arg = args[i];
 				if (isOption(arg)) {
@@ -3199,9 +3201,9 @@ int main(char[][] args) {
 						break;
 					case 'o':
 						if (arg[0] == '/') {
-							dout.printf(" /%c:$@", arg[1]);
+							writef(" /%c:$@", arg[1]);
 						} else {
-							dout.printf(" -%c $@", arg[1]);
+							writef(" -%c $@", arg[1]);
 							++i;
 						}
 						break;
@@ -3209,18 +3211,18 @@ int main(char[][] args) {
 						if (arg[0] == '-'
 						 && (letter == 'd' || letter == 'l' || letter == 't')
 						 && i + 1 < args.length && !isOption(args[i + 1])) {
-							dout.printf(" %.*s %.*s", arg, makeEscape(args[++i]));
+							writef(" %s %s", arg, makeEscape(args[++i]));
 						}
 						else {
-							dout.printf(" %.*s", makeEscape(arg));
+							writef(" %s", makeEscape(arg));
 						}
 						break;
 					}
 					continue;
 				}
-				dout.printf(" $<");
+				writef(" $<");
 			}
-			dout.printf("\n");
+			writeln();
 		}
 	}
 	return exitCode;
