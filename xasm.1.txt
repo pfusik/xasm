@@ -55,8 +55,7 @@ Sets output file name.
 The default is 'SOURCE_FILE' with the extension changed to `.obx`.
 
 [[new_fullpaths]]*/p*::
-Prints fully qualified file names in listing and error messages.
-This option works only on Windows and is silently ignored on other platforms.
+Prints absolute paths in listing and error messages.
 
 [[new_quiet]]*/q*::
 Quiet mode. Prevents *xasm* from printing the logo and the summary.
