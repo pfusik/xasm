@@ -744,7 +744,7 @@ void readValue() {
 			}
 		}
 		for (;;) {
-			int sp = valOpStack.length - 1;
+			immutable sp = valOpStack.length - 1;
 			if (sp <= 0 || valOpStack[sp].priority > valOpStack[sp - 1].priority)
 				break;
 			int operand1 = valOpStack[sp - 1].value;
@@ -2840,7 +2840,7 @@ void assemblyPass() {
 	if (commandLineDefinitions.length > 0) {
 		currentLocation = new Location("command line");
 		foreach (definition; commandLineDefinitions) {
-			int i = indexOf(definition, '=');
+			immutable i = indexOf(definition, '=');
 			assert(i >= 0);
 			line = definition[0 .. i] ~ " equ " ~ definition[i + 1 .. $];
 			assemblyLine();
