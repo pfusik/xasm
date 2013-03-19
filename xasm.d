@@ -21,7 +21,6 @@ import std.conv;
 import std.math;
 import std.path;
 import std.stdio;
-import std.stream;
 import std.string;
 
 version (Windows) {
@@ -159,12 +158,12 @@ struct IfContext {
 
 IfContext[] ifContexts;
 
-Stream listingStream = null;
+File listingStream;
 char[32] listingLine;
 int listingColumn;
 string lastListedFilename = null;
 
-Stream objectStream = null;
+File objectStream;
 
 int objectBytes = 0;
 
@@ -1067,34 +1066,34 @@ string makeEscape(string s) {
 	return s.replace("$", "$$");
 }
 
-Stream openInputFile(string filename) {
+File openInputFile(string filename) {
 	makeSources ~= ' ' ~ makeEscape(filename);
 	try {
-		return new BufferedFile(filename, FileMode.In);
-	} catch (OpenException e) {
+		return File(filename);
+	} catch (Exception e) {
 		throw new AssemblyError(e.msg);
 	}
 }
 
-Stream openOutputFile(char letter, string defaultExt) {
+File openOutputFile(char letter, string defaultExt) {
 	string filename = optionParameters[letter - 'a'];
 	if (filename is null)
 		filename = sourceFilename.setExtension(defaultExt);
 	if (letter == 'o')
 		makeTarget = makeEscape(filename);
 	try {
-		return new BufferedFile(filename, FileMode.OutNew);
-	} catch (OpenException e) {
+		return File(filename, "wb");
+	} catch (Exception e) {
 		throw new AssemblyError(e.msg);
 	}
 }
 
 void ensureListingFileOpen(char letter, string msg) {
-	if (listingStream is null) {
+	if (!listingStream.isOpen) {
 		listingStream = openOutputFile(letter, "lst");
 		if (!getOption('q'))
 			write(msg);
-		listingStream.writeLine(TITLE);
+		listingStream.writeln(TITLE);
 	}
 }
 
@@ -1122,7 +1121,7 @@ void listLine() {
 		return;
 	ensureListingFileOpen('l', "Writing listing file...\n");
 	if (currentLocation.filename != lastListedFilename) {
-		listingStream.writefln("Source: %s", currentLocation.filename);
+		listingStream.writeln("Source: ", currentLocation.filename);
 		lastListedFilename = currentLocation.filename;
 	}
 	int i = 4;
@@ -1150,12 +1149,10 @@ void listCommentLine() {
 }
 
 void listLabelTable() {
-	if (optionParameters['t' - 'a'] !is null && listingStream !is null) {
+	if (optionParameters['t' - 'a'] !is null && listingStream.isOpen)
 		listingStream.close();
-		listingStream = null;
-	}
 	ensureListingFileOpen('t', "Writing label table...\n");
-	listingStream.writefln("Label table:");
+	listingStream.writeln("Label table:");
 	foreach (string name; labelTable.keys.sort) {
 		Label l = labelTable[name];
 		listingStream.write(l.unused ? 'n' : ' ');
@@ -1180,14 +1177,16 @@ void objectByte(ubyte b) {
 	} else {
 		assert(pass2);
 		if (!optionObject) return;
-		if (objectStream is null) {
+		if (!objectStream.isOpen) {
 			objectStream = openOutputFile('o', "obx");
 			if (!getOption('q'))
 				writeln("Writing object file...");
 		}
+		ubyte[1] buffer;
+		buffer[0] = b;
 		try {
-			objectStream.write(b);
-		} catch (WriteException e) {
+			objectStream.rawWrite(buffer);
+		} catch (Exception e) {
 			throw new AssemblyError("Error writing object file");
 		}
 	}
@@ -2281,23 +2280,25 @@ void assemblyIns() {
 			length = value;
 		}
 	}
-	Stream stream = openInputFile(filename);
+	File stream = openInputFile(filename);
 	scope (exit) stream.close();
 	try {
-		stream.seek(offset, offset >= 0 ? SeekPos.Set : SeekPos.End);
-	} catch (SeekException e) {
+		stream.seek(offset, offset >= 0 ? SEEK_SET : SEEK_END);
+	} catch (Exception e) {
 		throw new AssemblyError("Error seeking file");
 	}
 	while (length != 0) {
-		ubyte b;
+		ubyte[1] buffer;
 		try {
-			stream.read(b);
-		} catch (ReadException e) {
-			if (length > 0)
-				throw new AssemblyError("File is too short");
-			break;
+			if (stream.rawRead(buffer) == null) {
+				if (length > 0)
+					throw new AssemblyError("File is too short");
+				break;
+			}
+		} catch (Exception e) {
+			throw new AssemblyError("Error reading file");
 		}
-		putByte(b);
+		putByte(buffer[0]);
 		if (length > 0) length--;
 	}
 }
@@ -2787,27 +2788,21 @@ void assemblyFile(string filename) {
 		filename = absolutePath(filename);
 	currentLocation = new Location(filename);
 	foundEnd = false;
-	Stream stream = openInputFile(filename);
+	File stream = openInputFile(filename);
 	scope (exit) stream.close();
 	line = "";
 	readChar: while (!foundEnd) {
-		ubyte c;
-		try {
-			stream.read(c);
-		} catch (ReadException e) {
+		ubyte[1] buffer;
+		if (stream.rawRead(buffer) == null)
 			break;
-		}
-		switch (c) {
+		switch (buffer[0]) {
 		case '\r':
 			assemblyLine();
 			line = "";
-			try {
-				stream.read(c);
-			} catch (ReadException e) {
+			if (stream.rawRead(buffer) == null)
 				break readChar;
-			}
-			if (c != '\n')
-				line ~= cast(char) c;
+			if (buffer[0] != '\n')
+				line ~= cast(char) buffer[0];
 			break;
 		case '\n':
 		case '\x9b':
@@ -2815,7 +2810,7 @@ void assemblyFile(string filename) {
 			line = "";
 			break;
 		default:
-			line ~= cast(char) c;
+			line ~= cast(char) buffer[0];
 			break;
 		}
 	}
@@ -2961,10 +2956,8 @@ int main(string[] args) {
 		warning(e.msg, true);
 		exitCode = 2;
 	}
-	if (listingStream !is null)
-		listingStream.close();
-	if (objectStream !is null)
-		objectStream.close();
+	listingStream.close();
+	objectStream.close();
 	if (exitCode <= 1) {
 		if (!getOption('q')) {
 			writefln("%d lines of source assembled", totalLines);
