@@ -1,18 +1,21 @@
 VERSION = 3.1.0
 
-all: xasm.exe xasm.html
+all: xasm xasm.html
 
-xasm.exe: xasm.d
+xasm: xasm.d
 	dmd -O -release $<
 
 xasm.html: xasm.1.txt
-	asciidoc -o - -d manpage $< | sed -e "s/527bbd;/20a0a0;/" >$@
+	asciidoc -o - $< | sed -e "s/527bbd;/20a0a0;/" >$@
 
-xasm-$(VERSION)-windows.zip: xasm.exe xasm.html xasm.properties
-	rm -f $@ && 7z a -mx=9 -tzip $@ $^
+xasm.1: xasm.1.txt
+	a2x -f manpage $<
+
+xasm-$(VERSION)-windows.zip: xasm xasm.html xasm.properties
+	$(RM) $@ && 7z a -mx=9 -tzip $@ xasm.exe xasm.html xasm.properties
 
 clean:
-	$(RM) xasm-$(VERSION)-windows.zip xasm.exe xasm.html
+	$(RM) xasm-$(VERSION)-windows.zip xasm xasm.exe xasm.html xasm.1
 
 .PHONY: all clean
 

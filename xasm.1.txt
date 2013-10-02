@@ -1,6 +1,6 @@
 XASM (1)
 ========
-Piotr Fusik <fox@scene.pl>
+:doctype: manpage
 
 NAME
 ----
@@ -177,7 +177,7 @@ is the location of hardware registers.
 
 [cols="^m,^d,^m,^d",options="header"]
 |================================================
-|Syntax|Chip |Value|Value (Atari 5200 mode `opt g+`)
+|Syntax|Chip |Value|Value in Atari 5200 mode (`opt g+`)
 |  ^0x |GTIA |$D00x|`$C00x`
 |  ^1x |GTIA |$D01x|`$C01x`
 |  ^2x |POKEY|$D20x|`$E80x`
@@ -258,13 +258,16 @@ DIRECTIVES
 ----------
 
 *EQU* - assign value of expression to label::
+
 Examples:
++
 ----------
 five equ 5
 here equ *
 ----------
 
 [[new_opt]]*OPT* - set assembler options::
+
 Five options are available:
 
 - `F` - fill the space between memory areas with `$FF`
@@ -273,9 +276,11 @@ Five options are available:
 - `L` - write to the listing
 - `O` - write to the object file
 
++
 You can turn any of these on or off.
 The default (if no `OPT` specified) is `opt f-g-h+l+o+`.
 Examples:
++
 ------------------------------------------------------------------------------
  opt l-     listing off
  opt l+o-   listing on, object file off
@@ -283,6 +288,7 @@ Examples:
 ------------------------------------------------------------------------------
 
 *ORG* - change value of the origin counter::
+
 If Atari executable headers are enabled, you can include an operand prefix:
 
 - `a:` starts a new block even if it's superfluous
@@ -290,16 +296,20 @@ If Atari executable headers are enabled, you can include an operand prefix:
 - `f:` is same as `a:`, but additionally generates a double-`$FF` prefix
   before the new header. This prefix is automatically generated
   at the beginning of the file (no need to include `f:` in the first `ORG`).
+
++
 Examples:
++
 ---------------
  org $600
  org f:$700
 table org *+100
 ---------------
++
 In the latter example `table` points to 100 bytes
 of uninitialized data (label is assigned with `*`
 before the `ORG` directive is executed).
-
++
 [[new_orgr]]Starting with version 2.6.0, *xasm* supports code
 that is relocated in the memory at runtime. Let's say you want your code
 to be located on page zero. You can't normally load it directly into this
@@ -307,6 +317,7 @@ place, so you load it at a different address and then move in your program.
 `org r:` changes the address that it used for code generation
 but not the address used for generating Atari executable headers.
 Example:
++
 --------------------------------------
  org $8000
  ldx #code_length-1
@@ -319,10 +330,12 @@ code_zpage
  jmp * ; ... or something more sensible
 code_length equ *-code_zpage
 --------------------------------------
++
 Note that both `*` and label definitions use the counter used
 for code generation. There is no direct access to the other counter,
 because I think this is not useful. If you really need it, you can
 always type something like:
++
 ---------------------------------------
 where_am_i equ *-code_zpage+code_loaded
 ---------------------------------------
@@ -383,32 +396,40 @@ Examples of `DTA`:
 ------------------------------------------------
 
 *ICL* - include another source file::
+
 Specifies another file to be included in the assembly as if the contents
 of the referenced file appeared in place of the `ICL` statement.
 The included file may contain other `ICL` statements.
 The `.asx` extension is added if none given.
 Examples:
++
 -----------------
  icl 'macros.asx'
  icl 'lib/fileio'
 -----------------
-Note: for portability, use only relative paths and slash as the separator.
++
+NOTE: for portability, use only relative paths and slash as the separator.
 This way your sources will compile under Windows and Linux.
 
 *END* - end assembling file::
+
 May be used if the source file ends with something which shouldn't
 be read by *xasm* (e.g. your notes). At the end of file it's optional.
 
 *INS* - insert contents of file::
+
 Copies every byte of the specified file into the object file and updates
 the origin counter, as if these bytes were defined with `DTA`.
 You may specify a range of the file to insert. The syntax is:
++
 -----------------------------
  ins 'file'[,offset[,length]]
 -----------------------------
++
 The first byte in a file has the offset of zero.
 If the offset is negative, it counts from the end of the file.
 Examples:
++
 -----------------------------------------------
  ins 'picture.raw'
  ins 'file',-256  insert last 256 bytes of file
@@ -416,23 +437,31 @@ Examples:
 -----------------------------------------------
 
 *RUN* - set run address in the Atari executable format::
+
++
 ---------
  run main
 ---------
++
 is equivalent to:
++
 ------------
  org $2e0
  dta a(main)
 ------------
 
 *INI* - set init address in the Atari executable format::
+
 Example:
++
 ------------
  ini showpic
 ------------
 
 *ERT* - generate error if expression evaluates to true::
+
 Examples:
++
 -----------------------
  ert *>$c000
  ert len1>$ff||len2>$ff
@@ -442,10 +471,12 @@ Examples:
 *ELI* - else if::
 *ELS* - else::
 *EIF* - end if::
+
 With these directives you can construct fragments which
 are assembled only when a condition is met.
 Conditional constructions can be nested.
 Example:
++
 -------------
 noscr equ 1
 widescr equ 1
@@ -458,7 +489,9 @@ widescr equ 1
  eif
  sta $22f
 -------------
-Note: the above example may be rewritten using the 'repeat line' feature:
++
+NOTE: the above example may be rewritten using the 'repeat line' feature:
++
 --------------------------
 noscr equ 1
 widescr equ 1
@@ -473,15 +506,18 @@ PSEUDO COMMANDS
 'Pseudo commands' are built-in macros. There are no user-defined macros in *xasm*.
 
 *ADD* - addition without carry::
+
 If you have ever programmed a 6502, you must have noticed that you had
 to use a `CLC` before `ADC` for every simple addition.
 +
 *xasm* can do it for you. `ADD` replaces two instructions: `CLC` and `ADC`.
 
 *SUB* - subtraction::
+
 It is `SEC` and `SBC`.
 
 [[new_repskip]]*RCC, RCS, REQ, RMI, RNE, RPL, RVC, RVS* - conditional repeat::
+
 These are branches to the previous instruction.
 They take no operand, because the branch target is the address
 of the previously assembled instruction or pseudo command.
@@ -504,6 +540,7 @@ copy_loop lda $500,x
 --------------------
 
 *SCC, SCS, SEQ, SMI, SNE, SPL, SVC, SVS* - conditional skip::
+
 These are branches over the next instruction. No operand is required,
 because the target is the address of the instruction following
 the next instruction.
@@ -518,6 +555,7 @@ Example:
 In the above example the 16-bit variable `ptr` is incremented by 40.
 
 *JCC, JCS, JEQ, JMI, JNE, JPL, JVC, JVS* - conditional jumps::
+
 These are long branches. While standard branches (such as `BNE`)
 have range of -128..+127, these jumps have range of 64 kB.
 For example:
@@ -533,6 +571,7 @@ is equivalent to:
 -------------
 
 *INW* - increment word::
+
 Increments a 16-bit word in the memory.
 Example:
 +
@@ -548,6 +587,7 @@ is equivalent to:
 ---------------
 
 *MVA, MVX, MVY* - move byte using accumulator, X or Y::
+
 Each of these pseudo commands requires two operands
 and substitutes two commands:
 +
@@ -558,6 +598,7 @@ and substitutes two commands:
 ----------------------------------------
 
 [[new_mwinde]]*MWA, MWX, MWY* - move word using accumulator, X or Y::
+
 These pseudo commands require two operands and are combinations of two `MV*`'s:
 one to move the low byte, and the other to move the high byte.
 You can't use indirect nor pseudo addressing mode with `MW*`.
