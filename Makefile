@@ -1,10 +1,4 @@
-VERSION = 3.0.2
-
-ASCIIDOC = asciidoc -o $@ -a doctime
-ASCIIDOC_POSTPROCESS = perl -pi.bak -e "s/527bbd;/20a0a0;/;END{unlink '$@.bak'}" $@
-ASCIIDOC_VALIDATE = xmllint --valid --noout --nonet $@
-RM = rm -f
-ZIP = 7z a -mx=9 -tzip $@
+VERSION = 3.1.0
 
 all: xasm.exe xasm.html
 
@@ -12,42 +6,14 @@ xasm.exe: xasm.d
 	dmd -O -release $<
 
 xasm.html: xasm.1.txt
-	$(ASCIIDOC) -d manpage $<
-	$(ASCIIDOC_POSTPROCESS)
-	$(ASCIIDOC_VALIDATE)
-
-dist: xasmpage-$(VERSION).zip
-
-xasmpage-$(VERSION).zip: xasm261.zip xasm-$(VERSION)-src.zip xasm-$(VERSION)-windows.zip inflate6502.zip index.html inflate.html scite.png
-	$(RM) $@
-	$(ZIP) $^
-
-xasm-$(VERSION)-src.zip: xasm.d Makefile xasm.1.txt
-	$(RM) $@
-	$(ZIP) $^
+	asciidoc -o - -d manpage $< | sed -e "s/527bbd;/20a0a0;/" >$@
 
 xasm-$(VERSION)-windows.zip: xasm.exe xasm.html xasm.properties
-	$(RM) $@
-	$(ZIP) $^
-
-inflate6502.zip: inflate.asx gzip2deflate.c gzip2deflate.exe
-	$(RM) $@
-	$(ZIP) $^
-
-gzip2deflate.exe: gzip2deflate.c
-	mingw32-gcc -s -O2 -Wall -o $@ $<
-
-index.html: index.txt
-	$(ASCIIDOC) $<
-	$(ASCIIDOC_POSTPROCESS)
-	$(ASCIIDOC_VALIDATE)
-
-inflate.html: inflate.txt
-	$(ASCIIDOC) $<
-	$(ASCIIDOC_POSTPROCESS)
-	$(ASCIIDOC_VALIDATE)
+	rm -f $@ && 7z a -mx=9 -tzip $@ $^
 
 clean:
-	$(RM) xasmpage-$(VERSION).zip xasm-$(VERSION)-src.zip xasm-$(VERSION)-windows.zip xasm.exe xasm.html inflate6502.zip gzip2deflate.exe index.html inflate.html
+	$(RM) xasm-$(VERSION)-windows.zip xasm.exe xasm.html
+
+.PHONY: all clean
 
 .DELETE_ON_ERROR:
