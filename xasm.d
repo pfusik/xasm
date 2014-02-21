@@ -49,20 +49,11 @@ bool optionHeaders; // opt h
 bool optionListing; // opt l
 bool optionObject; // opt o
 
+string currentFilename;
+int lineNo;
+int includeLevel = 0;
 string line;
 int column;
-
-class Location {
-	string filename;
-	int lineNo = 0;
-
-	this(string filename) {
-		this.filename = filename;
-	}
-}
-
-Location[] locations;
-Location currentLocation;
 
 bool foundEnd;
 
@@ -183,7 +174,7 @@ void warning(string msg, bool error = false) {
 	}
 	if (line !is null)
 		stderr.writeln(line);
-	stderr.writefln("%s (%d) %s: %s", currentLocation.filename, currentLocation.lineNo, error ? "ERROR" : "WARNING", msg);
+	stderr.writefln("%s (%d) %s: %s", currentFilename, lineNo, error ? "ERROR" : "WARNING", msg);
 	exitCode = 1;
 }
 
@@ -1117,15 +1108,15 @@ void listLine() {
 	assert(pass2);
 	if (inFalseCondition() && !getOption('c'))
 		return;
-	if (getOption('i') && locations.length > 0)
+	if (getOption('i') && includeLevel > 0)
 		return;
 	ensureListingFileOpen('l', "Writing listing file...\n");
-	if (currentLocation.filename != lastListedFilename) {
-		listingStream.writeln("Source: ", currentLocation.filename);
-		lastListedFilename = currentLocation.filename;
+	if (currentFilename != lastListedFilename) {
+		listingStream.writeln("Source: ", currentFilename);
+		lastListedFilename = currentFilename;
 	}
 	int i = 4;
-	int x = currentLocation.lineNo;
+	int x = lineNo;
 	while (x > 0 && i >= 0) {
 		listingLine[i--] = '0' + x % 10;
 		x /= 10;
@@ -2260,7 +2251,9 @@ void assemblyIcl() {
 	string filename = readFilename();
 	checkNoExtraCharacters();
 	listLine();
+	includeLevel++;
 	assemblyFile(filename);
+	includeLevel--;
 	line = null;
 }
 
@@ -2671,7 +2664,7 @@ void assemblyLine() {
 	debug {
 		writeln(line);
 	}
-	currentLocation.lineNo++;
+	lineNo++;
 	totalLines++;
 	column = 0;
 	listingColumn = 6;
@@ -2782,14 +2775,15 @@ void assemblyLine() {
 
 void assemblyFile(string filename) {
 	filename = filename.defaultExtension("asx");
-	if (currentLocation !is null)
-		locations ~= currentLocation;
 	if (getOption('p'))
 		filename = absolutePath(filename);
-	currentLocation = new Location(filename);
-	foundEnd = false;
 	File stream = openInputFile(filename);
 	scope (exit) stream.close();
+	string oldFilename = currentFilename;
+	int oldLineNo = lineNo;
+	currentFilename = filename;
+	lineNo = 0;
+	foundEnd = false;
 	line = "";
 	readChar: while (!foundEnd) {
 		ubyte[1] buffer;
@@ -2817,10 +2811,8 @@ void assemblyFile(string filename) {
 	if (!foundEnd)
 		assemblyLine();
 	foundEnd = false;
-	if (locations.length > 0) {
-		currentLocation = locations[$ - 1];
-		locations.length--;
-	}
+	currentFilename = oldFilename;
+	lineNo = oldLineNo;
 }
 
 void assemblyPass() {
@@ -2837,17 +2829,15 @@ void assemblyPass() {
 	skipping = false;
 	repeatOffset = 0;
 	wereManyInstructions = false;
-	if (commandLineDefinitions.length > 0) {
-		currentLocation = new Location("command line");
-		foreach (definition; commandLineDefinitions) {
-			immutable i = indexOf(definition, '=');
-			assert(i >= 0);
-			line = definition[0 .. i] ~ " equ " ~ definition[i + 1 .. $];
-			assemblyLine();
-		}
-		line = null;
+	currentFilename = "command line";
+	lineNo = 0;
+	foreach (definition; commandLineDefinitions) {
+		immutable i = indexOf(definition, '=');
+		assert(i >= 0);
+		line = definition[0 .. i] ~ " equ " ~ definition[i + 1 .. $];
+		assemblyLine();
 	}
-	currentLocation = null;
+	line = null;
 	totalLines = 0;
 	assemblyFile(sourceFilename);
 	if (ifContexts.length != 0)
