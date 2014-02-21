@@ -16,12 +16,12 @@
 // free or for profit.
 // These rights, on this notice, rely.
 
+import std.algorithm;
 import std.array;
 import std.conv;
 import std.math;
 import std.path;
 import std.stdio;
-import std.string;
 
 version (Windows) {
 	import std.c.windows.windows;
@@ -35,7 +35,7 @@ bool[26] options;
 string[26] optionParameters;
 string[] commandLineDefinitions = null;
 string makeTarget;
-string makeSources = null;
+string[] makeSources = null;
 
 int exitCode = 0;
 
@@ -1058,7 +1058,8 @@ string makeEscape(string s) {
 }
 
 File openInputFile(string filename) {
-	makeSources ~= ' ' ~ makeEscape(filename);
+	if (find(makeSources, filename).empty)
+		makeSources ~= filename;
 	try {
 		return File(filename);
 	} catch (Exception e) {
@@ -2832,9 +2833,7 @@ void assemblyPass() {
 	currentFilename = "command line";
 	lineNo = 0;
 	foreach (definition; commandLineDefinitions) {
-		immutable i = indexOf(definition, '=');
-		assert(i >= 0);
-		line = definition[0 .. i] ~ " equ " ~ definition[i + 1 .. $];
+		line = replaceFirst(definition, "=", " equ ");
 		assemblyLine();
 	}
 	line = null;
@@ -2889,7 +2888,7 @@ int main(string[] args) {
 						definition = arg[3 .. $];
 				} else if (i + 1 < args.length && !isOption(args[i + 1]))
 					definition = args[++i];
-				if (definition is null || indexOf(definition, '=') < 0)
+				if (definition is null || find(definition, '=').empty)
 					exitCode = 3;
 				commandLineDefinitions ~= definition;
 				break;
@@ -2955,7 +2954,10 @@ int main(string[] args) {
 				writefln("%d bytes written to the object file", objectBytes);
 		}
 		if (getOption('m')) {
-			writef("%s:%s\n\txasm", makeTarget, makeSources);
+			writef("%s:", makeTarget);
+			foreach (filename; makeSources)
+				writef(" %s", makeEscape(filename));
+			write("\n\txasm");
 			for (int i = 1; i < args.length; i++) {
 				string arg = args[i];
 				if (isOption(arg)) {
