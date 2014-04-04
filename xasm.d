@@ -2259,7 +2259,6 @@ void assemblyIcl() {
 }
 
 void assemblyIns() {
-	noRepeatSkipDirective();
 	string filename = readFilename();
 	int offset = 0;
 	int length = -1;
