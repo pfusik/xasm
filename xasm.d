@@ -2280,6 +2280,8 @@ void assemblyIns() {
 	} catch (Exception e) {
 		throw new AssemblyError("Error seeking file");
 	}
+	if (inOpcode)
+		length = 1;
 	while (length != 0) {
 		ubyte[1] buffer;
 		try {
