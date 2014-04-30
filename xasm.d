@@ -48,6 +48,7 @@ bool option5200; // opt g
 bool optionHeaders; // opt h
 bool optionListing; // opt l
 bool optionObject; // opt o
+bool optionUnusedLabels; // opt u
 
 string currentFilename;
 int lineNo;
@@ -2155,6 +2156,10 @@ void assemblyOpt() {
 		case 'o':
 			optionObject = readOption();
 			break;
+		case 'U':
+		case 'u':
+			optionUnusedLabels = readOption();
+			break;
 		default:
 			column--;
 			return;
@@ -2687,7 +2692,7 @@ void assemblyLine() {
 				assert(label in labelTable);
 				currentLabel = labelTable[label];
 				currentLabel.passed = true;
-				if (currentLabel.unused && getOption('u'))
+				if (currentLabel.unused && getOption('u') && optionUnusedLabels)
 					warning("Unused label");
 			}
 		}
@@ -2827,6 +2832,7 @@ void assemblyPass() {
 	optionHeaders = true;
 	optionListing = pass2;
 	optionObject = true;
+	optionUnusedLabels = true;
 	willSkip = false;
 	skipping = false;
 	repeatOffset = 0;

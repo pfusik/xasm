@@ -275,10 +275,11 @@ Five options are available:
 - `H` - generate Atari executable headers
 - `L` - write to the listing
 - `O` - write to the object file
+- `U` - warn of unused labels
 
 +
 You can turn any of these on or off.
-The default (if no `OPT` specified) is `opt f-g-h+l+o+`.
+The default (if no `OPT` specified) is `opt f-g-h+l+o+u+`.
 Examples:
 +
 ------------------------------------------------------------------------------
