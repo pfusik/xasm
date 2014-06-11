@@ -1,0 +1,5 @@
+xasm (3.1.0-1) UNRELEASED; urgency=low
+
+  * First deb packaging.
+
+ -- Piotr Fusik <fox@scene.pl>  Wed, 11 Jun 2014 10:46:15 +0200

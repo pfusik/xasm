@@ -1,0 +1,7 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Name: xasm
+Source: https://github.com/pfusik/xasm
+
+Files: *
+Copyright: 1998-2014 Piotr Fusik <fox@scene.pl>
+License: Poetic

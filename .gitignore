@@ -1,6 +1,7 @@
-*.exe
-*.obj
-*.html
-*.1
-*.zip
-*.dmg
+xasm
+xasm.exe
+xasm.obj
+xasm.html
+xasm.1
+xasm-*-windows.zip
+xasm-*-osx.dmg

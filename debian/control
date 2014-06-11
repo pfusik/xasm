@@ -1,0 +1,11 @@
+Source: xasm
+Maintainer: Piotr Fusik <fox@scene.pl>
+Section: devel
+Priority: optional
+Standards-Version: 3.9.3
+Build-Depends: debhelper (>= 7), dmd (>= 2), asciidoc
+
+Package: xasm
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: A 6502 cross-assembler with original syntax extensions.
