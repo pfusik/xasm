@@ -67,12 +67,16 @@ xasm is a command-line tool.
 Therefore you additionally need a programmer's text editor.
 
 I use [SciTE](http://www.scintilla.org/SciTE.html).
-To install xasm syntax highlighting, copy `xasm.properties`
-to the SciTE directory.
+To install xasm syntax highlighting and single-keystroke compilation,
+copy `xasm.properties` to the SciTE directory.
 
-I build my 8-bit programs with GNU Make,
-having configured SciTE to run "make" on Ctrl+1.
-See [my repositories](https://github.com/pfusik?tab=repositories) on GitHub.
+For single source file programs, press Ctrl+F7 to compile.
+You can double-click error messages to go to the incorrect line.
+Press F5 to run the program in the emulator.
+
+For larger projects, I use GNU Make. Press F7 to build (and possibly run)
+a project as described in the `Makefile`. You can find my Makefiles in
+[my repositories](https://github.com/pfusik?tab=repositories) on GitHub.
 
 Download
 --------
