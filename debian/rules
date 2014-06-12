@@ -3,4 +3,4 @@
 	dh $@
 
 override_dh_auto_install:
-	$(MAKE) DESTDIR=$$(pwd)/debian/tmp prefix=/usr install
+	$(MAKE) DESTDIR=$$(pwd)/debian/tmp prefix=/usr install install-scite

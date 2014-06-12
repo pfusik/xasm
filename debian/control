@@ -9,3 +9,8 @@ Package: xasm
 Architecture: any
 Depends: ${shlibs:Depends}
 Description: A 6502 cross-assembler with original syntax extensions.
+
+Package: xasm-scite
+Architecture: all
+Depends: scite
+Description: xasm syntax highlighting and single keystroke compilation for SciTE.

@@ -24,6 +24,12 @@ install: xasm xasm.1
 uninstall:
 	$(RM) $(DESTDIR)$(bindir)/xasm $(DESTDIR)$(mandir)/xasm.1
 
+install-scite: xasm.properties
+	mkdir -p $(DESTDIR)$(prefix)/share/scite && install $< $(DESTDIR)$(prefix)/share/scite/xasm.properties
+
+uninstall-scite:
+	$(RM) $(DESTDIR)$(prefix)/share/scite/xasm.properties
+
 dist: srcdist ../xasm-$(VERSION)-windows.zip
 
 srcdist: MANIFEST
@@ -53,6 +59,6 @@ clean:
 	$(RM) xasm xasm.exe xasm.obj xasm.html xasm.1
 	rm -rf osx
 
-.PHONY: all install uninstall dist srcdist MANIFEST deb osx clean
+.PHONY: all install uninstall install-scite uninstall-scite dist srcdist MANIFEST deb osx clean
 
 .DELETE_ON_ERROR:
