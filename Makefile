@@ -50,7 +50,7 @@ osx: ../xasm-$(VERSION)-osx.dmg
 	hdiutil create -volname xasm-$(VERSION)-osx -srcfolder osx -imagekey zlib-level=9 -ov $@
 
 osx/xasm: xasm.d
-	mkdir -p osx && dmd -of$@ -O -release -m32 -L-macosx_version_min -L10.6 $<
+	mkdir -p osx && dmd -of$@ -O -release -m32 -L-macosx_version_min -L10.6 $< && rm -f osx/xasm.o
 
 osx/bin:
 	mkdir -p osx && ln -s /usr/bin $@
