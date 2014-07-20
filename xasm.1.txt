@@ -44,11 +44,11 @@ is 'SOURCE_FILE' with the extension changed to `.lst`.
 [[new_makefile]]*/M*::
 Prints a rule for use in a `Makefile`.
 First line of the rule lists 'OBJECT_FILE' as the target of the rule
-and all source files (including the ones specified by `icl` and `ins` directives)
+and all source files (including the ones specified with `icl` and `ins` directives)
 as dependencies. The second line contains the command line with `OBJECT_FILE`
 replaced by the *make* macro `$@` and `SOURCE_FILE` replaced by the macro `$<`.
 Dollars in the command line are doubled.
-Your `make` or shell may require more escaping.
+Your `make` or shell may require further escaping.
 
 */o*':OBJECT_FILE'::
 Sets output file name.
@@ -58,11 +58,11 @@ The default is 'SOURCE_FILE' with the extension changed to `.obx`.
 Prints absolute paths in listing and error messages.
 
 [[new_quiet]]*/q*::
-Quiet mode. Prevents *xasm* from printing the logo and the summary.
+Quiet mode. Prevents *xasm* from printing its banner and compilation summary.
 
 */t*'[:LABEL_FILE]'::
 Generates label table.
-If 'LABEL_FILE' is omitted then the table is appended to the listing.
+If 'LABEL_FILE' is omitted then the table is appended at the end of the listing.
 
 [[new_unlabels]]*/u*::
 Issues a warning message for each label whose value is unused.
@@ -91,7 +91,7 @@ You define a label by putting its name at the beginning of a line
 The label will be assigned the current value of the 'origin counter'
 (i.e. the address of the compiled instruction),
 unless you use it with the `EQU` directive where it is assigned
-the value of the argument.
+the value of the `EQU` argument.
 
 Instructions and directives must be preceded with some whitespace.
 Without leading whitespace they are treated as label names.
@@ -103,7 +103,7 @@ is a 6502 instruction, whereas
 ----
 nop
 ----
-defines a label called `nop`.
+(without leading space) defines a label called `nop`.
 
 Whole-line comments must start with a semicolon, an asterisk or a pipe,
 with optional label definition and spaces before.
@@ -120,12 +120,12 @@ To assemble a single line several times,
 precede the repeat count with a colon, for example:
 -----------------
 :4 asl @
-table :32*5 dta 5
+mask_lookup :32 dta $80,$40,$20,$10,8,4,2,1
 -----------------
 
 In lines with instructions or directives, a comment starts immediately
 after the instruction/directive has been successfully parsed.
-That is, in these lines *xasm* does not require a special character
+That is, in such lines *xasm* does not require a special character
 to start a comment.
 -------------------------------------------------------------
  lda foo ; this is a comment
@@ -134,7 +134,7 @@ to start a comment.
 -------------------------------------------------------------
 
 [[new_pairing]]
-You may put two instructions in one line so they share the operand.
+You may put two instructions in one line so they share their operand.
 For example:
 ------------
  eor:sta foo
@@ -227,7 +227,7 @@ The following 'binary operators' are supported:
 [[new_unary]]
 The following 'unary operators' are supported:
 
-- `+` Plus (does nothing)
+- `+` Plus (no operation)
 - `-` Minus (changes the sign)
 - `~` Bitwise NOT (complements all bits)
 - `!` Logical NOT (changes true to false and vice versa)
@@ -245,8 +245,8 @@ The operator precedence is following:
 - `&&` (binary)
 - last: `||` (binary)
 
-Although the operators are similar to those used in C, C++ and Java,
-their priorities are different than in these languages.
+NOTE: Although the operators are similar to those used in C, C++ and Java,
+their priorities are different.
 
 Compare and logical operators assume that zero is false and a non-zero
 is true. They return 1 for true.
@@ -268,7 +268,7 @@ here equ *
 
 [[new_opt]]*OPT* - set assembler options::
 
-Five options are available:
+Six options are available:
 
 - `F` - fill the space between memory areas with `$FF`
 - `G` - Atari 5200 mode for hardware register abbreviations
@@ -312,7 +312,7 @@ of uninitialized data (label is assigned with `*`
 before the `ORG` directive is executed).
 +
 [[new_orgr]]Starting with version 2.6.0, *xasm* supports code
-that is relocated in the memory at runtime. Let's say you want your code
+that is relocated at run time. Let's say you want your code
 to be located on page zero. You can't normally load it directly into this
 place, so you load it at a different address and then move in your program.
 `org r:` changes the address that it used for code generation
@@ -333,9 +333,8 @@ code_length equ *-code_zpage
 --------------------------------------
 +
 Note that both `*` and label definitions use the counter used
-for code generation. There is no direct access to the other counter,
-because I think this is not useful. If you really need it, you can
-always type something like:
+for code generation. There is no direct access to the other counter.
+You can only calculate it:
 +
 ---------------------------------------
 where_am_i equ *-code_zpage+code_loaded
@@ -354,17 +353,17 @@ where_am_i equ *-code_zpage+code_loaded
 You may enter many expressions in parentheses and combine different types
 of data in single line, separating things with commas.
 
-You may also define a sine lookup table. The syntax is:
+You may also build a sine lookup table. The syntax is:
 -------------------------------
-sin(center,amp,size,first,last)
+sin(center,amp,period,first,last)
 -------------------------------
 where:
 
 * `center` is an integer which is added to every sine value
 * `amp` is the sine amplitude
-* `size` is the sine period
+* `period` is the number of values per sine period
 * `first,last` define the range of sine arguments.
-  They are optional. The default are `0,size-1`.
+  They are optional. The default are `0,period-1`.
 
 Example:
 ----------------------------
@@ -415,12 +414,12 @@ This way your sources will compile under Windows and Linux.
 *END* - end assembling file::
 
 May be used if the source file ends with something which shouldn't
-be read by *xasm* (e.g. your notes). At the end of file it's optional.
+be read by *xasm* (e.g. your notes).
 
 *INS* - insert contents of file::
 
 Copies every byte of the specified file into the object file and updates
-the origin counter, as if these bytes were defined with `DTA`.
+the origin counter, as if these bytes were written using `DTA`.
 You may specify a range of the file to insert. The syntax is:
 +
 -----------------------------
@@ -456,7 +455,7 @@ is equivalent to:
 Example:
 +
 ------------
- ini showpic
+ ini showloadingpic
 ------------
 
 *ERT* - generate error if expression evaluates to true::
@@ -491,7 +490,7 @@ widescr equ 1
  sta $22f
 -------------
 +
-NOTE: the above example may be rewritten using the 'repeat line' feature:
+NOTE: The above example may be rewritten using the 'repeat line' feature:
 +
 --------------------------
 noscr equ 1
@@ -506,14 +505,14 @@ PSEUDO COMMANDS
 ---------------
 'Pseudo commands' are built-in macros. There are no user-defined macros in *xasm*.
 
-*ADD* - addition without carry::
+*ADD* - add without carry::
 
 If you have ever programmed a 6502, you must have noticed that you had
 to use a `CLC` before `ADC` for every simple addition.
 +
 *xasm* can do it for you. `ADD` replaces two instructions: `CLC` and `ADC`.
 
-*SUB* - subtraction::
+*SUB* - subtract::
 
 It is `SEC` and `SBC`.
 
@@ -555,7 +554,7 @@ Example:
 +
 In the above example the 16-bit variable `ptr` is incremented by 40.
 
-*JCC, JCS, JEQ, JMI, JNE, JPL, JVC, JVS* - conditional jumps::
+*JCC, JCS, JEQ, JMI, JNE, JPL, JVC, JVS* - conditional jump::
 
 These are long branches. While standard branches (such as `BNE`)
 have range of -128..+127, these jumps have range of 64 kB.
@@ -600,30 +599,30 @@ and substitutes two commands:
 
 [[new_mwinde]]*MWA, MWX, MWY* - move word using accumulator, X or Y::
 
-These pseudo commands require two operands and are combinations of two `MV*`'s:
+These pseudo commands require two operands and are combinations of two `MVA`/`MVX`/`MWY`:
 one to move the low byte, and the other to move the high byte.
-You can't use indirect nor pseudo addressing mode with `MW*`.
-Destination must be an absolute address, optionally indexed.
-When source is also an absolute address, an `mw* source dest` expands to:
+You can't use indirect nor pseudo addressing mode with `MWA`/`MWX`/`MWY`.
+Destination must be an absolute or zeropage address, optionally indexed.
+When source is also an absolute or zeropage address, an `mwa source dest` expands to:
 +
 --------------------
- mv* source  dest
- mv* source+1 dest+1
+ mva source  dest
+ mva source+1 dest+1
 --------------------
 +
-When source is an immediate value, an `mw* #immed dest` expands to:
+When source is an immediate value, an `mwa #immed dest` expands to:
 +
 ------------------
- mv* <immed dest
- mv* >immed dest+1
+ mva <immed dest
+ mva >immed dest+1
 ------------------
 +
 When `<immed` equals `>immed` and `immed` is not forward-referenced,
-*xasm* skips the second `LD*`:
+*xasm* skips the second `LDA`, generating the following code:
 +
 ----------------
- mv* <immed dest
- st* dest+1
+ mva <immed dest
+ sta dest+1
 ----------------
 +
 If possible, `MWX` and `MWY` use increment/decrement commands.
@@ -687,11 +686,24 @@ and pseudo commands, except for `MWA`, `MWX` and `MWY`:
 HISTORY
 -------
 
+Version 3.1.0 (2014-07-20)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+- OS X, Ubuntu and Fedora distributions
+- `INS` can be repeated (suggested by Marek Pavlik) and taken "opcode" of
+- `OPT U-` disables <<new_unlabels,*/u*>> unused label warnings
+  (suggested by Marek Pavlik)
+- if the file to be included cannot be open, report error in the `ICL` line
+  (suggested by Peter Dell)
+- removed duplicate filenames for <<new_makefile,*/M*>>
+- implemented <<new_fullpaths,*/p*>> outside Windows
+- source code updated from D1 to D2
+- project moved to GitHub
+
 Version 3.0.2 (2009-10-17)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 - fixed "Branch out of range" error message - was overstated by 256 bytes
   for backward branches
-- <<new_makefile,new command-line option */M* prints Makefile rule>>
+- <<new_makefile,new command-line option */M* prints a Makefile rule>>
 - command-line options are now case-insensitive
 - on Windows error messages are printed in red, warnings in yellow
 
@@ -704,7 +716,7 @@ Version 3.0.1 (2007-04-22)
 Version 3.0.0 (2005-05-22)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 - rewritten from the x86 assembly language to the
-  http://www.digitalmars.com/d[D programming language] - Linux version
+  http://dlang.org/[D programming language] - Linux version
   is now available and DOS is no longer supported
 - no limits for line length, number of `ICLs`, `ORGs`,`IFTs` and labels
 - Unix-style command-line options are supported
@@ -863,4 +875,4 @@ Piotr Fusik <fox@scene.pl>
 SEE ALSO
 --------
 
-Website: http://xasm.atari.org[]
+Website: https://github.com/pfusik/xasm[]

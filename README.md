@@ -81,8 +81,7 @@ a project as described in the `Makefile`. You can find my Makefiles in
 Download
 --------
 
-A release is coming soon.
-Meanwhile you can download Windows binaries from the [old website](http://xasm.atari.org/).
+[xasm 3.1.0](https://github.com/pfusik/xasm/releases) for Windows, OS X, Ubuntu and Fedora.
 
 Links
 -----

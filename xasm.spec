@@ -31,6 +31,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/xasm.1.gz
 
 %changelog
-* Thu Jun 12 2014 Piotr Fusik <fox@scene.pl>
+* Sun Jul 20 2014 Piotr Fusik <fox@scene.pl>
 - 3.1.0-1
 - Initial packaging
