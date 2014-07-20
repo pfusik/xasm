@@ -9,7 +9,7 @@ SEVENZIP = 7z a -mx=9 -bd
 all: xasm xasm.html
 
 xasm: xasm.d
-	dmd -O -release $<
+	dmd -of$@ -O -release $<
 
 xasm.html: xasm.1.txt
 	asciidoc -o - $< | sed -e "s/527bbd;/20a0a0;/" >$@
@@ -44,13 +44,13 @@ MANIFEST:
 deb:
 	debuild -b -us -uc
 
-osx: xasm-$(VERSION)-osx.dmg
+osx: ../xasm-$(VERSION)-osx.dmg
 
 ../xasm-$(VERSION)-osx.dmg: osx/xasm osx/bin
 	hdiutil create -volname xasm-$(VERSION)-osx -srcfolder osx -imagekey zlib-level=9 -ov $@
 
-osx/xasm: xasm
-	mkdir -p osx && cp $< $@
+osx/xasm: xasm.d
+	mkdir -p osx && dmd -of$@ -O -release -m32 -L-macosx_version_min -L10.6 $<
 
 osx/bin:
 	mkdir -p osx && ln -s /usr/bin $@
