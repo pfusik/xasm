@@ -78,6 +78,8 @@ For larger projects, I use GNU Make. Press F7 to build (and possibly run)
 a project as described in the `Makefile`. You can find my Makefiles in
 [my repositories](https://github.com/pfusik?tab=repositories) on GitHub.
 
+If you prefer VIM, see a link below.
+
 Download
 --------
 
@@ -90,4 +92,5 @@ Links
 * [Atari XL/XE Source Archive](http://sources.pigwa.net/) - source code of Atari demos, utilities and games
 * [cc65](http://cc65.github.io/cc65/) - C cross-compiler targeting 6502-based systems
 * [MADS](http://mads.atari8.info/) - another 6502/65816 cross-assembler, partially supporting xasm's syntax
+* [vim-xasm](https://github.com/lybrown/vim-xasm) - VIM syntax highlighting for xasm
 * [WUDSN IDE](http://wudsn.com/) - Eclipse plugin, front-end to several 6502 cross-assemblers including xasm
