@@ -28,6 +28,13 @@ version (Windows) {
 	extern (Windows) HANDLE GetStdHandle(DWORD nStdHandle);
 }
 
+int readByte(File *file) {
+	char c;
+	if (file.readf("%c", &c) != 1)
+		return -1;
+	return c;
+}
+
 const string TITLE = "xasm 3.1.0";
 
 string sourceFilename = null;
@@ -1175,10 +1182,8 @@ void objectByte(ubyte b) {
 			if (!getOption('q'))
 				writeln("Writing object file...");
 		}
-		ubyte[1] buffer;
-		buffer[0] = b;
 		try {
-			objectStream.rawWrite(buffer);
+			objectStream.write(cast(char) b);
 		} catch (Exception e) {
 			throw new AssemblyError("Error writing object file");
 		}
@@ -2288,17 +2293,13 @@ void assemblyIns() {
 	if (inOpcode)
 		length = 1;
 	while (length != 0) {
-		ubyte[1] buffer;
-		try {
-			if (stream.rawRead(buffer) == null) {
-				if (length > 0)
-					throw new AssemblyError("File is too short");
-				break;
-			}
-		} catch (Exception e) {
-			throw new AssemblyError("Error reading file");
+		int b = readByte(&stream);
+		if (b < 0) {
+			if (length > 0)
+				throw new AssemblyError("File is too short");
+			break;
 		}
-		putByte(buffer[0]);
+		putByte(cast(ubyte) b);
 		if (length > 0) length--;
 	}
 }
@@ -2793,25 +2794,26 @@ void assemblyFile(string filename) {
 	foundEnd = false;
 	line = "";
 	readChar: while (!foundEnd) {
-		ubyte[1] buffer;
-		if (stream.rawRead(buffer) == null)
-			break;
-		switch (buffer[0]) {
+		int b = readByte(&stream);
+		switch (b) {
+		case -1:
+			break readChar;
 		case '\r':
 			assemblyLine();
 			line = "";
-			if (stream.rawRead(buffer) == null)
+			b = readByte(&stream);
+			if (b < 0)
 				break readChar;
-			if (buffer[0] != '\n')
-				line ~= cast(char) buffer[0];
+			if (b != '\n')
+				line ~= cast(char) b;
 			break;
 		case '\n':
-		case '\x9b':
+		case 0x9b:
 			assemblyLine();
 			line = "";
 			break;
 		default:
-			line ~= cast(char) buffer[0];
+			line ~= cast(char) b;
 			break;
 		}
 	}
