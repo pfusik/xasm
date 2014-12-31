@@ -121,6 +121,13 @@ enum AddrMode {
 
 AddrMode addrMode;
 
+enum OrgModifier {
+	NONE,
+	FORCE_HEADER,
+	FORCE_FFFF,
+	RELOCATE
+}
+
 int origin = -1;
 int loadOrigin;
 int loadingOrigin;
@@ -2178,8 +2185,34 @@ void originWord(ushort value, char listingChar) {
 	listingLine[listingColumn++] = listingChar;
 }
 
-void setOrigin(int addr, bool requestedHeader, bool requestedFFFF) {
+OrgModifier readOrgModifier() {
+	readSpaces();
+	if (column + 2 < line.length && line[column + 1] == ':') {
+		switch (line[column]) {
+		case 'F':
+		case 'f':
+			checkHeadersOn();
+			column += 2;
+			return OrgModifier.FORCE_FFFF;
+		case 'A':
+		case 'a':
+			checkHeadersOn();
+			column += 2;
+			return OrgModifier.FORCE_HEADER;
+		case 'R':
+		case 'r':
+			column += 2;
+			return OrgModifier.RELOCATE;
+		default:
+			break;
+		}
+	}
+	return OrgModifier.NONE;
+}
+
+void setOrigin(int addr, OrgModifier modifier) {
 	origin = loadOrigin = addr;
+	bool requestedHeader = modifier != OrgModifier.NONE;
 	if (requestedHeader || loadingOrigin < 0 || (addr != loadingOrigin && !optionFill)) {
 		blockIndex++;
 		if (!pass2) {
@@ -2192,7 +2225,7 @@ void setOrigin(int addr, bool requestedHeader, bool requestedFFFF) {
 					throw new AssemblyError("Cannot generate an empty block");
 				return;
 			}
-			if (requestedFFFF || objectBytes == 0) {
+			if (modifier == OrgModifier.FORCE_FFFF || objectBytes == 0) {
 				assert(requestedHeader || addr != loadingOrigin);
 				originWord(0xffff, '>');
 				listingLine[listingColumn++] = ' ';
@@ -2214,44 +2247,26 @@ void checkHeadersOn() {
 
 void assemblyOrg() {
 	noRepeatSkipDirective();
-	readSpaces();
-	bool requestedFFFF = false;
-	bool requestedHeader = false;
-	if (column + 2 < line.length && line[column + 1] == ':') {
-		switch (line[column]) {
-		case 'F':
-		case 'f':
-			requestedFFFF = true;
-			goto case 'A';
-		case 'A':
-		case 'a':
-			checkHeadersOn();
-			column += 2;
-			requestedHeader = true;
-			break;
-		case 'R':
-		case 'r':
-			column += 2;
-			checkOriginDefined();
-			readUnsignedWord();
-			mustBeKnownInPass1();
-			origin = value;
-			return;
-		default:
-			break;
-		}
-	}
+	OrgModifier modifier = readOrgModifier();
 	readUnsignedWord();
 	mustBeKnownInPass1();
-	setOrigin(value, requestedHeader, requestedFFFF);
+	if (modifier == OrgModifier.RELOCATE) {
+		checkOriginDefined();
+		origin = value;
+	}
+	else {
+		setOrigin(value, modifier);
+	}
 }
 
 void assemblyRunIni(ushort addr) {
 	noRepeatSkipDirective();
 	checkHeadersOn();
 	loadingOrigin = -1; // don't fill
-	setOrigin(addr, false, false);
-	readSpaces();
+	OrgModifier modifier = readOrgModifier();
+	if (modifier == OrgModifier.RELOCATE)
+		throw new AssemblyError("r: invalid here");
+	setOrigin(addr, modifier);
 	readUnsignedWord();
 	putWord(cast(ushort) (value));
 	loadingOrigin = -1; // don't fill
