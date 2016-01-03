@@ -2709,7 +2709,7 @@ void assemblyLine() {
 				currentLabel = labelTable[label];
 				currentLabel.passed = true;
 				if (currentLabel.unused && getOption('u') && optionUnusedLabels)
-					warning("Unused label");
+					warning("Unused label: " ~ label);
 			}
 		}
 		if (eol()) {
