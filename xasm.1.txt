@@ -692,7 +692,7 @@ Version 3.1.0 (2014-07-20)
 - `INS` can be repeated (suggested by Marek Pavlik) and taken "opcode" of
 - `OPT U-` disables <<new_unlabels,*/u*>> unused label warnings
   (suggested by Marek Pavlik)
-- if the file to be included cannot be open, report error in the `ICL` line
+- if the file to be included cannot be opened, report error in the `ICL` line
   (suggested by Peter Dell)
 - removed duplicate filenames for <<new_makefile,*/M*>>
 - implemented <<new_fullpaths,*/p*>> outside Windows
