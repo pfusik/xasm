@@ -8,11 +8,10 @@ for [Atari 8-bit computers](http://en.wikipedia.org/wiki/Atari_8-bit_family).
 Syntax
 ------
 
-6502 assembly language is full of LDA, STA, LDA, STA sequences.
+6502 assembly code is full of LDA, STA, LDA, STA sequences.
 With xasm you can use MVA as a shortcut for an LDA/STA pair or even MWA for 16-bit transfers.
-You can avoid defining labels when you need short jumps,
-thanks to conditional skip and repeat pseudo-instructions.
-You can put two instructions that share their argument in one line.
+Short branches can be replaced with conditional skip and repeat pseudo-instructions.
+You can use a pair of instructions with a shared argument.
 These are just some of the features that help you program in a more concise way.
 Let's look at typical 6502 code (which is also valid in xasm):
 
@@ -45,13 +44,13 @@ Using xasm's features this code can be rewritten to:
     do_line
         ldy     #39
         mva:rpl pattern,y (ptr),y-
-        lda #40
+        lda     #40
         add:sta ptr
         scc:inc ptr+1
         dex:bne do_line
 
-xasm syntax is based on 1990's Quick Assembler.
-Write accumulator shifts as in `asl @`.
+xasm syntax is an extension of Quick Assembler's (created in 1991 for Atari 8-bit).
+Accumulator shifts should be written as in `asl @`.
 Whitespace is important: it is required before the instruction
 and disallowed in the operands, because it separates a comment from the operand, e.g.
 
@@ -93,4 +92,4 @@ Links
 * [cc65](http://cc65.github.io/cc65/) - C cross-compiler targeting 6502-based systems
 * [MADS](http://mads.atari8.info/) - another 6502/65816 cross-assembler, partially supporting xasm's syntax
 * [vim-xasm](https://github.com/lybrown/vim-xasm) - VIM syntax highlighting for xasm
-* [WUDSN IDE](http://wudsn.com/) - Eclipse plugin, front-end to several 6502 cross-assemblers including xasm
+* [WUDSN IDE](http://wudsn.com/) - Eclipse plugin, front-end to several 6502 cross-assemblers, including xasm
