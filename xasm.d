@@ -1,6 +1,6 @@
 // xasm 3.1.0 by Piotr Fusik <fox@scene.pl>
 // http://xasm.atari.org
-// Can be compiled with DMD v2.061.
+// Can be compiled with DMD v2.073.
 
 // Poetic License:
 //
@@ -24,8 +24,7 @@ import std.path;
 import std.stdio;
 
 version (Windows) {
-	import std.c.windows.windows;
-	extern (Windows) HANDLE GetStdHandle(DWORD nStdHandle);
+	import core.sys.windows.windows;
 }
 
 int readByte(File *file) {
@@ -1160,7 +1159,7 @@ void listLabelTable() {
 		listingStream.close();
 	ensureListingFileOpen('t', "Writing label table...\n");
 	listingStream.writeln("Label table:");
-	foreach (string name; labelTable.keys.sort) {
+	foreach (string name; sort(labelTable.keys)) {
 		Label l = labelTable[name];
 		listingStream.write(l.unused ? 'n' : ' ');
 		listingStream.write(l.unknownInPass1 ? '2' : ' ');
@@ -1369,6 +1368,7 @@ void assemblyAccumulator(ubyte b, ubyte prefix, int move) {
 	case AddrMode.ACCUMULATOR:
 	case AddrMode.INDIRECT:
 		illegalAddrMode();
+		break;
 	case AddrMode.IMMEDIATE:
 		if (b == 0x80) {
 			// STA #
@@ -2946,17 +2946,18 @@ int main(string[] args) {
 		writeln(TITLE);
 	if (exitCode != 0) {
 		write(
-			"Syntax: xasm source [options]\n"
-			"/c             Include false conditionals in listing\n"
-			"/d:label=value Define a label\n"
-			"/i             Don't list included files\n"
-			"/l[:filename]  Generate listing\n"
-			"/o:filename    Set object file name\n"
-			"/M             Print Makefile rule\n"
-			"/p             Print absolute paths in listing and error messages\n"
-			"/q             Suppress info messages\n"
-			"/t[:filename]  List label table\n"
-			"/u             Warn of unused labels\n");
+`Syntax: xasm source [options]
+/c             Include false conditionals in listing
+/d:label=value Define a label
+/i             Don't list included files
+/l[:filename]  Generate listing
+/o:filename    Set object file name
+/M             Print Makefile rule
+/p             Print absolute paths in listing and error messages
+/q             Suppress info messages
+/t[:filename]  List label table
+/u             Warn of unused labels
+`);
 		return exitCode;
 	}
 	try {
