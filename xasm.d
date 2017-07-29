@@ -1239,7 +1239,7 @@ void putByte(ubyte b) {
 	}
 	if (pass2) {
 		debug {
-		}else {
+		} else {
 			objectByte(b);
 		}
 		if (listingColumn < 29) {
