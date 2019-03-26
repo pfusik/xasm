@@ -102,9 +102,9 @@ Download
 Links
 -----
 
-* [Atari800](http://atari800.sourceforge.net/) - portable emulator of Atari 8-bit computers
+* [Atari800](https://atari800.github.io/) - portable emulator of Atari 8-bit computers
 * [Atari XL/XE Source Archive](http://sources.pigwa.net/) - source code of Atari demos, utilities and games
-* [cc65](http://cc65.github.io/cc65/) - C cross-compiler targeting 6502-based systems
+* [cc65](https://cc65.github.io/) - C cross-compiler targeting 6502-based systems
 * [MADS](http://mads.atari8.info/) - another 6502/65816 cross-assembler, partially supporting xasm's syntax
 * [vim-xasm](https://github.com/lybrown/vim-xasm) - VIM syntax highlighting for xasm
 * [WUDSN IDE](http://wudsn.com/) - Eclipse plugin, front-end to several 6502 cross-assemblers, including xasm
