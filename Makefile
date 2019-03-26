@@ -11,10 +11,10 @@ all: xasm xasm.html
 xasm: xasm.d
 	dmd -of$@ -O -release $<
 
-xasm.html: xasm.1.txt
+xasm.html: xasm.1.asciidoc
 	asciidoc -o - $< | sed -e "s/527bbd;/20a0a0;/" >$@
 
-xasm.1: xasm.1.txt
+xasm.1: xasm.1.asciidoc
 	a2x -f manpage $<
 
 install: xasm xasm.1
