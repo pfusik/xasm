@@ -1,8 +1,7 @@
-xasm
-xasm.exe
-xasm.obj
-xasm.html
-xasm.1
-MANIFEST
+/xasm
+/xasm.exe
+/xasm.obj
+/xasm.html
+/xasm.1
+/MANIFEST
 /.project
-/.gitignore
