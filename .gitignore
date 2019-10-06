@@ -3,6 +3,7 @@
 /xasm.obj
 /xasm.html
 /xasm.1
+/xasm-test-*
 /MANIFEST
 /.dub
 /.project
