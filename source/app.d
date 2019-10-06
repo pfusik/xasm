@@ -765,11 +765,10 @@ void readValue() {
 	valOpStack.length = 0;
 }
 
-debug int testValue(string l) {
+version (unittest) int testValue(string l) {
 	line = l;
 	column = 0;
 	readValue();
-	writefln("Value of %s is %x", l, value);
 	return value;
 }
 
@@ -1033,11 +1032,10 @@ void readAbsoluteAddrMode() {
 	addrMode = AddrMode.ABSOLUTE;
 }
 
-debug AddrMode testAddrMode(string l) {
+version (unittest) AddrMode testAddrMode(string l) {
 	line = l;
 	column = 0;
 	readAddrMode();
-	writefln("Addressing mode of \"%s\" is %x", l, addrMode);
 	return addrMode;
 }
 
@@ -1175,10 +1173,10 @@ void listLabelTable() {
 	}
 }
 
-debug ubyte[] objectBuffer;
+version (unittest) ubyte[] objectBuffer;
 
 void objectByte(ubyte b) {
-	debug {
+	version (unittest) {
 		objectBuffer ~= b;
 	} else {
 		assert(pass2);
@@ -1234,11 +1232,11 @@ void putByte(ubyte b) {
 			}
 		}
 	}
-	debug {
+	version (unittest) {
 		objectByte(b);
 	}
 	if (pass2) {
-		debug {
+		version (unittest) {
 		} else {
 			objectByte(b);
 		}
@@ -2639,15 +2637,11 @@ void assemblyInstruction(string instruction) {
 	skipping = false;
 }
 
-debug ubyte[] testInstruction(string l) {
+version (unittest) ubyte[] testInstruction(string l) {
 	objectBuffer.length = 0;
 	line = l;
 	column = 0;
 	assemblyInstruction(readInstruction());
-	write(line, " assembles to");
-	foreach (ubyte b; objectBuffer)
-		writef(" %02x", b);
-	writeln();
 	return objectBuffer;
 }
 
@@ -2684,9 +2678,6 @@ void assemblyPair() {
 }
 
 void assemblyLine() {
-	debug {
-		writeln(line);
-	}
 	lineNo++;
 	totalLines++;
 	column = 0;
@@ -2940,12 +2931,15 @@ int main(string[] args) {
 			exitCode = 3;
 		sourceFilename = arg;
 	}
-	if (sourceFilename is null)
-		exitCode = 3;
-	if (!getOption('q'))
-		writeln(TITLE);
-	if (exitCode != 0) {
-		write(
+	version (unittest)
+		return 0;
+	else {
+		if (sourceFilename is null)
+			exitCode = 3;
+		if (!getOption('q'))
+			writeln(TITLE);
+		if (exitCode != 0) {
+			write(
 `Syntax: xasm source [options]
 /c             Include false conditionals in listing
 /d:label=value Define a label
@@ -2958,65 +2952,66 @@ int main(string[] args) {
 /t[:filename]  List label table
 /u             Warn of unused labels
 `);
+			return exitCode;
+		}
+		try {
+			assemblyPass();
+			pass2 = true;
+			assemblyPass();
+			if (getOption('t') && labelTable.length > 0)
+				listLabelTable();
+		} catch (AssemblyError e) {
+			warning(e.msg, true);
+			exitCode = 2;
+		}
+		listingStream.close();
+		objectStream.close();
+		if (exitCode <= 1) {
+			if (!getOption('q')) {
+				writefln("%d lines of source assembled", totalLines);
+				if (objectBytes > 0)
+					writefln("%d bytes written to the object file", objectBytes);
+			}
+			if (getOption('m')) {
+				writef("%s:", makeTarget);
+				foreach (filename; makeSources)
+					writef(" %s", makeEscape(filename));
+				write("\n\txasm");
+				for (int i = 1; i < args.length; i++) {
+					string arg = args[i];
+					if (isOption(arg)) {
+						char letter = arg[1];
+						if (letter >= 'A' && letter <= 'Z')
+							letter += 'a' - 'A';
+						switch (letter) {
+						case 'm':
+							break;
+						case 'o':
+							if (arg[0] == '/')
+								writef(" /%c:$@", arg[1]);
+							else {
+								writef(" -%c $@", arg[1]);
+								++i;
+							}
+							break;
+						default:
+							if (arg[0] == '-'
+							 && (letter == 'd' || letter == 'l' || letter == 't')
+							 && i + 1 < args.length && !isOption(args[i + 1])) {
+								writef(" %s %s", arg, makeEscape(args[++i]));
+							}
+							else {
+								writef(" %s", makeEscape(arg));
+							}
+							break;
+						}
+						continue;
+					}
+					write(" $<");
+				}
+				writeln();
+			}
+		}
 		return exitCode;
 	}
-	try {
-		assemblyPass();
-		pass2 = true;
-		assemblyPass();
-		if (getOption('t') && labelTable.length > 0)
-			listLabelTable();
-	} catch (AssemblyError e) {
-		warning(e.msg, true);
-		exitCode = 2;
-	}
-	listingStream.close();
-	objectStream.close();
-	if (exitCode <= 1) {
-		if (!getOption('q')) {
-			writefln("%d lines of source assembled", totalLines);
-			if (objectBytes > 0)
-				writefln("%d bytes written to the object file", objectBytes);
-		}
-		if (getOption('m')) {
-			writef("%s:", makeTarget);
-			foreach (filename; makeSources)
-				writef(" %s", makeEscape(filename));
-			write("\n\txasm");
-			for (int i = 1; i < args.length; i++) {
-				string arg = args[i];
-				if (isOption(arg)) {
-					char letter = arg[1];
-					if (letter >= 'A' && letter <= 'Z')
-						letter += 'a' - 'A';
-					switch (letter) {
-					case 'm':
-						break;
-					case 'o':
-						if (arg[0] == '/')
-							writef(" /%c:$@", arg[1]);
-						else {
-							writef(" -%c $@", arg[1]);
-							++i;
-						}
-						break;
-					default:
-						if (arg[0] == '-'
-						 && (letter == 'd' || letter == 'l' || letter == 't')
-						 && i + 1 < args.length && !isOption(args[i + 1])) {
-							writef(" %s %s", arg, makeEscape(args[++i]));
-						}
-						else {
-							writef(" %s", makeEscape(arg));
-						}
-						break;
-					}
-					continue;
-				}
-				write(" $<");
-			}
-			writeln();
-		}
-	}
-	return exitCode;
 }
