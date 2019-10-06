@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/pfusik/xasm.svg?branch=master)](https://travis-ci.org/pfusik/xasm)
+
 xasm
 ====
 
