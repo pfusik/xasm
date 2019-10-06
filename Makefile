@@ -8,7 +8,7 @@ SEVENZIP = 7z a -mx=9 -bd
 
 all: xasm xasm.html
 
-xasm: xasm.d
+xasm: source/xasm.d
 	dmd -of$@ -O -release $<
 
 xasm.html: xasm.1.asciidoc
@@ -49,7 +49,7 @@ osx: ../xasm-$(VERSION)-osx.dmg
 ../xasm-$(VERSION)-osx.dmg: osx/xasm osx/bin
 	hdiutil create -volname xasm-$(VERSION)-osx -srcfolder osx -imagekey zlib-level=9 -ov $@
 
-osx/xasm: xasm.d
+osx/xasm: source/xasm.d
 	mkdir -p osx && dmd -of$@ -O -release -m32 -L-macosx_version_min -L10.6 $< && rm -f osx/xasm.o
 
 osx/bin:

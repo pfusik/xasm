@@ -1,0 +1,6 @@
+name "xasm"
+description "6502 cross-assembler with original syntax extensions"
+authors "Piotr Fusik"
+copyright "Copyright © 1998-2019, Piotr Fusik"
+license "poetic"
+targetType "executable"
