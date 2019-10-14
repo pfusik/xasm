@@ -19,6 +19,7 @@
 import std.algorithm;
 import std.array;
 import std.conv;
+import std.file;
 import std.math;
 import std.path;
 import std.stdio;
@@ -40,7 +41,7 @@ string sourceFilename = null;
 bool[26] options;
 string[26] optionParameters;
 string[] commandLineDefinitions = null;
-string makeTarget;
+string objectFilename = null;
 string[] makeSources = null;
 
 int exitCode = 0;
@@ -1084,7 +1085,7 @@ File openOutputFile(char letter, string defaultExt) {
 	if (filename is null)
 		filename = sourceFilename.setExtension(defaultExt);
 	if (letter == 'o')
-		makeTarget = makeEscape(filename);
+		objectFilename = filename;
 	try {
 		return File(filename, "wb");
 	} catch (Exception e) {
@@ -2963,6 +2964,10 @@ int main(string[] args) {
 		} catch (AssemblyError e) {
 			warning(e.msg, true);
 			exitCode = 2;
+			if (objectStream.isOpen) {
+				objectStream.close();
+				remove(objectFilename);
+			}
 		}
 		listingStream.close();
 		objectStream.close();
@@ -2973,7 +2978,7 @@ int main(string[] args) {
 					writefln("%d bytes written to the object file", objectBytes);
 			}
 			if (getOption('m')) {
-				writef("%s:", makeTarget);
+				writef("%s:", makeEscape(objectFilename));
 				foreach (filename; makeSources)
 					writef(" %s", makeEscape(filename));
 				write("\n\txasm");
