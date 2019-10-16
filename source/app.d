@@ -1081,13 +1081,13 @@ File openInputFile(string filename) {
 }
 
 File openOutputFile(string filename, string msg) {
+	if (!getOption('q'))
+		writeln(msg);
 	try {
 		return File(filename, "wb");
 	} catch (Exception e) {
 		throw new AssemblyError(e.msg);
 	}
-	if (!getOption('q'))
-		writeln(msg);
 }
 
 void ensureListingFileOpen(char letter, string msg) {
