@@ -1080,24 +1080,22 @@ File openInputFile(string filename) {
 	}
 }
 
-File openOutputFile(char letter, string defaultExt) {
-	string filename = optionParameters[letter - 'a'];
-	if (filename is null)
-		filename = sourceFilename.setExtension(defaultExt);
-	if (letter == 'o')
-		objectFilename = filename;
+File openOutputFile(string filename, string msg) {
 	try {
 		return File(filename, "wb");
 	} catch (Exception e) {
 		throw new AssemblyError(e.msg);
 	}
+	if (!getOption('q'))
+		writeln(msg);
 }
 
 void ensureListingFileOpen(char letter, string msg) {
 	if (!listingStream.isOpen) {
-		listingStream = openOutputFile(letter, "lst");
-		if (!getOption('q'))
-			write(msg);
+		string filename = optionParameters[letter - 'a'];
+		if (filename is null)
+			filename = sourceFilename.setExtension("lst");
+		listingStream = openOutputFile(filename, msg);
 		listingStream.writeln(TITLE);
 	}
 }
@@ -1124,7 +1122,7 @@ void listLine() {
 		return;
 	if (getOption('i') && includeLevel > 0)
 		return;
-	ensureListingFileOpen('l', "Writing listing file...\n");
+	ensureListingFileOpen('l', "Writing listing file...");
 	if (currentFilename != lastListedFilename) {
 		listingStream.writeln("Source: ", currentFilename);
 		lastListedFilename = currentFilename;
@@ -1156,7 +1154,7 @@ void listCommentLine() {
 void listLabelTable() {
 	if (optionParameters['t' - 'a'] !is null && listingStream.isOpen)
 		listingStream.close();
-	ensureListingFileOpen('t', "Writing label table...\n");
+	ensureListingFileOpen('t', "Writing label table...");
 	listingStream.writeln("Label table:");
 	foreach (string name; sort(labelTable.keys)) {
 		Label l = labelTable[name];
@@ -1182,11 +1180,8 @@ void objectByte(ubyte b) {
 	} else {
 		assert(pass2);
 		if (!optionObject) return;
-		if (!objectStream.isOpen) {
-			objectStream = openOutputFile('o', "obx");
-			if (!getOption('q'))
-				writeln("Writing object file...");
-		}
+		if (!objectStream.isOpen)
+			objectStream = openOutputFile(objectFilename, "Writing object file...");
 		try {
 			objectStream.write(cast(char) b);
 		} catch (Exception e) {
@@ -2955,6 +2950,9 @@ int main(string[] args) {
 `);
 			return exitCode;
 		}
+		objectFilename = optionParameters['o' - 'a'];
+		if (objectFilename is null)
+			objectFilename = sourceFilename.setExtension("obx");
 		try {
 			assemblyPass();
 			pass2 = true;
@@ -2964,10 +2962,8 @@ int main(string[] args) {
 		} catch (AssemblyError e) {
 			warning(e.msg, true);
 			exitCode = 2;
-			if (objectStream.isOpen) {
-				objectStream.close();
-				remove(objectFilename);
-			}
+			objectStream.close();
+			remove(objectFilename);
 		}
 		listingStream.close();
 		objectStream.close();
