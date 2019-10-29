@@ -4,7 +4,7 @@ prefix = /usr/local
 bindir = $(prefix)/bin
 mandir = $(prefix)/share/man/man1
 
-SEVENZIP = 7z a -mx=9 -bd
+SEVENZIP = 7z a -mx=9 -bd -bso0
 
 all: xasm xasm.html
 
@@ -33,10 +33,10 @@ uninstall-scite:
 dist: srcdist ../xasm-$(VERSION)-windows.zip
 
 srcdist: MANIFEST
-	$(RM) ../xasm-$(VERSION).tar.gz && tar -c --numeric-owner --owner=0 --group=0 --mode=644 -T MANIFEST --transform=s,,xasm-$(VERSION)/, | $(SEVENZIP) -tgzip -si ../xasm-$(VERSION).tar.gz
+	$(RM) ../xasm-$(VERSION).tar.gz && /usr/bin/tar -c --numeric-owner --owner=0 --group=0 --mode=644 -T MANIFEST --transform=s,,xasm-$(VERSION)/, | $(SEVENZIP) -tgzip -si ../xasm-$(VERSION).tar.gz
 
 MANIFEST:
-	if test -e .git; then (git ls-files | grep -vF .gitignore && echo MANIFEST) | sort >$@ ; fi
+	if test -e .git; then (git ls-files | grep -vF .gitignore && echo MANIFEST) | sort | dos2unix >$@ ; fi
 
 ../xasm-$(VERSION)-windows.zip: xasm xasm.html xasm.properties
 	$(RM) $@ && $(SEVENZIP) -tzip $@ xasm.exe xasm.html xasm.properties
