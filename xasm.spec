@@ -1,5 +1,5 @@
 Name: xasm
-Version: 3.1.0
+Version: 3.1.1
 Release: 1
 Summary: 6502 cross-assembler
 License: Poetic
@@ -11,6 +11,8 @@ BuildRoot: %{_tmppath}/%{name}-root
 
 %description
 xasm is a 6502 cross-assembler with original syntax extensions.
+
+%global debug_package %{nil}
 
 %prep
 %setup -q
@@ -31,6 +33,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/xasm.1.gz
 
 %changelog
+* Wed Nov 20 2019 Piotr Fusik <fox@scene.pl>
+- 3.1.1-1
+
 * Sun Jul 20 2014 Piotr Fusik <fox@scene.pl>
 - 3.1.0-1
 - Initial packaging

@@ -1,6 +1,6 @@
-// xasm 3.1.0 by Piotr Fusik <fox@scene.pl>
+// xasm 3.1.1 by Piotr Fusik <fox@scene.pl>
 // http://xasm.atari.org
-// Can be compiled with DMD v2.087.1.
+// Can be compiled with DMD v2.089.0.
 
 // Poetic License:
 //
@@ -35,7 +35,7 @@ int readByte(File *file) {
 	return c;
 }
 
-const string TITLE = "xasm 3.1.0";
+const string TITLE = "xasm 3.1.1";
 
 string sourceFilename = null;
 bool[26] options;

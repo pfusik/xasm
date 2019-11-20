@@ -1,4 +1,4 @@
-VERSION = 3.1.0
+VERSION = 3.1.1
 
 prefix = /usr/local
 bindir = $(prefix)/bin
@@ -44,13 +44,13 @@ MANIFEST:
 deb:
 	debuild -b -us -uc
 
-osx: ../xasm-$(VERSION)-osx.dmg
+osx: ../xasm-$(VERSION)-macos.dmg
 
-../xasm-$(VERSION)-osx.dmg: osx/xasm osx/bin
-	hdiutil create -volname xasm-$(VERSION)-osx -srcfolder osx -imagekey zlib-level=9 -ov $@
+../xasm-$(VERSION)-macos.dmg: osx/xasm osx/bin
+	hdiutil create -volname xasm-$(VERSION)-macos -srcfolder osx -format UDBZ -fs HFS+ -imagekey bzip2-level=3 -ov $@
 
 osx/xasm: source/app.d
-	mkdir -p osx && dmd -of$@ -O -release -m32 -L-macosx_version_min -L10.6 $< && rm -f osx/xasm.o
+	mkdir -p osx && dmd -of$@ -O -release -L-macosx_version_min -L10.6 $< && rm -f osx/xasm.o
 
 osx/bin:
 	mkdir -p osx && ln -s /usr/bin $@

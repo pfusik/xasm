@@ -686,6 +686,13 @@ and pseudo commands, except for `MWA`, `MWX` and `MWY`:
 HISTORY
 -------
 
+Version 3.1.1 (2019-11-20)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+- remove partial object file on error (requested by Bill Kendrick)
+- report label name in the unused label warning (requested by Peter Dell)
+- support `a:`/`f:` modifiers for `RUN`/`INI`
+- improved performance with network drives (reported by Marek Pavlik)
+
 Version 3.1.0 (2014-07-20)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 - OS X, Ubuntu and Fedora distributions
