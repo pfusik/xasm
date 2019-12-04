@@ -1707,7 +1707,7 @@ void assemblyMoveWord(MoveFunction load, MoveFunction store, ubyte inc, ubyte de
 	}
 	switch (addrMode1) {
 	case AddrMode.IMMEDIATE:
-		int high = value1 >> 8;
+		int high = value1 >> 8 & 0xff;
 		value1 &= 0xff;
 		load(1);
 		store(2);
@@ -1716,9 +1716,9 @@ void assemblyMoveWord(MoveFunction load, MoveFunction store, ubyte inc, ubyte de
 			value1 = high;
 			load(1);
 		} else {
-			if (inc != 0 && cast(ubyte) (value1 + 1) == high)
+			if (inc != 0 && (value1 + 1 & 0xff) == high)
 				putByte(inc);
-			else if (dec != 0 && cast(ubyte) (value1 - 1) == high)
+			else if (dec != 0 && (value1 - 1 & 0xff) == high)
 				putByte(dec);
 			else if (value1 != high) {
 				value1 = high;
@@ -2645,6 +2645,7 @@ unittest {
 	assert(testInstruction("nop") == cast(ubyte[]) hexString!"ea");
 	assert(testInstruction("add (5,0)") == cast(ubyte[]) hexString!"18a2006105");
 	assert(testInstruction("mwa #$abcd $1234") == cast(ubyte[]) hexString!"a9cd8d3412a9ab8d3512");
+	assert(testInstruction("mwx #-256 $80") == cast(ubyte[]) hexString!"a2008680ca8681");
 	assert(testInstruction("dta 5,d'Foo'*,a($4589)") == cast(ubyte[]) hexString!"05a6efef8945");
 	assert(testInstruction("dta r(1,12,123,1234567890,12345678900000,.5,.03,000.1664534589,1e97)")
 	 == cast(ubyte[]) hexString!"400100000000 401200000000 410123000000 441234567890 461234567890 3f5000000000 3f0300000000 3f1664534589 701000000000");
