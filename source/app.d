@@ -23,6 +23,7 @@ import std.file;
 import std.math;
 import std.path;
 import std.stdio;
+import std.string;
 
 version (Windows) {
 	import core.sys.windows.windows;
@@ -2642,13 +2643,13 @@ version (unittest) ubyte[] testInstruction(string l) {
 }
 
 unittest {
-	assert(testInstruction("nop") == cast(ubyte[]) hexString!"ea");
-	assert(testInstruction("add (5,0)") == cast(ubyte[]) hexString!"18a2006105");
-	assert(testInstruction("mwa #$abcd $1234") == cast(ubyte[]) hexString!"a9cd8d3412a9ab8d3512");
-	assert(testInstruction("mwx #-256 $80") == cast(ubyte[]) hexString!"a2008680ca8681");
-	assert(testInstruction("dta 5,d'Foo'*,a($4589)") == cast(ubyte[]) hexString!"05a6efef8945");
+	assert(testInstruction("nop") == representation(hexString!"ea"));
+	assert(testInstruction("add (5,0)") == representation(hexString!"18a2006105"));
+	assert(testInstruction("mwa #$abcd $1234") == representation(hexString!"a9cd8d3412a9ab8d3512"));
+	assert(testInstruction("mwx #-256 $80") == representation(hexString!"a2008680ca8681"));
+	assert(testInstruction("dta 5,d'Foo'*,a($4589)") == representation(hexString!"05a6efef8945"));
 	assert(testInstruction("dta r(1,12,123,1234567890,12345678900000,.5,.03,000.1664534589,1e97)")
-	 == cast(ubyte[]) hexString!"400100000000 401200000000 410123000000 441234567890 461234567890 3f5000000000 3f0300000000 3f1664534589 701000000000");
+	 == representation(hexString!"400100000000 401200000000 410123000000 441234567890 461234567890 3f5000000000 3f0300000000 3f1664534589 701000000000"));
 }
 
 void assemblyPair() {
