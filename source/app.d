@@ -2965,7 +2965,7 @@ int main(string[] args) {
 			warning(e.msg, true);
 			exitCode = 2;
 			objectStream.close();
-			remove(objectFilename);
+			core.stdc.stdio.remove(toStringz(objectFilename));
 		}
 		listingStream.close();
 		objectStream.close();
