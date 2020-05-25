@@ -1,6 +1,6 @@
 // xasm 3.1.1 by Piotr Fusik <fox@scene.pl>
 // http://xasm.atari.org
-// Can be compiled with DMD v2.089.0.
+// Can be compiled with DMD v2.092.0.
 
 // Poetic License:
 //
@@ -2938,17 +2938,17 @@ int main(string[] args) {
 			writeln(TITLE);
 		if (exitCode != 0) {
 			write(
-`Syntax: xasm source [options]
-/c             Include false conditionals in listing
-/d:label=value Define a label
-/i             Don't list included files
-/l[:filename]  Generate listing
-/o:filename    Set object file name
-/M             Print Makefile rule
-/p             Print absolute paths in listing and error messages
-/q             Suppress info messages
-/t[:filename]  List label table
-/u             Warn of unused labels
+`Syntax: xasm SOURCE [OPTIONS]
+-c             Include false conditionals in listing
+-d LABEL=VALUE Define a label
+-i             Don't list included files
+-l [FILENAME]  Generate listing
+-o FILENAME    Set object file name
+-M             Print Makefile rule
+-p             Print absolute paths in listing and error messages
+-q             Suppress info messages
+-t [FILENAME]  List label table
+-u             Warn of unused labels
 `);
 			return exitCode;
 		}

@@ -23,25 +23,25 @@ with the extension changed to `.obx`.
 OPTIONS
 -------
 
-*/c*::
+*-c*::
 Specifies that lines skipped due to a false condition
 should be included in the listing file.
 
-[[new_deflabel]]*/d:*'LABEL'='VALUE'::
+[[new_deflabel]]*-d* 'LABEL'='VALUE'::
 Defines a label.
 'LABEL' should be a valid label name.
 'VALUE' may be any expression (may reference to labels defined in source files).
-You may use several */d* options to define many labels from the command line.
+You may use several *-d* options to define many labels from the command line.
 
-*/i*::
+*-i*::
 Excludes included files from the listing file.
 
-*/l*'[:LISTING_FILE]'::
+*-l* '[LISTING_FILE]'::
 Generates listing file.
 If 'LISTING_FILE' is omitted, the listing filename
 is 'SOURCE_FILE' with the extension changed to `.lst`.
 
-[[new_makefile]]*/M*::
+[[new_makefile]]*-M*::
 Prints a rule for use in a `Makefile`.
 First line of the rule lists 'OBJECT_FILE' as the target of the rule
 and all source files (including the ones specified with `icl` and `ins` directives)
@@ -50,28 +50,30 @@ replaced by the *make* macro `$@` and `SOURCE_FILE` replaced by the macro `$<`.
 Dollars in the command line are doubled.
 Your `make` or shell may require further escaping.
 
-*/o*':OBJECT_FILE'::
+*-o* 'OBJECT_FILE'::
 Sets output file name.
 The default is 'SOURCE_FILE' with the extension changed to `.obx`.
 
-[[new_fullpaths]]*/p*::
+[[new_fullpaths]]*-p*::
 Prints absolute paths in listing and error messages.
 
-[[new_quiet]]*/q*::
+[[new_quiet]]*-q*::
 Quiet mode. Prevents *xasm* from printing its banner and compilation summary.
 
-*/t*'[:LABEL_FILE]'::
+*-t*' [LABEL_FILE]'::
 Generates label table.
 If 'LABEL_FILE' is omitted then the table is appended at the end of the listing.
 
-[[new_unlabels]]*/u*::
+[[new_unlabels]]*-u*::
 Issues a warning message for each label whose value is unused.
 
-Alternatively, you may use Unix-style options, for example:
+Alternatively, you may use DOS-style options, for example:
 
 -----------------------------------------------------------
-xasm -i -d DEBUG=1 -l listing.lst source.asx
+xasm /i /d:DEBUG=1 /l:listing.lst source.asx
 -----------------------------------------------------------
+
+These are however deprecated because they are incompatible with MSYS.
 
 SYNTAX
 ------
