@@ -18,6 +18,7 @@
 
 import std.algorithm;
 import std.array;
+import std.ascii;
 import std.conv;
 import std.file;
 import std.math;
@@ -85,6 +86,7 @@ class Label {
 
 Label[string] labelTable;
 Label currentLabel;
+string lastGlobalLabel;
 
 alias int function(int a, int b) OperatorFunction;
 
@@ -261,20 +263,22 @@ void readSpaces() {
 }
 
 string readLabel() {
-	string label;
+	int firstColumn = column;
 	while (!eol()) {
 		char c = line[column++];
-		if (c >= '0' && c <= '9' || c == '_') {
-			label ~= c;
+		if (c >= '0' && c <= '9' || c == '_' || c == '?')
 			continue;
-		}
 		c &= 0xdf;
-		if (c >= 'A' && c <= 'Z') {
-			label ~= c;
+		if (c >= 'A' && c <= 'Z')
 			continue;
-		}
 		column--;
 		break;
+	}
+	string label = line[firstColumn .. column].toUpper;
+	if (label.startsWith('?')) {
+		if (lastGlobalLabel is null)
+			throw new AssemblyError("Global label must be declared first");
+		label = lastGlobalLabel ~ label;
 	}
 	return label >= "A" ? label : null;
 }
@@ -2688,6 +2692,8 @@ void assemblyLine() {
 	currentLabel = null;
 	if (label !is null) {
 		if (!inFalseCondition()) {
+			if (!label.canFind('?'))
+				lastGlobalLabel = label;
 			if (!pass2) {
 				if (label in labelTable)
 					throw new AssemblyError("Label declared twice");

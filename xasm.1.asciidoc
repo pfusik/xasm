@@ -95,6 +95,28 @@ The label will be assigned the current value of the 'origin counter'
 unless you use it with the `EQU` directive where it is assigned
 the value of the `EQU` argument.
 
+Any label name starting with `?` (question mark) refers to a 'local label'.
+It is implicitly prefixed with the name of the most recently defined
+'global label' (i.e. a label without any `?` in name),
+and stays visible until another global label is defined.
+It is still possible to access a local label from anywhere in the source
+by specifying its full name.
+Local labels provide a way to reuse common, short label names while keeping
+them unique.
+Example:
+----
+foo   ldy #0
+?loop lda data,y     ; full label name is FOO?LOOP
+      beq ?ret
+      jsr sendByte
+      iny:bne ?loop
+?ret  rts
+
+bar   lda baz
+      beq foo?ret    ; ok
+      bne ?loop      ; ERROR: Undeclared label: BAR?LOOP
+----
+
 Instructions and directives must be preceded with some whitespace.
 Without leading whitespace they are treated as label names.
 For example:
