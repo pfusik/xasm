@@ -2659,19 +2659,24 @@ unittest {
 void assemblyPair() {
 	assert(!inOpcode);
 	string instruction = readInstruction();
-	if (!eol() && line[column] == ':') {
+	string[] extraInstructions;
+	while (!eol() && line[column] == ':') {
 		pairing = true;
 		column++;
-		string instruction2 = readInstruction();
+		extraInstructions ~= readInstruction();
+	}
+	if (!extraInstructions.empty) {
 		int savedColumn = column;
 		if (willSkip)
 			warning("Skipping only the first instruction");
 		assemblyInstruction(instruction);
 		checkNoExtraCharacters();
-		column = savedColumn;
 		wereManyInstructions = false;
-		assemblyInstruction(instruction2);
-		wereManyInstructions = true;
+		foreach (instruction2; extraInstructions) {
+			column = savedColumn;
+			assemblyInstruction(instruction2);
+			wereManyInstructions = true;
+		}
 	} else {
 		pairing = false;
 		assemblyInstruction(instruction);
