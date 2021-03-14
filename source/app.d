@@ -2161,7 +2161,7 @@ void assemblyOpt() {
 			break;
 		case 'L':
 		case 'l':
-			optionListing = readOption() && !pass2;
+			optionListing = readOption() && pass2;
 			break;
 		case 'O':
 		case 'o':
