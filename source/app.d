@@ -2536,6 +2536,9 @@ void assemblyInstruction(string instruction) {
 	case "REQ":
 		assemblyRepeat(0xf0);
 		break;
+	case "RLA":
+		putByte(0x2a);
+		break;
 	case "RMI":
 		assemblyRepeat(0x30);
 		break;
@@ -2550,6 +2553,9 @@ void assemblyInstruction(string instruction) {
 		break;
 	case "RPL":
 		assemblyRepeat(0x10);
+		break;
+	case "RRA":
+		putByte(0x6a);
 		break;
 	case "RTI":
 		putByte(0x40);
@@ -2587,6 +2593,9 @@ void assemblyInstruction(string instruction) {
 	case "SEQ":
 		assemblySkip(0xf0);
 		break;
+	case "SLA":
+		putByte(0x0a);
+		break;
 	case "SMI":
 		assemblySkip(0x30);
 		break;
@@ -2595,6 +2604,9 @@ void assemblyInstruction(string instruction) {
 		break;
 	case "SPL":
 		assemblySkip(0x10);
+		break;
+	case "SRA":
+		putByte(0x4a);
 		break;
 	case "STA":
 		assemblyAccumulator(0x80, 0, 0);
