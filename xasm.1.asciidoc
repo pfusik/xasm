@@ -160,7 +160,7 @@ to start a comment.
 -------------------------------------------------------------
 
 [[new_pairing]]
-You may put two instructions in one line so they share their operand.
+You may put two or more instructions in one line so they share their operand.
 For example:
 ------------
  eor:sta foo
@@ -173,9 +173,9 @@ is equivalent to
 
 Note that
 ------------
- lda:tax #0
+ lda:tax:tay #0
 ------------
-is allowed because `#0` is treated as a comment for `tax`.
+is allowed because `#0` is treated as a comment for `tax` and `tay`.
 
 EXPRESSIONS
 -----------
@@ -716,6 +716,7 @@ Version 3.x.x (20xx-xx-xx)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 - source can optionally be read from standard input, and object can be
   written to standard output instead of files (by Adrian Matoga)
+- <<new_pairing,any number of instructions in one line>> (by Adrian Matoga)
 
 Version 3.2.0 (2021-06-22)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
