@@ -53,7 +53,7 @@ osx/xasm: source/app.d
 	mkdir -p osx && dmd -of$@ -O -release -L-macosx_version_min -L10.6 $< && rm -f osx/xasm.o
 
 osx/bin:
-	mkdir -p osx && ln -s /usr/bin $@
+	mkdir -p osx && ln -s /usr/local/bin $@
 
 clean:
 	$(RM) xasm xasm.exe xasm.obj xasm.html xasm.1
