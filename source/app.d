@@ -1,6 +1,6 @@
 // xasm 3.1.1 by Piotr Fusik <fox@scene.pl>
 // http://xasm.atari.org
-// Can be compiled with DMD v2.092.0.
+// Can be compiled with DMD v2.096.0.
 
 // Poetic License:
 //
@@ -2170,6 +2170,10 @@ void assemblyOpt() {
 		case 'U':
 		case 'u':
 			optionUnusedLabels = readOption();
+			break;
+		case '?':
+			if (!readOption())
+				throw new AssemblyError("OPT ?- not supported");
 			break;
 		default:
 			column--;

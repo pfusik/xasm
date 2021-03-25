@@ -304,12 +304,14 @@ Six options are available:
 +
 You can turn any of these on or off.
 The default (if no `OPT` specified) is `opt f-g-h+l+o+u+`.
+For compatibility with MADS, `opt ?+` is accepted and ignored.
 Examples:
 +
 ------------------------------------------------------------------------------
  opt l-     listing off
  opt l+o-   listing on, object file off
  opt f+g+h- useful for Atari 5200 cartridges - raw output, 5200 hw regs
+ opt ?+     MADS compatibility, no effect
 ------------------------------------------------------------------------------
 
 *ORG* - change value of the origin counter::
