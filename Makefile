@@ -47,10 +47,16 @@ deb:
 osx: ../xasm-$(VERSION)-macos.dmg
 
 ../xasm-$(VERSION)-macos.dmg: osx/xasm osx/bin
+ifdef PORK_CODESIGNING_IDENTITY
+	codesign --options runtime -f -s $(PORK_CODESIGNING_IDENTITY) osx/xasm
+endif
 	hdiutil create -volname xasm-$(VERSION)-macos -srcfolder osx -format UDBZ -fs HFS+ -imagekey bzip2-level=3 -ov $@
+ifdef PORK_NOTARIZING_CREDENTIALS
+	xcrun altool --notarize-app --primary-bundle-id com.github.pfusik.xasm $(PORK_NOTARIZING_CREDENTIALS) --file $@
+endif
 
 osx/xasm: source/app.d
-	mkdir -p osx && dmd -of$@ -O -release -L-macosx_version_min -L10.6 $< && rm -f osx/xasm.o
+	mkdir -p osx && dmd -of$@ -O -release $< && rm -f osx/xasm.o
 
 osx/bin:
 	mkdir -p osx && ln -s /usr/local/bin $@
