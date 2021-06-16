@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/pfusik/xasm.svg?branch=master)](https://travis-ci.org/pfusik/xasm)
+[![Build Status](https://travis-ci.com/pfusik/xasm.svg?branch=master)](https://travis-ci.com/github/pfusik/xasm)
 
 xasm
 ====
