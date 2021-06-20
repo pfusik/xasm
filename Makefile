@@ -38,8 +38,11 @@ srcdist: MANIFEST
 MANIFEST:
 	if test -e .git; then (git ls-files | grep -vF .gitignore && echo MANIFEST) | sort | dos2unix >$@ ; fi
 
-../xasm-$(VERSION)-windows.zip: xasm xasm.html xasm.properties
+../xasm-$(VERSION)-windows.zip: xasm xasm.html xasm.properties signed
 	$(RM) $@ && $(SEVENZIP) -tzip $@ xasm.exe xasm.html xasm.properties
+
+signed: xasm
+	signtool sign -d "xasm $(VERSION)" -n "Open Source Developer, Piotr Fusik" -tr http://time.certum.pl -fd sha256 -td sha256 xasm.exe && touch $@
 
 deb:
 	debuild -b -us -uc
@@ -63,7 +66,7 @@ osx/bin:
 	mkdir -p osx && ln -s /usr/local/bin $@
 
 clean:
-	$(RM) xasm xasm.exe xasm.obj xasm.html xasm.1
+	$(RM) xasm xasm.exe xasm.obj xasm.html xasm.1 signed
 	rm -rf osx
 
 .PHONY: all install uninstall install-scite uninstall-scite dist srcdist MANIFEST deb osx clean
