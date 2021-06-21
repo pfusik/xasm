@@ -24,31 +24,30 @@ OPTIONS
 -------
 
 *-c*::
-Specifies that lines skipped due to a false condition
-should be included in the listing file.
+The listing should include conditionally skipped lines.
 
 [[new_deflabel]]*-d* 'LABEL'='VALUE'::
 Defines a label.
 'LABEL' should be a valid label name.
-'VALUE' may be any expression (may reference to labels defined in source files).
-You may use several *-d* options to define many labels from the command line.
+'VALUE' may be any expression (potentially referencing labels defined in source files).
+You may use several *-d* options to define many labels on the command line.
 
 *-i*::
-Excludes included files from the listing file.
+The listing file should exclude included files.
 
 *-l* '[LISTING_FILE]'::
-Generates listing file.
+Generates a listing file.
 If 'LISTING_FILE' is omitted, the listing filename
 is 'SOURCE_FILE' with the extension changed to `.lst`.
 
 [[new_makefile]]*-M*::
-Prints a rule for use in a `Makefile`.
+Prints a `Makefile` rule.
 First line of the rule lists 'OBJECT_FILE' as the target of the rule
-and all source files (including the ones specified with `icl` and `ins` directives)
-as dependencies. The second line contains the command line with `OBJECT_FILE`
-replaced by the *make* macro `$@` and `SOURCE_FILE` replaced by the macro `$<`.
+and all source files (including the ones specified with `icl` and `ins`) as dependencies.
+The second line contains the command line with 'OBJECT_FILE'
+replaced by the *make* macro `$@` and 'SOURCE_FILE' replaced by the macro `$<`.
 Dollars in the command line are doubled.
-Your `make` or shell may require further escaping.
+Your *make* or shell may require further escaping.
 
 *-o* 'OBJECT_FILE'::
 Sets output file name.
@@ -60,12 +59,12 @@ Prints absolute paths in listing and error messages.
 [[new_quiet]]*-q*::
 Quiet mode. Prevents *xasm* from printing its banner and compilation summary.
 
-*-t*' [LABEL_FILE]'::
-Generates label table.
+*-t* '[LABEL_FILE]'::
+Generates a label table.
 If 'LABEL_FILE' is omitted then the table is appended at the end of the listing.
 
 [[new_unlabels]]*-u*::
-Issues a warning message for each label whose value is unused.
+Issues warnings for unreferenced labels.
 
 Alternatively, you may use DOS-style options, for example:
 
@@ -73,7 +72,7 @@ Alternatively, you may use DOS-style options, for example:
 xasm /i /d:DEBUG=1 /l:listing.lst source.asx
 -----------------------------------------------------------
 
-These are however deprecated because they are incompatible with MSYS.
+These are deprecated because they are incompatible with https://www.msys2.org[MSYS2].
 
 SYNTAX
 ------
@@ -83,22 +82,22 @@ LF, CR, CR/LF and Atari ($9b) line terminators are supported.
 Labels and instructions are case-insensitive.
 
 *xasm* is backward compatible with Quick Assembler.
-To compile QA sources with *xasm*, simply replace ATASCII-specific characters
-with their integer codes. You also have to update all `OPT` directives,
-but usually you can simply remove them.
+To compile QA sources with *xasm*, simply replace ATASCII characters
+in string literals with the corresponding integers.
+Also update all `OPT` directives, but often you can omit them.
 
-'Label' is a symbol that represents a signed 32-bit integer.
+A 'label' is a symbol that represents a signed 32-bit integer.
 You define a label by putting its name at the beginning of a line
 (with no spaces before).
 The label will be assigned the current value of the 'origin counter'
-(i.e. the address of the compiled instruction),
-unless you use it with the `EQU` directive where it is assigned
-the value of the `EQU` argument.
+(that is, the address of the compiled instruction),
+unless you use it with the `EQU` directive to assign the specified value.
 
-Any label name starting with `?` (question mark) refers to a 'local label'.
+[[new_locallabel]]
+Any label name starting with a `?` (question mark) is a 'local label'.
 It is implicitly prefixed with the name of the most recently defined
-'global label' (i.e. a label without any `?` in name),
-and stays visible until another global label is defined.
+'global label' (that is, a label without any `?` in name),
+and remains visible until another global label is defined.
 It is still possible to access a local label from anywhere in the source
 by specifying its full name.
 Local labels provide a way to reuse common, short label names while keeping
@@ -117,7 +116,7 @@ bar   lda baz
       bne ?loop      ; ERROR: Undeclared label: BAR?LOOP
 ----
 
-Instructions and directives must be preceded with some whitespace.
+'Instructions' and 'directives' must be preceded with some whitespace.
 Without leading whitespace they are treated as label names.
 For example:
 ----
@@ -130,7 +129,7 @@ nop
 (without leading space) defines a label called `nop`.
 
 Whole-line comments must start with a semicolon, an asterisk or a pipe,
-with optional label definition and spaces before.
+with an optional label definition and spaces before.
 Here are examples of whole-line comments:
 --------------------
 ; this is a comment
@@ -144,12 +143,12 @@ To assemble a single line several times,
 precede the repeat count with a colon, for example:
 -----------------
 :4 asl @
-mask_lookup :32 dta $80,$40,$20,$10,8,4,2,1
+mask_lookup :32 dta $80,$40,$20,$10,$08,$04,$02,$01
 -----------------
 
 In lines with instructions or directives, a comment starts immediately
 after the instruction/directive has been successfully parsed.
-That is, in such lines *xasm* does not require a special character
+That is, in such lines *xasm* does 'not' require any special character
 to start a comment.
 -------------------------------------------------------------
  lda foo ; this is a comment
@@ -183,14 +182,14 @@ for 6502 indirect addressing.
 
 A number is:
 
-- a 32-bit decimal integer, e.g. `-12345`
+- a 32-bit decimal integer, e.g. `12345`
 - a 32-bit hexadecimal integer, e.g. `$abcd`
 - a 32-bit binary integer, e.g. `%10100101`
 - an ASCII character, e.g. `'a'` or `"a"`
-- origin counter: `*`
+- the current value of the origin counter: `*`
 - a hardware register (see below), e.g. `^4e`
 - [[new_opcode]]an opcode (see below), e.g. `{lda #0}` is `$a9`
-- [[new_linecnt]]the line repeat counter (see below): `#`
+- [[new_linecnt]]the current value of the line repeat counter (see below): `#`
 
 Abbreviations of Atari hardware registers are provided
 to save two characters (`$d40e` vs `^4e`)
@@ -258,7 +257,8 @@ The following 'unary operators' are supported:
 - `<` Low (extracts the low byte)
 - `>` High (extracts the high byte)
 
-The operator precedence is following:
+Although the operators are similar to those used in C, C++, C# and Java,
+their precedence is different:
 
 - first: `[]` (brackets)
 - `+ - ~ < >` (unary)
@@ -269,19 +269,16 @@ The operator precedence is following:
 - `&&` (binary)
 - last: `||` (binary)
 
-NOTE: Although the operators are similar to those used in C, C++ and Java,
-their priorities are different.
-
-Compare and logical operators assume that zero is false and a non-zero
-is true. They return 1 for true.
+The compare and logical operators assume that zero is false
+and a non-zero is true. They return 1 for true.
 
 Expressions are calculated in signed 32-bit arithmetic.
-"Arithmetic overflow" error signals overflow of the 32-bit range.
+An overflow is signalled with an "Arithmetic overflow" error.
 
 DIRECTIVES
 ----------
 
-*EQU* - assign value of expression to label::
+*EQU* - assign the value of an expression to a label::
 
 Examples:
 +
@@ -294,16 +291,16 @@ here equ *
 
 Six options are available:
 
-- `F` - fill the space between memory areas with `$FF`
-- `G` - Atari 5200 mode for hardware register abbreviations
+- `F` - fill the space between noncontiguous memory areas with `$FF` bytes
+- `G` - Atari 5200 mode for hardware register abbreviations (`^xx`)
 - `H` - generate Atari executable headers
-- `L` - write to the listing
-- `O` - write to the object file
+- `L` - write the listing
+- `O` - write the object file
 - `U` - warn of unused labels
 
 +
 You can turn any of these on or off.
-The default (if no `OPT` specified) is `opt f-g-h+l+o+u+`.
+The default (before the first `OPT`) is `opt f-g-h+l+o+u+`.
 For compatibility with MADS, `opt ?+` is accepted and ignored.
 Examples:
 +
@@ -314,13 +311,13 @@ Examples:
  opt ?+     MADS compatibility, no effect
 ------------------------------------------------------------------------------
 
-*ORG* - change value of the origin counter::
+*ORG* - set the origin counter::
 
-If Atari executable headers are enabled, you can include an operand prefix:
+If Atari executable headers are enabled (`opt h+`), you can include an operand prefix:
 
 - `a:` starts a new block even if it's superfluous
   because the new address equals the current address.
-- `f:` is same as `a:`, but additionally generates a double-`$FF` prefix
+- `f:` is same as `a:`, but additionally generates a double `$FF` prefix
   before the new header. This prefix is automatically generated
   at the beginning of the file (no need to include `f:` in the first `ORG`).
 
@@ -337,10 +334,10 @@ In the latter example `table` points to 100 bytes
 of uninitialized data (label is assigned with `*`
 before the `ORG` directive is executed).
 +
-[[new_orgr]]Starting with version 2.6.0, *xasm* supports code
-that is relocated at run time. Let's say you want your code
-to be located on page zero. You can't normally load it directly into this
-place, so you load it at a different address and then move in your program.
+[[new_orgr]]*xasm* supports code that is relocated at run time.
+Let's say you want your code to be located on page zero for best performance.
+You can't safely load it directly into this place,
+so you load it at a different address and then move in your program.
 `org r:` changes the address that it used for code generation
 but not the address used for generating Atari executable headers.
 Example:
@@ -434,18 +431,18 @@ Examples:
  icl 'lib/fileio'
 -----------------
 +
-NOTE: for portability, use only relative paths and slash as the separator.
-This way your sources will compile under Windows and Linux.
+NOTE: For Windows/macOS/Linux portability use relative paths
+and slashes as path separators.
 
-*END* - end assembling file::
+*END* - end this source file::
 
 May be used if the source file ends with something which shouldn't
 be read by *xasm* (e.g. your notes).
 
-*INS* - insert contents of file::
+*INS* - insert binary file contents::
 
 Copies every byte of the specified file into the object file and updates
-the origin counter, as if these bytes were written using `DTA`.
+the origin counter, as if these bytes were specified in a `DTA`.
 You may specify a range of the file to insert. The syntax is:
 +
 -----------------------------
@@ -458,11 +455,11 @@ Examples:
 +
 -----------------------------------------------
  ins 'picture.raw'
- ins 'file',-256  insert last 256 bytes of file
- ins 'file',10,10 insert bytes 10..19 of file
+ ins 'file',-256  ; insert last 256 bytes of file
+ ins 'file',10,10 ; insert bytes 10..19 of file
 -----------------------------------------------
 
-*RUN* - set run address in the Atari executable format::
+*RUN* - set the Atari executable run address::
 
 +
 ---------
@@ -476,7 +473,7 @@ is equivalent to:
  dta a(main)
 ------------
 
-*INI* - set init address in the Atari executable format::
+*INI* - set the Atari executable init address::
 
 Example:
 +
@@ -484,7 +481,7 @@ Example:
  ini showloadingpic
 ------------
 
-*ERT* - generate error if expression evaluates to true::
+*ERT* - abort the assembly with an error if an expression is true::
 
 Examples:
 +
@@ -516,7 +513,7 @@ widescr equ 1
  sta $22f
 -------------
 +
-NOTE: The above example may be rewritten using the 'repeat line' feature:
+NOTE: Alternatively, the above example can be written using the 'repeat line' feature:
 +
 --------------------------
 noscr equ 1
@@ -529,7 +526,7 @@ widescr equ 1
 
 PSEUDO COMMANDS
 ---------------
-'Pseudo commands' are built-in macros. There are no user-defined macros in *xasm*.
+'Pseudo commands' are built-in macros. There are 'no' user-defined macros in *xasm*.
 
 *ADD* - add without carry::
 
@@ -540,7 +537,7 @@ to use a `CLC` before `ADC` for every simple addition.
 
 *SUB* - subtract::
 
-It is `SEC` and `SBC`.
+It is `SEC` followed by `SBC`.
 
 [[new_repskip]]*RCC, RCS, REQ, RMI, RNE, RPL, RVC, RVS* - conditional repeat::
 
@@ -558,11 +555,11 @@ The above code copies a 256-byte memory block from $500 to $600.
 Here is the same written with standard 6502 commands only:
 +
 --------------------
- ldx #0
+          ldx #0
 copy_loop lda $500,x
- sta $600,x
- inx
- bne copy_loop
+          sta $600,x
+          inx
+          bne copy_loop
 --------------------
 
 *SCC, SCS, SEQ, SMI, SNE, SPL, SVC, SVS* - conditional skip::
@@ -583,7 +580,7 @@ In the above example the 16-bit variable `ptr` is incremented by 40.
 *JCC, JCS, JEQ, JMI, JNE, JPL, JVC, JVS* - conditional jump::
 
 These are long branches. While standard branches (such as `BNE`)
-have range of -128..+127, these jumps have range of 64 kB.
+have range of -128..+127 bytes, these jumps have range of 64 KB.
 For example:
 +
 ---------
@@ -612,7 +609,7 @@ is equivalent to:
  sne:inc dest+1
 ---------------
 
-*MVA, MVX, MVY* - move byte using accumulator, X or Y::
+*MVA, MVX, MVY* - move a byte using the accumulator, X or Y::
 
 Each of these pseudo commands requires two operands
 and substitutes two commands:
@@ -651,7 +648,7 @@ When `<immed` equals `>immed` and `immed` is not forward-referenced,
  sta dest+1
 ----------------
 +
-If possible, `MWX` and `MWY` use increment/decrement commands.
+If possible, `MWX` and `MWY` use increment/decrement instructions.
 For example, `mwx #1 dest` expands to:
 +
 -----------
@@ -664,11 +661,11 @@ For example, `mwx #1 dest` expands to:
 ADDRESSING MODES
 ----------------
 
-All addressing modes are entered in the standard 6502 convention
-except for the accumulator addressing mode,
-which should be marked with the `@` character (as in Quick Assembler).
+Addressing modes are entered in the standard 6502 convention.
+An exception is the accumulator mode marked with the `@` character
+for compatibility with Quick Assembler.
 
-For Quick Assembler compatibility, there are two extra immediate
+Also for Quick Assembler compatibility there are two extra immediate
 addressing modes: `<` and `>`, which use the low/high byte of a 16-bit word constant.
 Unlike in Quick Assembler, you can alternatively use
 the more common syntax: `#<` and `#>`.
@@ -725,7 +722,7 @@ Version 3.1.0 (2014-07-20)
 - `INS` can be repeated (suggested by Marek Pavlik) and taken "opcode" of
 - `OPT U-` disables <<new_unlabels,*/u*>> unused label warnings
   (suggested by Marek Pavlik)
-- if the file to be included cannot be opened, report error in the `ICL` line
+- if the file to be included cannot be opened, report an error in the `ICL` line
   (suggested by Peter Dell)
 - removed duplicate filenames for <<new_makefile,*/M*>>
 - implemented <<new_fullpaths,*/p*>> outside Windows
@@ -738,7 +735,7 @@ Version 3.0.2 (2009-10-17)
   for backward branches
 - <<new_makefile,new command-line option */M* prints a Makefile rule>>
 - command-line options are now case-insensitive
-- on Windows error messages are printed in red, warnings in yellow
+- on Windows, error messages are printed in red, warnings in yellow
 
 Version 3.0.1 (2007-04-22)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -751,9 +748,9 @@ Version 3.0.0 (2005-05-22)
 - rewritten from the x86 assembly language to the
   http://dlang.org/[D programming language] - Linux version
   is now available and DOS is no longer supported
-- no limits for line length, number of `ICLs`, `ORGs`,`IFTs` and labels
+- no limits on line length, number of `ICLs`, `ORGs`,`IFTs` and labels
 - Unix-style command-line options are supported
-- */e* option is no longer supported
+- the */e* option is removed
 - the label table is now sorted alphabetically
 
 Version 2.6.1 (2005-05-21)
@@ -782,8 +779,7 @@ Version 2.6.0 (2005-02-07)
 - <<new_linecnt,line repeat counter>>
 - label values are now 32-bit, not just 17-bit
 - command-line options */n* and */s* are no longer supported
-- fatal I/O errors (such as floppy not ready) no longer print the annoying
-  "Abort, Retry, Ignore" message
+- fatal I/O errors no longer print the annoying "Abort, Retry, Ignore" message
 
 Version 2.5.2 (2002-10-03)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -798,7 +794,7 @@ Version 2.5.1 (2002-08-21)
 
 Version 2.5 (2002-07-08)
 ~~~~~~~~~~~~~~~~~~~~~~~~
-- fixed another bug, very similar to the previous one, e.g.
+- fixed another bug similar to the previous one, for example:
 +
 ----------
  ift 0
@@ -830,14 +826,13 @@ Version 2.4 (2002-05-22)
 ~~~~~~~~~~~~~~~~~~~~~~~~
 - fixed incorrect unary operator precedence
 - fixed wrong label value after a skip pseudo command
-- the assembler is .EXE (.COM caused problems with DJGPP *make* due
+- the assembler is an .EXE (.COM caused problems with DJGPP *make* due
   to a bug in the DJGPP runtime)
-- the assembler executable is not compressed (so it occupies less space in the ZIP)
-- improved command-line parsing: options may be used before source file name,
-  tab character is a valid separator, slash may be used as a directory separator
+- the assembler executable is no longer compressed
+- improved command-line parsing: options may be used before the source file name,
+  tab is a valid separator, slash may be used as a directory separator
 - error and warning messages are written to stderr, not stdout
-- added `==` (equals) operator, which is equivalent to `=`,
-  but more natural for C/C++/Java programmers
+- added `==` (equals) operator, equivalent to `=`, but familiar to C/C++/Java programmers
 - <<new_deflabel,added `/d:label=value` option: define a label>>
 - <<new_fullpaths,added `/p` option: print full paths
   in listing and error messages>>
@@ -865,11 +860,11 @@ Version 2.2 (1999-09-10)
 - fixed `ICL` in last line
 - fixed `OPT H-H+`
 - fixed first `ORG *`
-- no need to set origin counter until it's used
+- no need to set the origin counter until it's needed
 - allow Unix, Macintosh and Atari EOLs
 - value of 'true' changed to 1
 - command-line option to set environment variables on error
-- commane-line option to assemble only if source is newer than object file
+- commane-line option to assemble only if the source is newer than the object file
 - <<new_opcode,opcode extracting>>
 - <<new_linerep,repeat line>>
 - <<new_pairing,two instructions in line>>
@@ -878,7 +873,7 @@ Version 2.2 (1999-09-10)
 
 Version 2.0 (1998-11-12)
 ~~~~~~~~~~~~~~~~~~~~~~~~
-- fixed: name of object file was truncated
+- fixed: object filename was truncated
 - fixed forward references in `EQU` and `DTA`
 - fixed hex numbers
 - `.OBX` is now the default extension for the object file
