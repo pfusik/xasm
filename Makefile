@@ -55,7 +55,7 @@ ifdef PORK_CODESIGNING_IDENTITY
 endif
 	hdiutil create -volname xasm-$(VERSION)-macos -srcfolder osx -format UDBZ -fs HFS+ -imagekey bzip2-level=3 -ov $@
 ifdef PORK_NOTARIZING_CREDENTIALS
-	xcrun altool --notarize-app --primary-bundle-id com.github.pfusik.xasm $(PORK_NOTARIZING_CREDENTIALS) --file $@ |
+	xcrun altool --notarize-app --primary-bundle-id com.github.pfusik.xasm $(PORK_NOTARIZING_CREDENTIALS) --file $@ \
 		| perl -pe 's/^RequestUUID =/xcrun altool $$ENV{PORK_NOTARIZING_CREDENTIALS} --notarization-info/ or next; $$c = $$_; until (/Status: success/) { sleep 20; $$_ = `$$c`; print; } last;'
 endif
 
