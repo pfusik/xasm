@@ -709,6 +709,14 @@ and pseudo commands, except for `MWA`, `MWX` and `MWY`:
 HISTORY
 -------
 
+Version 3.2.0 (2021-06-22)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+- <<new_locallabel,local labels>> (contributed by Adrian Matoga)
+- fixed emitted bytes not shown in the listing after `OPT L+` (by Adrian Matoga)
+- emit shorter code for moving a negative immediate value with `MWX`/`MWY`
+- Windows binary signed
+- macOS binary signed, notarized, installed in `/usr/local/bin`
+
 Version 3.1.1 (2019-11-20)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 - remove partial object file on error (requested by Bill Kendrick)

@@ -99,7 +99,7 @@ These rights, on this notice, rely.
 Download
 --------
 
-[xasm 3.1.1](https://github.com/pfusik/xasm/releases) for Windows, macOS, Ubuntu and Fedora.
+[xasm 3.2.0](https://github.com/pfusik/xasm/releases) for Windows, macOS, Ubuntu and Fedora.
 
 Links
 -----

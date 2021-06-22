@@ -1,5 +1,5 @@
 Name: xasm
-Version: 3.1.1
+Version: 3.2.0
 Release: 1
 Summary: 6502 cross-assembler
 License: Poetic
@@ -33,6 +33,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/xasm.1.gz
 
 %changelog
+* Tue Jun 22 2021 Piotr Fusik <fox@scene.pl>
+- 3.2.0-1
+
 * Wed Nov 20 2019 Piotr Fusik <fox@scene.pl>
 - 3.1.1-1
 
