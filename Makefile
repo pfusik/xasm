@@ -25,7 +25,7 @@ uninstall:
 	$(RM) $(DESTDIR)$(bindir)/xasm $(DESTDIR)$(mandir)/xasm.1
 
 install-scite: xasm.properties
-	mkdir -p $(DESTDIR)$(prefix)/share/scite && install $< $(DESTDIR)$(prefix)/share/scite/xasm.properties
+	mkdir -p $(DESTDIR)$(prefix)/share/scite && install -m 644 $< $(DESTDIR)$(prefix)/share/scite/xasm.properties
 
 uninstall-scite:
 	$(RM) $(DESTDIR)$(prefix)/share/scite/xasm.properties
