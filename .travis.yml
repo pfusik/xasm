@@ -1,5 +1,6 @@
+dist: bionic
 language: d
 d:
   - dmd
   - gdc
-  - ldc
+  - ldc-1.24.0
