@@ -25,19 +25,16 @@ import std.math;
 import std.path;
 import std.stdio;
 import std.string;
+import std.exception : assumeUnique;
+import std.range : empty, front, popFront;
 
 version (Windows) {
 	import core.sys.windows.windows;
 }
 
-int readByte(File *file) {
-	char c;
-	if (file.readf("%c", &c) != 1)
-		return -1;
-	return c;
-}
-
 const string TITLE = "xasm 3.2.0";
+
+File messageStream;
 
 string sourceFilename = null;
 bool[26] options;
@@ -45,6 +42,7 @@ string[26] optionParameters;
 string[] commandLineDefinitions = null;
 string objectFilename = null;
 string[] makeSources = null;
+immutable(ubyte)[][string] sourceFiles;
 
 int exitCode = 0;
 
@@ -176,13 +174,14 @@ File objectStream;
 
 int objectBytes = 0;
 
+
 bool getOption(char letter) {
 	assert(letter >= 'a' && letter <= 'z');
 	return options[letter - 'a'];
 }
 
 void warning(string msg, bool error = false) {
-	stdout.flush();
+	messageStream.flush();
 	version (Windows) {
 		HANDLE stderrHandle = GetStdHandle(STD_ERROR_HANDLE);
 		CONSOLE_SCREEN_BUFFER_INFO csbi;
@@ -1087,7 +1086,7 @@ File openInputFile(string filename) {
 
 File openOutputFile(string filename, string msg) {
 	if (!getOption('q'))
-		writeln(msg);
+		messageStream.writeln(msg);
 	try {
 		return File(filename, "wb");
 	} catch (Exception e) {
@@ -1185,8 +1184,11 @@ void objectByte(ubyte b) {
 	} else {
 		assert(pass2);
 		if (!optionObject) return;
-		if (!objectStream.isOpen)
-			objectStream = openOutputFile(objectFilename, "Writing object file...");
+		if (!objectStream.isOpen) {
+			objectStream = objectFilename == "-"
+				? stdout
+				: openOutputFile(objectFilename, "Writing object file...");
+		}
 		try {
 			objectStream.write(cast(char) b);
 		} catch (Exception e) {
@@ -2302,7 +2304,6 @@ void assemblyIns() {
 		}
 	}
 	File stream = openInputFile(filename);
-	scope (exit) stream.close();
 	try {
 		stream.seek(offset, offset >= 0 ? SEEK_SET : SEEK_END);
 	} catch (Exception e) {
@@ -2311,13 +2312,13 @@ void assemblyIns() {
 	if (inOpcode)
 		length = 1;
 	while (length != 0) {
-		int b = readByte(&stream);
-		if (b < 0) {
+		ubyte[1] b;
+		if (stream.rawRead(b).length != 1) {
 			if (length > 0)
 				throw new AssemblyError("File is too short");
 			break;
 		}
-		putByte(cast(ubyte) b);
+		putByte(b[0]);
 		if (length > 0) length--;
 	}
 }
@@ -2796,11 +2797,17 @@ void assemblyLine() {
 }
 
 void assemblyFile(string filename) {
-	filename = filename.defaultExtension("asx");
-	if (getOption('p'))
-		filename = absolutePath(filename);
-	File stream = openInputFile(filename);
-	scope (exit) stream.close();
+	immutable(ubyte)[] source = sourceFiles.require(filename, {
+			File stream = stdin;
+			if (filename != "-") {
+				filename = filename.defaultExtension("asx");
+				if (getOption('p'))
+					filename = absolutePath(filename);
+				stream = openInputFile(filename);
+			}
+			return stream.byChunk(65536).joiner.array.assumeUnique;
+		}());
+
 	string oldFilename = currentFilename;
 	int oldLineNo = lineNo;
 	currentFilename = filename;
@@ -2808,16 +2815,18 @@ void assemblyFile(string filename) {
 	foundEnd = false;
 	line = "";
 	readChar: while (!foundEnd) {
-		int b = readByte(&stream);
+		if (source.empty)
+			break;
+		ubyte b = source.front;
+		source.popFront;
 		switch (b) {
-		case -1:
-			break readChar;
 		case '\r':
 			assemblyLine();
 			line = "";
-			b = readByte(&stream);
-			if (b < 0)
+			if (source.empty)
 				break readChar;
+			b = source.front;
+			source.popFront;
 			if (b != '\n')
 				line ~= cast(char) b;
 			break;
@@ -2944,10 +2953,17 @@ int main(string[] args) {
 	else {
 		if (sourceFilename is null)
 			exitCode = 3;
+		objectFilename = optionParameters['o' - 'a'];
+		if (objectFilename is null) {
+			objectFilename = sourceFilename == "-"
+				? "-"
+				: sourceFilename.setExtension("obx");
+		}
+		messageStream = objectFilename == "-" ? stderr : stdout;
 		if (!getOption('q'))
-			writeln(TITLE);
+			messageStream.writeln(TITLE);
 		if (exitCode != 0) {
-			write(
+			messageStream.write(
 `Syntax: xasm SOURCE [OPTIONS]
 -c             Include false conditionals in listing
 -d LABEL=VALUE Define a label
@@ -2962,9 +2978,6 @@ int main(string[] args) {
 `);
 			return exitCode;
 		}
-		objectFilename = optionParameters['o' - 'a'];
-		if (objectFilename is null)
-			objectFilename = sourceFilename.setExtension("obx");
 		try {
 			assemblyPass();
 			pass2 = true;
@@ -2974,22 +2987,24 @@ int main(string[] args) {
 		} catch (AssemblyError e) {
 			warning(e.msg, true);
 			exitCode = 2;
-			objectStream.close();
-			core.stdc.stdio.remove(toStringz(objectFilename));
+			if (objectFilename != "-") {
+				objectStream.close();
+				core.stdc.stdio.remove(toStringz(objectFilename));
+			}
 		}
 		listingStream.close();
 		objectStream.close();
 		if (exitCode <= 1) {
 			if (!getOption('q')) {
-				writefln("%d lines of source assembled", totalLines);
+				messageStream.writefln("%d lines of source assembled", totalLines);
 				if (objectBytes > 0)
-					writefln("%d bytes written to the object file", objectBytes);
+					messageStream.writefln("%d bytes written to the object file", objectBytes);
 			}
 			if (getOption('m')) {
-				writef("%s:", makeEscape(objectFilename));
+				messageStream.writef("%s:", makeEscape(objectFilename));
 				foreach (filename; makeSources)
-					writef(" %s", makeEscape(filename));
-				write("\n\txasm");
+					messageStream.writef(" %s", makeEscape(filename));
+				messageStream.write("\n\txasm");
 				for (int i = 1; i < args.length; i++) {
 					string arg = args[i];
 					if (isOption(arg)) {
@@ -3001,9 +3016,9 @@ int main(string[] args) {
 							break;
 						case 'o':
 							if (arg[0] == '/')
-								writef(" /%c:$@", arg[1]);
+								messageStream.writef(" /%c:$@", arg[1]);
 							else {
-								writef(" -%c $@", arg[1]);
+								messageStream.writef(" -%c $@", arg[1]);
 								++i;
 							}
 							break;
@@ -3011,18 +3026,18 @@ int main(string[] args) {
 							if (arg[0] == '-'
 							 && (letter == 'd' || letter == 'l' || letter == 't')
 							 && i + 1 < args.length && !isOption(args[i + 1])) {
-								writef(" %s %s", arg, makeEscape(args[++i]));
+								messageStream.writef(" %s %s", arg, makeEscape(args[++i]));
 							}
 							else {
-								writef(" %s", makeEscape(arg));
+								messageStream.writef(" %s", makeEscape(arg));
 							}
 							break;
 						}
 						continue;
 					}
-					write(" $<");
+					messageStream.write(" $<");
 				}
-				writeln();
+				messageStream.writeln();
 			}
 		}
 		return exitCode;

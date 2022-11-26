@@ -16,6 +16,7 @@ DESCRIPTION
 
 'SOURCE_FILE' is the name of the source file
 (you may omit the default `.asx` extension).
+Using '-' as 'SOURCE_FILE' makes *xasm* read from standard input.
 When invoked without any options, *xasm* assembles 'SOURCE_FILE'
 and writes the result to an object file named 'SOURCE_FILE'
 with the extension changed to `.obx`.
@@ -51,7 +52,9 @@ Your *make* or shell may require further escaping.
 
 *-o* 'OBJECT_FILE'::
 Sets output file name.
-The default is 'SOURCE_FILE' with the extension changed to `.obx`.
+Using '-' as 'OBJECT_FILE' makes *xasm* write to standard output.
+The default is 'SOURCE_FILE' with the extension changed to `.obx`, or
+standard output if standard input was specified as source.
 
 [[new_fullpaths]]*-p*::
 Prints absolute paths in listing and error messages.
@@ -708,6 +711,11 @@ and pseudo commands, except for `MWA`, `MWX` and `MWY`:
 
 HISTORY
 -------
+
+Version 3.x.x (20xx-xx-xx)
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+- source can optionally be read from standard input, and object can be
+  written to standard output instead of files (by Adrian Matoga)
 
 Version 3.2.0 (2021-06-22)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
