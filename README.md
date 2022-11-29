@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/pfusik/xasm.svg?branch=master)](https://travis-ci.com/github/pfusik/xasm)
+[![GitHub Actions](https://github.com/pfusik/xasm/actions/workflows/test.yml/badge.svg)](https://github.com/pfusik/xasm/actions/workflows/test.yml)
 
 xasm
 ====
