@@ -1,0 +1,14 @@
+name: tests
+on: [push, pull_request]
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        dc: [dmd-latest, gdc-latest, ldc-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@main
+      - uses: dlang-community/setup-dlang@v1
+      - run: dub build --compiler=$DC
+      - run: dub test --compiler=$DC
