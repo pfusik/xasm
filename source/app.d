@@ -593,6 +593,8 @@ void readValue() {
 			bool savedInstructionBegin = instructionBegin;
 			valOpStack.length = 0;
 			inOpcode = true;
+			if (line[column] == ' ' || line[column]=='\t' )
+				readSpaces();
 			assemblyInstruction(readInstruction());
 			if (line[column] == ' ' || line[column]=='\t' )
 				readSpaces();
