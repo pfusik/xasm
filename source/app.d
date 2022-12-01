@@ -2479,7 +2479,7 @@ void assemblyInstruction(string instruction) {
 		assemblyConditionalJump(0x50);
 		break;
 	case "LDA":
-		assemblyAccumulator(0xa0, 0, 0);
+		assemblyLda(0);
 		break;
 	case "LDX":
 		assemblyLdx(0);
@@ -2602,7 +2602,7 @@ void assemblyInstruction(string instruction) {
 		assemblySkip(0x10);
 		break;
 	case "STA":
-		assemblyAccumulator(0x80, 0, 0);
+		assemblySta(0);
 		break;
 	case "STX":
 		assemblyStx(0);
