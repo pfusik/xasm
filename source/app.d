@@ -852,7 +852,7 @@ void readAddrMode() {
 	case '<':
 	case '>':
 		addrMode = AddrMode.IMMEDIATE;
-		if (inOpcode && line[column] == ' ' || line[column] == '\t')
+		if (inOpcode && (line[column] == ' ' || line[column] == '\t'))
 			readSpaces();
 		if (inOpcode && line[column] == '}')
 			return;
