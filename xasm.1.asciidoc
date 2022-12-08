@@ -38,6 +38,7 @@ The listing file should exclude included files.
 
 *-l* '[LISTING_FILE]'::
 Generates a listing file.
+Using '-' as 'LISTING_FILE' makes *xasm* write to standard output.
 If 'LISTING_FILE' is omitted, the listing filename
 is 'SOURCE_FILE' with the extension changed to `.lst`.
 
@@ -47,7 +48,7 @@ First line of the rule lists 'OBJECT_FILE' as the target of the rule
 and all source files (including the ones specified with `icl` and `ins`) as dependencies.
 The second line contains the command line with 'OBJECT_FILE'
 replaced by the *make* macro `$@` and 'SOURCE_FILE' replaced by the macro `$<`.
-Dollars in the command line are doubled.
+Dollar signs in the command line are doubled.
 Your *make* or shell may require further escaping.
 
 *-o* 'OBJECT_FILE'::
@@ -64,6 +65,7 @@ Quiet mode. Prevents *xasm* from printing its banner and compilation summary.
 
 *-t* '[LABEL_FILE]'::
 Generates a label table.
+Using '-' as 'LABEL_FILE' makes *xasm* write to standard output.
 If 'LABEL_FILE' is omitted then the table is appended at the end of the listing.
 
 [[new_unlabels]]*-u*::

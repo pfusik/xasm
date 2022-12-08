@@ -1,6 +1,6 @@
 // xasm 3.2.0 by Piotr Fusik <fox@scene.pl>
 // http://xasm.atari.org
-// Can be compiled with DMD v2.097.0.
+// Can be compiled with DMD v2.101.0.
 
 // Poetic License:
 //
@@ -1085,6 +1085,8 @@ File openInputFile(string filename) {
 }
 
 File openOutputFile(string filename, string msg) {
+	if (filename == "-")
+		return stdout;
 	if (!getOption('q'))
 		messageStream.writeln(msg);
 	try {
@@ -1184,11 +1186,8 @@ void objectByte(ubyte b) {
 	} else {
 		assert(pass2);
 		if (!optionObject) return;
-		if (!objectStream.isOpen) {
-			objectStream = objectFilename == "-"
-				? stdout
-				: openOutputFile(objectFilename, "Writing object file...");
-		}
+		if (!objectStream.isOpen)
+			objectStream = openOutputFile(objectFilename, "Writing object file...");
 		try {
 			objectStream.write(cast(char) b);
 		} catch (Exception e) {
@@ -3007,8 +3006,10 @@ int main(string[] args) {
 				core.stdc.stdio.remove(toStringz(objectFilename));
 			}
 		}
-		listingStream.close();
-		objectStream.close();
+		if (listingStream != stdout)
+			listingStream.close();
+		if (objectStream != stdout)
+			objectStream.close();
 		if (exitCode <= 1) {
 			if (!getOption('q')) {
 				messageStream.writefln("%d lines of source assembled", totalLines);
