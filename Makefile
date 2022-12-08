@@ -3,12 +3,15 @@ VERSION = 3.2.0
 prefix = /usr/local
 bindir = $(prefix)/bin
 mandir = $(prefix)/share/man/man1
+ifeq ($(OS),Windows_NT)
+EXEEXT = .exe
+endif
 
 SEVENZIP = 7z a -mx=9 -bd -bso0
 
-all: xasm xasm.html
+all: xasm$(EXEEXT) xasm.html
 
-xasm: source/app.d
+xasm$(EXEEXT): source/app.d
 	dmd -of$@ -O -release $<
 
 xasm.html: xasm.1.asciidoc
@@ -41,8 +44,8 @@ MANIFEST:
 ../xasm-$(VERSION)-windows.zip: xasm xasm.html xasm.properties signed
 	$(RM) $@ && $(SEVENZIP) -tzip $@ xasm.exe xasm.html xasm.properties
 
-signed: xasm
-	signtool sign -d "xasm $(VERSION)" -n "Open Source Developer, Piotr Fusik" -tr http://time.certum.pl -fd sha256 -td sha256 xasm.exe && touch $@
+signed: xasm$(EXEEXT)
+	signtool sign -d "xasm $(VERSION)" -n "Open Source Developer, Piotr Fusik" -tr http://time.certum.pl -fd sha256 -td sha256 $< && touch $@
 
 deb:
 	debuild -b -us -uc
