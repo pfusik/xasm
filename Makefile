@@ -1,4 +1,4 @@
-VERSION = 3.2.0
+VERSION = 3.2.1
 
 prefix = /usr/local
 bindir = $(prefix)/bin
@@ -41,7 +41,7 @@ srcdist: MANIFEST
 MANIFEST:
 	if test -e .git; then (git ls-files | grep -vF .gitignore && echo MANIFEST) | sort | dos2unix >$@ ; fi
 
-../xasm-$(VERSION)-windows.zip: xasm xasm.html xasm.properties signed
+../xasm-$(VERSION)-windows.zip: xasm.exe xasm.html xasm.properties signed
 	$(RM) $@ && $(SEVENZIP) -tzip $@ xasm.exe xasm.html xasm.properties
 
 signed: xasm$(EXEEXT)

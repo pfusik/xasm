@@ -1,4 +1,4 @@
-// xasm 3.2.0 by Piotr Fusik <fox@scene.pl>
+// xasm 3.2.1 by Piotr Fusik <fox@scene.pl>
 // http://xasm.atari.org
 // Can be compiled with DMD v2.101.0.
 
@@ -32,7 +32,7 @@ version (Windows) {
 	import core.sys.windows.windows;
 }
 
-const string TITLE = "xasm 3.2.0";
+const string TITLE = "xasm 3.2.1";
 
 File messageStream;
 

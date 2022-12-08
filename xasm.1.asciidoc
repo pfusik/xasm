@@ -714,7 +714,7 @@ and pseudo commands, except for `MWA`, `MWX` and `MWY`:
 HISTORY
 -------
 
-Version 3.x.x (20xx-xx-xx)
+Version 3.2.1 (2022-12-08)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 - source can optionally be read from standard input, and object can be
   written to standard output instead of files (by Adrian Matoga)
