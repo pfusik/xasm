@@ -139,7 +139,7 @@ bool repeating; // line
 int repeatCounter; // line
 
 bool instructionBegin;
-bool pairing;
+bool sequencing;
 
 bool willSkip;
 bool skipping;
@@ -1329,7 +1329,7 @@ void directive() {
 	noOpcode();
 	if (repeating)
 		throw new AssemblyError("Can't repeat this directive");
-	if (pairing)
+	if (sequencing)
 		throw new AssemblyError("Can't pair this directive");
 }
 
@@ -2660,12 +2660,12 @@ unittest {
 	 == representation(hexString!"400100000000 401200000000 410123000000 441234567890 461234567890 3f5000000000 3f0300000000 3f1664534589 701000000000"));
 }
 
-void assemblyPair() {
+void assemblySequence() {
 	assert(!inOpcode);
 	string instruction = readInstruction();
 	string[] extraInstructions;
 	while (!eol() && line[column] == ':') {
-		pairing = true;
+		sequencing = true;
 		column++;
 		extraInstructions ~= readInstruction();
 	}
@@ -2676,13 +2676,13 @@ void assemblyPair() {
 		assemblyInstruction(instruction);
 		checkNoExtraCharacters();
 		wereManyInstructions = false;
-		foreach (instruction2; extraInstructions) {
+		foreach (nextInstruction; extraInstructions) {
 			column = savedColumn;
-			assemblyInstruction(instruction2);
+			assemblyInstruction(nextInstruction);
 			wereManyInstructions = true;
 		}
 	} else {
-		pairing = false;
+		sequencing = false;
 		assemblyInstruction(instruction);
 		wereManyInstructions = false;
 	}
@@ -2759,7 +2759,7 @@ void assemblyLine() {
 			int savedColumn = column;
 			for (repeatCounter = 0; repeatCounter < repeatLimit; repeatCounter++) {
 				column = savedColumn;
-				assemblyPair();
+				assemblySequence();
 			}
 			checkNoExtraCharacters();
 			listLine();
@@ -2795,7 +2795,7 @@ void assemblyLine() {
 		listCommentLine();
 		return;
 	}
-	assemblyPair();
+	assemblySequence();
 	checkNoExtraCharacters();
 	listLine();
 }
