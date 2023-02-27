@@ -367,6 +367,11 @@ void checkNoExtraCharacters() {
 	switch (line[column]) {
 	case '\t':
 	case ' ':
+		if (pass2) {
+			readSpaces();
+			if (!eol() && line[column] == ',')
+				warning("Comment starts with a comma. Unintended whitespace?");
+		}
 		return;
 	default:
 		throw new AssemblyError("Extra characters on line");
