@@ -162,7 +162,7 @@ to start a comment.
 -------------------------------------------------------------
 
 [[new_pairing]]
-You may put two or more instructions in one line so they share their operand.
+You may put two or more instructions in one line, so they share their operand.
 For example:
 ------------
  eor:sta foo
@@ -262,7 +262,7 @@ The following 'unary operators' are supported:
 - `<` Low (extracts the low byte)
 - `>` High (extracts the high byte)
 
-Although the operators are similar to those used in C, C++, C# and Java,
+Although the operators are like those used in C, C++, C# and Java,
 their precedence is different:
 
 - first: `[]` (brackets)
@@ -278,7 +278,7 @@ The compare and logical operators assume that zero is false
 and a non-zero is true. They return 1 for true.
 
 Expressions are calculated in signed 32-bit arithmetic.
-An overflow is signalled with an "Arithmetic overflow" error.
+An overflow is signaled with an "Arithmetic overflow" error.
 
 DIRECTIVES
 ----------
@@ -412,8 +412,7 @@ Real numbers are stored in the 6-byte Atari Floating-Point format.
 
 A character string consists of any number of characters surrounded by quotation
 marks. You can include the quotation marks in the string by doubling them.
-Placing a `*` character after a string inverts
-the highest bit in every byte of the string.
+If the string is suffixed with a `*` character, bit 7 in every byte gets inverted.
 --
 +
 Examples of `DTA`:
@@ -670,7 +669,7 @@ Addressing modes are entered in the standard 6502 convention.
 An exception is the accumulator mode marked with the `@` character
 for compatibility with Quick Assembler.
 
-Also for Quick Assembler compatibility there are two extra immediate
+Also for Quick Assembler compatibility, there are two extra immediate
 addressing modes: `<` and `>`, which use the low/high byte of a 16-bit word constant.
 Unlike in Quick Assembler, you can alternatively use
 the more common syntax: `#<` and `#>`.
@@ -767,7 +766,7 @@ Version 3.0.0 (2005-05-22)
 - rewritten from the x86 assembly language to the
   http://dlang.org/[D programming language] - Linux version
   is now available and DOS is no longer supported
-- no limits on line length, number of `ICLs`, `ORGs`,`IFTs` and labels
+- no limits on line length, number of `ICLs`, `ORGs`, `IFTs` and labels
 - Unix-style command-line options are supported
 - the */e* option is removed
 - the label table is now sorted alphabetically
@@ -883,7 +882,7 @@ Version 2.2 (1999-09-10)
 - allow Unix, Macintosh and Atari EOLs
 - value of 'true' changed to 1
 - command-line option to set environment variables on error
-- commane-line option to assemble only if the source is newer than the object file
+- command-line option to assemble only if the source is newer than the object file
 - <<new_opcode,opcode extracting>>
 - <<new_linerep,repeat line>>
 - <<new_pairing,two instructions in line>>
