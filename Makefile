@@ -71,7 +71,7 @@ xasm-x86_64: $(SOURCES)
 	ldc2 -of=$@ -O -release -mtriple=x86_64-apple-macos10.12 $^ && rm xasm-x86_64.o
 
 xasm-arm64: $(SOURCES)
-	ldc2 -of=$@ -O -release -mtriple=arm64-apple-macos11.0 $^ && rm xasm-x86_64.o
+	ldc2 -of=$@ -O -release -mtriple=arm64-apple-macos11.0 $^ && rm xasm-arm64.o
 
 osx/bin:
 	mkdir -p osx && ln -s /usr/local/bin $@
