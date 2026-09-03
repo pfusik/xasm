@@ -14,13 +14,13 @@ SOURCES = source/app.d source/xasm/package.d
 all: xasm$(EXEEXT) xasm.html libxasm.html
 
 xasm$(EXEEXT): $(SOURCES)
-	dmd -of$@ -O -release $^
+	ldc2 -of=$@ -O -release $^
 
 xasm.html: xasm.1.asciidoc
 	asciidoc -o - $< | sed -e "s/527bbd;/20a0a0;/" >$@
 
 libxasm.html: source/xasm/package.d
-	dmd -D -Df$@ -o- $^
+	ldc2 -D --Df=$@ -o- $^
 
 xasm.1: xasm.1.asciidoc
 	a2x -f manpage $<
@@ -65,7 +65,7 @@ endif
 	/Applications/Xcode.app/Contents/Developer/usr/bin/notarytool submit --wait --keychain-profile foxnotary $@
 
 osx/xasm: $(SOURCES)
-	mkdir -p osx && dmd -of$@ -O -release $^ && rm -f osx/xasm.o
+	mkdir -p osx && ldc2 -of=$@ -O -release $^ && rm -f osx/xasm.o
 
 osx/bin:
 	mkdir -p osx && ln -s /usr/local/bin $@
