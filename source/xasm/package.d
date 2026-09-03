@@ -1,6 +1,5 @@
-// xasm 3.2.1 by Piotr Fusik <fox@scene.pl>
-// http://xasm.atari.org
-// Can be compiled with DMD v2.101.0.
+// xasm 3.3.0 by Piotr Fusik <fox@scene.pl>
+// https://xasm.atari.org
 
 // Poetic License:
 //

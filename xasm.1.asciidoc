@@ -713,8 +713,9 @@ and pseudo commands, except for `MWA`, `MWX` and `MWY`:
 HISTORY
 -------
 
-Version ?.?.? (20??-??-??)
+Version 3.3.0 (2026-09-??)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
+- built with LDC - supports macOS 15.4+
 - *xasm* can now be used as a link:libxasm.html[library] in any D program
   (by Adrian Matoga)
 - fixed writing the */t* label table: it no longer closes standard output
