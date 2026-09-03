@@ -68,16 +68,16 @@ osx/xasm: xasm-x86_64 xasm-arm64
 	mkdir -p $(@D) && lipo -create -output $@ $^
 
 xasm-x86_64: $(SOURCES)
-	ldc2 -of=$@ -O -release -mtriple=x86_64-apple-macos $^
+	ldc2 -of=$@ -O -release -mtriple=x86_64-apple-macos $^ && rm xasm-x86_64.o
 
 xasm-arm64: $(SOURCES)
-	ldc2 -of=$@ -O -release -mtriple=arm64-apple-macos $^
+	ldc2 -of=$@ -O -release -mtriple=arm64-apple-macos $^ && rm xasm-x86_64.o
 
 osx/bin:
 	mkdir -p osx && ln -s /usr/local/bin $@
 
 clean:
-	$(RM) xasm xasm.exe xasm.obj xasm.html libxasm.html xasm.1 signed
+	$(RM) xasm xasm.exe xasm-x86_64 xasm-arm64 xasm.obj xasm.html libxasm.html xasm.1 signed
 	rm -rf osx
 
 .PHONY: all install uninstall install-scite uninstall-scite dist srcdist MANIFEST deb osx clean

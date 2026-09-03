@@ -2,6 +2,7 @@
 /xasm-arm64
 /xasm-x86_64
 /xasm.exe
+/xasm.o
 /xasm.obj
 /xasm.html
 /xasm.1
@@ -11,3 +12,4 @@
 /.dub
 /.project
 /signed
+/osx
