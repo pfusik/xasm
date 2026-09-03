@@ -50,7 +50,7 @@ MANIFEST:
 	$(RM) $@ && $(SEVENZIP) -tzip $@ xasm.exe xasm.html xasm.properties
 
 signed: xasm$(EXEEXT)
-	signtool sign -d "xasm $(VERSION)" -n "Open Source Developer, Piotr Fusik" -tr http://time.certum.pl -fd sha256 -td sha256 $< && touch $@
+	signtool sign -d "xasm $(VERSION)" -n "Open Source Developer Piotr Fusik" -tr http://time.certum.pl -fd sha256 -td sha256 $< && touch $@
 
 deb:
 	debuild -b -us -uc
