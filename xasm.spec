@@ -5,7 +5,7 @@ Summary: 6502 cross-assembler
 License: Poetic
 Source: http://pfusik.github.io/xasm/xasm-%{version}.tar.gz
 URL: https://github.com/pfusik/xasm
-BuildRequires: ldc, asciidoc
+BuildRequires: ldc, asciidoctor
 
 %description
 xasm is a 6502 cross-assembler with original syntax extensions.

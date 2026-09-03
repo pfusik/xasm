@@ -3,7 +3,7 @@ Maintainer: Piotr Fusik <fox@scene.pl>
 Section: devel
 Priority: optional
 Standards-Version: 4.6.0
-Build-Depends: debhelper (>= 7), ldc, asciidoc-base
+Build-Depends: debhelper (>= 7), ldc, asciidoctor
 
 Package: xasm
 Architecture: any

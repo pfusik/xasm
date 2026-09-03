@@ -17,7 +17,7 @@ xasm$(EXEEXT): $(SOURCES)
 	ldc2 -of=$@ -O -release $^
 
 xasm.html: xasm.1.asciidoc
-	asciidoc -o - $< | sed -e "s/527bbd;/20a0a0;/" >$@
+	asciidoctor -o - $< | sed -e "s/ba3925;/20a0a0;/" >$@
 
 libxasm.html: source/xasm/package.d
 	ldc2 -D --Df=$@ -o- $^
