@@ -23,7 +23,7 @@ libxasm.html: source/xasm/package.d
 	ldc2 -D --Df=$@ -o- $^
 
 xasm.1: xasm.1.asciidoc
-	a2x -f manpage $<
+	asciidoctor -b manpage $<
 
 install: xasm xasm.1
 	mkdir -p $(DESTDIR)$(bindir) && install xasm $(DESTDIR)$(bindir)/xasm
