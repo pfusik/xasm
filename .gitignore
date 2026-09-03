@@ -1,4 +1,6 @@
 /xasm
+/xasm-arm64
+/xasm-x86_64
 /xasm.exe
 /xasm.obj
 /xasm.html

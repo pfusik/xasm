@@ -64,8 +64,14 @@ endif
 	hdiutil create -volname xasm-$(VERSION)-macos -srcfolder osx -format UDBZ -fs HFS+ -imagekey bzip2-level=3 -ov $@
 	/Applications/Xcode.app/Contents/Developer/usr/bin/notarytool submit --wait --keychain-profile foxnotary $@
 
-osx/xasm: $(SOURCES)
-	mkdir -p osx && ldc2 -of=$@ -O -release $^ && rm -f osx/xasm.o
+osx/xasm: xasm-x86_64 xasm-arm64
+	mkdir -p $(@D) && lipo -create -output $@ $^
+
+xasm-x86_64: $(SOURCES)
+	ldc2 -of=$@ -O -release -mtriple=x86_64-apple-macos $^
+
+xasm-arm64: $(SOURCES)
+	ldc2 -of=$@ -O -release -mtriple=arm64-apple-macos $^
 
 osx/bin:
 	mkdir -p osx && ln -s /usr/local/bin $@
