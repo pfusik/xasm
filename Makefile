@@ -7,7 +7,7 @@ ifeq ($(OS),Windows_NT)
 EXEEXT = .exe
 endif
 
-SEVENZIP = 7z a -mx=9 -bd -bso0
+SEVENZIP = 'C:/Program Files/7-Zip/7z' a -mx=9 -bd -bso0
 
 SOURCES = source/app.d source/xasm/package.d
 
