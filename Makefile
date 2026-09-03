@@ -68,10 +68,10 @@ osx/xasm: xasm-x86_64 xasm-arm64
 	mkdir -p $(@D) && lipo -create -output $@ $^
 
 xasm-x86_64: $(SOURCES)
-	ldc2 -of=$@ -O -release -mtriple=x86_64-apple-macos $^ && rm xasm-x86_64.o
+	ldc2 -of=$@ -O -release -mtriple=x86_64-apple-macos10.12 $^ && rm xasm-x86_64.o
 
 xasm-arm64: $(SOURCES)
-	ldc2 -of=$@ -O -release -mtriple=arm64-apple-macos $^ && rm xasm-x86_64.o
+	ldc2 -of=$@ -O -release -mtriple=arm64-apple-macos11.0 $^ && rm xasm-x86_64.o
 
 osx/bin:
 	mkdir -p osx && ln -s /usr/local/bin $@
