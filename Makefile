@@ -62,7 +62,8 @@ ifdef FOX_CODESIGNING_IDENTITY
 	codesign --options runtime -f -s $(FOX_CODESIGNING_IDENTITY) osx/xasm
 endif
 	hdiutil create -volname xasm-$(VERSION)-macos -srcfolder osx -format UDBZ -fs HFS+ -imagekey bzip2-level=3 -ov $@
-	/Applications/Xcode.app/Contents/Developer/usr/bin/notarytool submit --wait --keychain-profile foxnotary $@
+	xcrun notarytool submit --wait --keychain-profile foxnotary $@
+	xcrun stapler staple $@
 
 osx/xasm: xasm-x86_64 xasm-arm64
 	mkdir -p $(@D) && lipo -create -output $@ $^
