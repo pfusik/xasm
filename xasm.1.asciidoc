@@ -374,9 +374,11 @@ where_am_i equ *-code_zpage+code_loaded
 +
 --
 * bytes: `b(200)` or simply `200`
-* words: `a(10000)`
+* 16-bit words: `a(10000)`
 * low bytes of words: `l(511)` (byte 255)
 * high bytes of words: `h(511)` (byte 1)
+* 24-bit integers: `e($123456)`
+* 32-bit integers: `f($12345678)`
 
 You may enter many expressions in parentheses and combine different types
 of data in single line, separating things with commas.
@@ -716,6 +718,8 @@ HISTORY
 Version 3.3.0 (2026-09-??)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 - built with LDC - supports macOS 15.4+
+- <<new_dta, `DTA e(int24bit),f(int32bit)` modes>>
+  (compatible with Fast Assembler and MADS)
 - *xasm* can now be used as a link:libxasm.html[library] in any D program
   (by Adrian Matoga)
 - fixed writing the */t* label table: it no longer closes standard output

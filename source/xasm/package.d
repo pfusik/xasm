@@ -1778,19 +1778,37 @@ private:
 	}
 
 	void storeDtaNumber(int val, char letter) {
-		int limit = 0xffff;
-		if (letter == 'b') limit = 0xff;
-		if ((!unknownInPass1 || pass2) && (val < -limit || val > limit))
+		if (!unknownInPass1 || pass2)
 			throw new AssemblyError("Value out of range");
 		final switch (letter) {
 		case 'a':
+			if (val < -0xffff || val > 0xffff)
+				throw new AssemblyError("Value out of range");
 			putWord(cast(ushort) val);
 			break;
 		case 'b':
+			if (val < -0xff || val > 0xff)
+				throw new AssemblyError("Value out of range");
+			putByte(cast(ubyte) val);
+			break;
+		case 'e':
+			if (val < -0xffffff || val > 0xffffff)
+				throw new AssemblyError("Value out of range");
+			putWord(cast(ushort) val);
+			putByte(cast(ubyte) (val >> 16));
+			break;
+		case 'f':
+			putWord(cast(ushort) val);
+			putWord(cast(ushort) (val >> 16));
+			break;
 		case 'l':
+			if (val < -0xffff || val > 0xffff)
+				throw new AssemblyError("Value out of range");
 			putByte(cast(ubyte) val);
 			break;
 		case 'h':
+			if (val < -0xffff || val > 0xffff)
+				throw new AssemblyError("Value out of range");
 			putByte(cast(ubyte) (val >> 8));
 			break;
 		}
@@ -1968,6 +1986,8 @@ private:
 			final switch (letter) {
 			case 'a':
 			case 'b':
+			case 'e':
+			case 'f':
 			case 'h':
 			case 'l':
 				assemblyDtaInteger(letter);
@@ -2034,6 +2054,14 @@ private:
 						break;
 					}
 				}
+				break;
+			case 'E':
+			case 'e':
+				assemblyDtaNumbers('e');
+				break;
+			case 'F':
+			case 'f':
+				assemblyDtaNumbers('f');
 				break;
 			case 'H':
 			case 'h':
@@ -2672,7 +2700,7 @@ private:
 			assert(testInstruction("add (5,0)") == representation(hexString!"18a2006105"));
 			assert(testInstruction("mwa #$abcd $1234") == representation(hexString!"a9cd8d3412a9ab8d3512"));
 			assert(testInstruction("mwx #-256 $80") == representation(hexString!"a2008680ca8681"));
-			assert(testInstruction("dta 5,d'Foo'*,a($4589)") == representation(hexString!"05a6efef8945"));
+			assert(testInstruction("dta 5,d'Foo'*,a($4589),e($123456),f($12345678)") == representation(hexString!"05a6efef894556341278563412"));
 			assert(testInstruction("dta r(1,12,123,1234567890,12345678900000,.5,.03,000.1664534589,1e97)")
 			== representation(hexString!"400100000000 401200000000 410123000000 441234567890 461234567890 3f5000000000 3f0300000000 3f1664534589 701000000000"));
 		}
