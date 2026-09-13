@@ -894,10 +894,15 @@ private:
 			throw new AssemblyError("Label not defined before");
 	}
 
+	void checkRange(int value, int limit)
+	{
+		if ((!unknownInPass1 || pass2) && (value < -limit || value > limit))
+			throw new AssemblyError("Value out of range");
+	}
+
 	void readWord() {
 		readValue();
-		if ((!unknownInPass1 || pass2) && (value < -0xffff || value > 0xffff))
-			throw new AssemblyError("Value out of range");
+		checkRange(value, 0xffff);
 	}
 
 	void readUnsignedWord() {
@@ -1778,22 +1783,17 @@ private:
 	}
 
 	void storeDtaNumber(int val, char letter) {
-		if (!unknownInPass1 || pass2)
-			throw new AssemblyError("Value out of range");
 		final switch (letter) {
 		case 'a':
-			if (val < -0xffff || val > 0xffff)
-				throw new AssemblyError("Value out of range");
+			checkRange(val, 0xffff);
 			putWord(cast(ushort) val);
 			break;
 		case 'b':
-			if (val < -0xff || val > 0xff)
-				throw new AssemblyError("Value out of range");
+			checkRange(val, 0xff);
 			putByte(cast(ubyte) val);
 			break;
 		case 'e':
-			if (val < -0xffffff || val > 0xffffff)
-				throw new AssemblyError("Value out of range");
+			checkRange(val, 0xffffff);
 			putWord(cast(ushort) val);
 			putByte(cast(ubyte) (val >> 16));
 			break;
@@ -1802,13 +1802,11 @@ private:
 			putWord(cast(ushort) (val >> 16));
 			break;
 		case 'l':
-			if (val < -0xffff || val > 0xffff)
-				throw new AssemblyError("Value out of range");
+			checkRange(val, 0xffff);
 			putByte(cast(ubyte) val);
 			break;
 		case 'h':
-			if (val < -0xffff || val > 0xffff)
-				throw new AssemblyError("Value out of range");
+			checkRange(val, 0xffff);
 			putByte(cast(ubyte) (val >> 8));
 			break;
 		}
@@ -1816,10 +1814,10 @@ private:
 
 	void assemblyDtaInteger(char letter) {
 		if (readFunction() == "SIN") {
-			readWord();
+			readValue();
 			int sinCenter = value;
 			readComma();
-			readWord();
+			readValue();
 			int sinAmp = value;
 			readComma();
 			readKnownPositive();
@@ -1851,7 +1849,7 @@ private:
 			}
 			return;
 		}
-		readWord();
+		readValue();
 		storeDtaNumber(value, letter);
 	}
 
