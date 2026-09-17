@@ -368,6 +368,19 @@ You can only calculate it:
 where_am_i equ *-code_zpage+code_loaded
 ---------------------------------------
 
+[[new_aln]]*ALN* - align the origin counter::
+
+Advances the origin counter to the specified boundary.
+It's equivalent to `ORG [*+b-1]&~[b-1]` where `b` is the `ALN` operand.
++
+Example:
++
+---------------
+ aln $400
+font ins 'panther.fnt'
+---------------
+
+
 [[new_dta]]*DTA* - define data::
 
 - integers
@@ -718,7 +731,9 @@ HISTORY
 Version 3.3.0 (2026-09-??)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 - built with LDC - supports macOS 15.4+
-- <<new_dta, `DTA e(int24bit),f(int32bit)` modes>>
+- <<new_aln,`ALN` directive>> for aligning the origin counter to the specified boundary
+  (https://github.com/pfusik/xasm/issues/20[requested] by Sebastian Igielski)
+- <<new_dta,`DTA e(int24bit),f(int32bit)` modes>>
   (compatible with Fast Assembler and MADS)
 - *xasm* can now be used as a link:libxasm.html[library] in any D program
   (by Adrian Matoga)

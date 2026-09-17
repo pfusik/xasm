@@ -2315,6 +2315,17 @@ private:
 		}
 	}
 
+	void assemblyAln() {
+		noRepeatSkipDirective();
+		checkOriginDefined();
+		readSpaces();
+		readUnsignedWord();
+		mustBeKnownInPass1();
+		if (value <= 0 || (value & (value - 1)) != 0)
+			throw new AssemblyError("Alignment boundary must be a power of two");
+		setOrigin((origin + value - 1) & ~(value - 1), OrgModifier.NONE);
+	}
+
 	void assemblyRunIni(ushort addr) {
 		noRepeatSkipDirective();
 		checkHeadersOn();
@@ -2373,6 +2384,9 @@ private:
 			break;
 		case "ADD":
 			assemblyAccumulator(0x60, 0x18, 0);
+			break;
+		case "ALN":
+			assemblyAln();
 			break;
 		case "AND":
 			assemblyAccumulator(0x20, 0, 0);
