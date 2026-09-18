@@ -2864,32 +2864,29 @@ private:
 		currentFilename = filename;
 		lineNo = 0;
 		foundEnd = false;
+		bool atascii = false;
 		line = "";
-		readChar: while (!foundEnd) {
-			if (source.empty)
-				break;
+		while (!foundEnd && !source.empty) {
 			ubyte b = source.front;
 			source.popFront;
-			switch (b) {
-			case '\r':
+			if (lineNo == 0 && b == 0x9b)
+				atascii = true;
+			if (b == (atascii ? 0x9b : '\n')) {
+				assemblyLine();
+				line = "";
+			}
+			else if (b == '\r' && !atascii) {
 				assemblyLine();
 				line = "";
 				if (source.empty)
-					break readChar;
+					break;
 				b = source.front;
 				source.popFront;
 				if (b != '\n')
 					line ~= cast(char) b;
-				break;
-			case '\n':
-			case 0x9b:
-				assemblyLine();
-				line = "";
-				break;
-			default:
-				line ~= cast(char) b;
-				break;
 			}
+			else
+				line ~= cast(char) b;
 		}
 		if (!foundEnd)
 			assemblyLine();
