@@ -735,6 +735,9 @@ Version 3.3.0 (2026-09-??)
   (https://github.com/pfusik/xasm/issues/20[requested] by Sebastian Igielski)
 - <<new_dta,`DTA e(int24bit),f(int32bit)` modes>>
   (compatible with Fast Assembler and MADS)
+- avoid misinterpreting certain non-ASCII characters as Atari $9b EOL,
+  by detecting EOL in the first line of each source file
+  (https://github.com/pfusik/xasm/issues/21[reported] by Sebastian Igielski)
 - *xasm* can now be used as a link:libxasm.html[library] in any D program
   (by Adrian Matoga)
 - fixed writing the */t* label table: it no longer closes standard output
