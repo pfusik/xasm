@@ -3263,3 +3263,70 @@ unittest {
 	assert(!notListed.canFind!(l => l.canFind("dta $37")));
 	assert(notListed.canFind!(l => l.canFind("dta $42")));
 }
+
+// object file layout: headers, filling, run/ini, opt o
+unittest {
+	// opt h, opt f switched mid-file
+	assert(testObject(" org $600\n dta 1\n opt h-\n org $700\n dta 2\n opt h+\n org $800\n dta 3")
+		== hexData!"ffff00060006 01 02 00080008 03");
+	assert(testObject(" opt f+\n org $600\n dta 1\n org $602\n dta 2")
+		== hexData!"ffff00060206 01ff02");
+	assert(testObject(" opt h-f+\n org $600\n dta 1\n org $602\n dta 2\n opt f-\n org $606\n dta 3\n opt f+\n org $608\n dta 4")
+		== hexData!"01ff02 03ff04");
+
+	// a:, f:
+	assert(testObject(" org $600\n dta 1\n org a:$601\n dta 2\n org f:$602\n dta 3")
+		== hexData!"ffff00060006 01 01060106 02 ffff02060206 03");
+	assert(testObject(" org $600\n org $700\n org $800\n dta 1") == hexData!"ffff00080008 01");
+	assert(testError(" org $600\n org a:$700\n org $800\n dta 1") == "Cannot generate an empty block");
+	foreach (directive; ["org a:", "org f:", "run ", "ini "])
+		assert(testError(" opt h-\n " ~ directive ~ "$600") == "Illegal when Atari file headers disabled");
+
+	// run, ini
+	assert(testObject(" org $600\n dta 1\n run $600\n ini $601\n ini f:$602")
+		== hexData!"ffff00060006 01 e002e102 0006 e202e302 0106 ffffe202e302 0206");
+	assert(testObject(" opt f+\n org $600\n dta 1\n run $600\n dta 2")
+		== hexData!"ffff00060006 01 e002e202 0006 02");
+
+	// aln
+	assert(testObject(" org $601\n dta 1\n aln 4\n dta 2")
+		== hexData!"ffff01060106 01 04060406 02");
+	assert(testObject(" opt f+\n org $601\n dta 1\n aln 4\n dta 2")
+		== hexData!"ffff01060406 01ffff02");
+	assert(testObject(" opt h-f+\n org $601\n dta 1\n aln 4\n dta 2") == hexData!"01ffff02");
+
+	// errors
+	assert(testError(" opt f+\n org $600\n dta 1\n org $5ff\n dta 2") == "Can't fill from higher to lower memory location");
+	assert(testError(" dta 1") == "No ORG specified");
+	assert(testObject(" opt h-\n dta 1") == hexData!"01");
+
+	// header words in the listing
+	auto r = testAssemble(" org $600\n dta 1\n org a:$601\n dta 2\n run $600\n ini f:$602");
+	assert(r.listing[0] == "    1 FFFF> 0600-0600>           org $600");
+	assert(r.listing[2] == "    3 0601 0601-0601>            org a:$601");
+	assert(r.listing[4] == "    5 0602 02E0-02E1> 00 06      run $600");
+	assert(r.listing[5] == "    6 02E2 FFFF> 02E2-02E3> 0+   ini f:$602");
+
+	// opt o in the middle of a block
+	r = testAssemble(" org $600\n dta 1\n opt o-\n dta 2\n opt o+\n dta 3");
+	assert(r.object == hexData!"ffff00060206 01 03");
+	assert(r.listing[3] == "    4 0601 02                    dta 2");
+	// between blocks
+	r = testAssemble(" org $600\n dta 1\n opt o-\n org $700\n dta 2\n opt o+\n org $800\n dta 3");
+	assert(r.object == hexData!"ffff00060006 01 00080008 03");
+	assert(r.listing[3] == "    4 0601 0700-0700>            org $700");
+	// contiguous continuation after a dropped block
+	assert(testObject(" org $600\n dta 1\n opt o-\n org $700\n dta 2\n opt o+\n dta 3")
+		== hexData!"ffff00060006 01 03");
+	// the first block dropped
+	assert(testObject(" opt o-\n org $600\n dta 1\n opt o+\n org $700\n dta 2")
+		== hexData!"ffff00070007 02");
+	// in the middle of a block with fill
+	assert(testObject(" opt h-f+\n org $600\n dta 1\n opt o-\n dta 2\n opt o+\n dta 3") == hexData!"0103");
+	assert(testObject(" opt h-f+\n org $600\n dta 1\n opt o-\n org $602\n dta 2\n opt o+\n dta 3") == hexData!"0103");
+	assert(testObject(" opt h-f+\n org $600\n dta 1\n opt o-\n org $602\n opt o+\n dta 3") == hexData!"01ff03");
+	assert(testObject(" opt f+\n org $600\n dta 1\n opt o-\n org $602\n dta 2\n opt o+\n dta 3")
+		== hexData!"ffff00060306 01 03");
+	// accepted, as no object byte has been written
+	assert(testObject(" opt o-\n org $600\n dta 1\n opt 'output=raw'") == []);
+}
