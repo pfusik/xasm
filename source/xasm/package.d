@@ -140,10 +140,12 @@ class Assembler {
 
 private:
 	version (unittest) static Assembler testAssembler() {
-		return new Assembler(
+		auto a = new Assembler(
 			(string path) => (immutable(ubyte)[]).init,
 			(string path, int offset, int length) => (immutable(ubyte)[]).init,
 			null);
+		a.optionObject = true;
+		return a;
 	}
 
 	string sourceFilename = null;
@@ -1263,8 +1265,8 @@ private:
 	void objectByte(ubyte b) {
 		version (unittest) {} else {
 			assert(pass2);
-			if (!optionObject) return;
 		}
+		if (!optionObject) return;
 		objectBuffer.put(b);
 	}
 
@@ -2410,13 +2412,17 @@ private:
 	}
 
 	unittest {
-		import std.exception : collectExceptionMsg;
-
 		static struct OutputCase {
 			string setting;
 			bool headers;
 			bool object;
 			bool fill;
+
+			void checkFlags(Assembler a) {
+				assert(a.optionHeaders == headers);
+				assert(a.optionObject == object);
+				assert(a.optionFill == fill);
+			}
 		}
 
 		foreach (c; [
@@ -2430,16 +2436,12 @@ private:
 				with (a) {
 					optionHeaders = optionObject = optionFill = initially;
 					testInstruction(c.setting);
-					assert(optionHeaders == c.headers);
-					assert(optionObject == c.object);
-					assert(optionFill == c.fill);
+					c.checkFlags(a);
 					assert(testInstructionError(c.setting) == "OUTPUT already set");
 					assert(testInstructionError("opt f+") == "Can't switch F once OUTPUT is set");
 					assert(testInstructionError("opt h+") == "Can't switch H once OUTPUT is set");
 					assert(testInstructionError("opt o-") == "Can't switch O once OUTPUT is set");
-					assert(optionHeaders == c.headers);
-					assert(optionObject == c.object);
-					assert(optionFill == c.fill);
+					c.checkFlags(a);
 				}
 			}
 		}
@@ -2463,14 +2465,7 @@ private:
 			assert(!optionFill && optionHeaders && optionObject);
 		}
 
-		a = testAssembler();
-		with (a) {
-			testInstruction("nop");
-			line = "opt 'output=raw'";
-			column = 0;
-			assert(collectExceptionMsg(assemblyInstruction(readInstruction()))
-				== "OUTPUT must be set before object data is emitted");
-		}
+		assert(testError(" opt h-\n nop\n opt 'output=raw'") == "OUTPUT must be set before object data is emitted");
 	}
 
 	void originWord(ushort value, char listingChar) {
@@ -2955,13 +2950,13 @@ private:
 	unittest {
 		auto a = testAssembler();
 		with (a) {
-			assert(testInstruction("nop") == representation(hexString!"ea"));
-			assert(testInstruction("add (5,0)") == representation(hexString!"18a2006105"));
-			assert(testInstruction("mwa #$abcd $1234") == representation(hexString!"a9cd8d3412a9ab8d3512"));
-			assert(testInstruction("mwx #-256 $80") == representation(hexString!"a2008680ca8681"));
-			assert(testInstruction("dta 5,d'Foo'*,a($4589),e($123456),f($12345678)") == representation(hexString!"05a6efef894556341278563412"));
+			assert(testInstruction("nop") == hexData!"ea");
+			assert(testInstruction("add (5,0)") == hexData!"18a2006105");
+			assert(testInstruction("mwa #$abcd $1234") == hexData!"a9cd8d3412a9ab8d3512");
+			assert(testInstruction("mwx #-256 $80") == hexData!"a2008680ca8681");
+			assert(testInstruction("dta 5,d'Foo'*,a($4589),e($123456),f($12345678)") == hexData!"05a6efef894556341278563412");
 			assert(testInstruction("dta r(1,12,123,1234567890,12345678900000,.5,.03,000.1664534589,1e97)")
-			== representation(hexString!"400100000000 401200000000 410123000000 441234567890 461234567890 3f5000000000 3f0300000000 3f1664534589 701000000000"));
+			== hexData!"400100000000 401200000000 410123000000 441234567890 461234567890 3f5000000000 3f0300000000 3f1664534589 701000000000");
 		}
 	}
 
@@ -3143,16 +3138,7 @@ private:
 	}
 
 	unittest {
-		auto a = testAssembler();
-		with (a) {
-			sourceFiles[""] = " lda:sne:ldy:inx $1234".representation;
-			assemblyFile("");
-			pass2 = true;
-			objectBuffer.clear();
-			assemblyFile("");
-			writefln!"%(%02x%)"(objectBuffer.data);
-			assert(objectBuffer.data == [0xad, 0x34, 0x12, 0xd0, 0x03, 0xac, 0x34, 0x12, 0xe8]);
-		}
+		assert(testObject(" opt h-\n lda:sne:ldy:inx $1234") == hexData!"ad3412d003ac3412e8");
 	}
 
 	void assemblyPass() {
@@ -3210,26 +3196,58 @@ unittest {
 	assert(!assembler.getLabel("foo"));
 }
 
+version (unittest) private {
+
+enum hexData(string hex) = representation(hexString!hex);
+
+struct TestAssembly {
+	const(ubyte)[] object;
+	string[] listing;
+	string error;
+}
+
+TestAssembly testAssemble(string[string] sources, string main, string[] commandLineDefinitions = null, bool listIncludedFiles = true) {
+	TestAssembly r;
+	auto assembler = new Assembler(
+		(string path) => sources[path].representation,
+		null,
+		(in Diagnostic diag) { if (diag.severity == Severity.error) r.error = diag.message; });
+	assembler.commandLineDefinitions = commandLineDefinitions;
+	assembler.listIncludedFiles = listIncludedFiles;
+	assembler.listingSink = (const(char)[] line) { r.listing ~= line.idup; };
+	assembler.assemble(main);
+	r.object = assembler.object;
+	return r;
+}
+
+TestAssembly testAssemble(string source) {
+	return testAssemble(["": source], "");
+}
+
+const(ubyte)[] testObject(string source) {
+	auto r = testAssemble(source);
+	assert(r.error is null, r.error);
+	return r.object;
+}
+
+string testError(string source) {
+	return testAssemble(source).error;
+}
+
+}
+
 // listIncludedFiles
 unittest {
-	import std.functional : toDelegate;
-
 	string[string] sources = [
 		"main.asx": " org $600\n icl 'inc.asx'\n dta $42\n",
 		"inc.asx": " dta $37\n"
 	];
 
 	string[] listing(bool listIncludedFiles) {
-		auto assembler = new Assembler(
-			(string path) => sources[path].representation,
-			null,
-			toDelegate((in Diagnostic diag) => stderr.writeln(diag)));
-		string[] lines;
-		assembler.listIncludedFiles = listIncludedFiles;
-		assembler.listingSink = (const(char)[] line) { lines ~= line.idup; };
-		assembler.assemble("main.asx");
-		assert(assembler.object == [0xff, 0xff, 0x00, 0x06, 0x01, 0x06, 0x37, 0x42]);
-		return lines;
+		auto r = testAssemble(sources, "main.asx", null, listIncludedFiles);
+		assert(r.error is null, r.error);
+		assert(r.object == hexData!"ffff00060106 3742");
+		return r.listing;
 	}
 
 	auto listed = listing(true);
