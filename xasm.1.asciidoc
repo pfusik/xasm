@@ -747,6 +747,9 @@ Version 3.3.0 (2026-09-??)
 - fixed writing the */t* label table: it no longer closes standard output
   when the listing goes to `-`, nor overwrites the listing file when both
   */l* and */t* name the same file (by Adrian Matoga)
+- fixed parsing of opcode values: an operand such as in `{jsr $1234}`
+  is no longer misread, and a line ending with `{lda <` no longer crashes
+  (by Adrian Matoga)
 
 Version 3.2.1 (2022-12-08)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~

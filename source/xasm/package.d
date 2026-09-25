@@ -860,8 +860,17 @@ private:
 	version (unittest) int testValue(string l) {
 		line = l;
 		column = 0;
+		inOpcode = false;
 		readValue();
 		return value;
+	}
+
+	version (unittest) string testValueError(string l) {
+		try
+			testValue(l);
+		catch (Exception e)
+			return e.msg;
+		return null;
 	}
 
 	unittest {
@@ -884,6 +893,9 @@ private:
 			assert(testValue("{nop}") == 0xea);
 			assert(testValue("{CLC}+{sec}") == 0x50);
 			assert(testValue("{Jsr}") == 0x20);
+			assert(testValueError("{lda <") == "Unexpected end of line");
+			assert(testValue("{bne $12}") == 0xd0);
+			assert(testValue("{Jsr $1234}") == 0x20);
 			assert(testValue("{bit a:}") == 0x2c);
 			assert(testValue("{bIt $7d}") == 0x24);
 		}
@@ -945,7 +957,7 @@ private:
 		case '<':
 		case '>':
 			addrMode = AddrMode.IMMEDIATE;
-			if (inOpcode && line[column] == '}')
+			if (inOpcode && !eol() && line[column] == '}')
 				return;
 			readWord();
 			final switch (c) {
@@ -1117,9 +1129,7 @@ private:
 	}
 
 	void readAbsoluteAddrMode() {
-		if (inOpcode && readChar() == '}') {
-			column--;
-		} else {
+		if (!(inOpcode && !eol() && line[column] == '}')) {
 			readAddrMode();
 			switch (addrMode) {
 			case AddrMode.ABSOLUTE:
