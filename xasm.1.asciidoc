@@ -213,6 +213,10 @@ is the location of hardware registers.
 |  ^4x |ANTIC|$D40x|`$D40x`
 |================================================
 
+Atari 5200 mode is enabled with `opt g+` or `opt 'hardware=atari5200'`.
+The abbreviations can also be rejected altogether with `opt 'hardware=none'`,
+which is useful if the code targets neither of these machines.
+
 The opcode syntax represents the opcode byte of the instruction inside braces.
 The operand of the instruction is discarded and is needed only to recognize
 the addressing mode. The instruction should begin right after the left brace
@@ -294,7 +298,9 @@ here equ *
 
 [[new_opt]]*OPT* - set assembler options::
 
-Six options are available:
+The operand is either a sequence of single-letter switches
+or <<new_optnames,a quoted list of `name=value` settings>>.
+Six switches are available:
 
 - `F` - fill the space between noncontiguous memory areas with `$FF` bytes
 - `G` - Atari 5200 mode for hardware register abbreviations (`^xx`)
@@ -316,6 +322,43 @@ Examples:
  opt f+g+h- useful for Atari 5200 cartridges - raw output, 5200 hw regs
  opt ?+     MADS compatibility, no effect
 ------------------------------------------------------------------------------
+--
+
++
+--
+[[new_optnames]]Alternatively, the operand is a string in single or double quotes,
+holding a comma-separated list of settings, each written as `name=value`:
+
+------------------------------------------------------------------------------
+ opt 'listing=off'
+ opt 'output=rom,hardware=atari5200'
+ opt "UNUSED_LABELS=Off"
+------------------------------------------------------------------------------
+
+The following settings are available:
+
+- `hardware=atari800` - `^xx` are the hardware registers of Atari 8-bit computers
+  (the default, same as `opt g-`)
+- `hardware=atari5200` - `^xx` are the hardware registers of the Atari 5200
+  (same as `opt g+`)
+- `hardware=none` - `^xx` is rejected
+- `listing=on` / `listing=off` - same as `opt l+` / `opt l-`
+- `unused_labels=on` / `unused_labels=off` - same as `opt u+` / `opt u-`
+- `output=ataridos` - write an Atari DOS executable file
+  (the default, same as `opt f-h+o+`)
+- `output=raw` - write the bytes with no headers (same as `opt f-h-o+`)
+- `output=rom` - as above, but fill the space between noncontiguous memory areas
+  with `$FF` bytes, which is what cartridge images need (same as `opt f+h-o+`)
+- `output=off` - write no object file (same as `opt f-h-o-`)
+
+Names and values are case-insensitive.
+No spaces are allowed inside the string.
+The empty string (`opt ''`) sets nothing.
+An unknown name or an invalid value is an error.
+
+`output` may be set only once in the source, and only before the first byte
+of the object file is emitted. Once `output` is set, the `F`, `H` and `O`
+switches are rejected.
 --
 
 *ORG* - set the origin counter::
@@ -742,6 +785,9 @@ Version 3.3.0 (2026-09-??)
 - avoid misinterpreting certain non-ASCII characters as Atari $9b EOL,
   by detecting EOL in the first line of each source file
   (https://github.com/pfusik/xasm/issues/21[reported] by Sebastian Igielski)
+- <<new_optnames,`OPT` alternatively accepts a quoted list of `name=value` settings>>,
+  for example `opt 'output=rom,hardware=atari5200'`, including the new
+  `output` format selection and `hardware=none` (by Adrian Matoga)
 - *xasm* can now be used as a link:libxasm.html[library] in any D program
   (by Adrian Matoga)
 - fixed writing the */t* label table: it no longer closes standard output
