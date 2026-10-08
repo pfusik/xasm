@@ -195,6 +195,7 @@ A number is:
 - a hardware register (see below), e.g. `^4e`
 - [[new_opcode]]an opcode (see below), e.g. `{lda #0}` is `$a9`
 - [[new_linecnt]]the current value of the line repeat counter (see below): `#`
+- [[new_def]]a label definition test (see below), e.g. `def(foo)`
 
 Abbreviations of Atari hardware registers are provided
 to save two characters (`$d40e` vs `^4e`)
@@ -228,6 +229,33 @@ line_lo :192 dta l(screen+40*#)
 line_hi :192 dta h(screen+40*#)
 dl :59 dta $4f,a(screen+40*#),0,$4f,a(screen+40*#),0
 ----------------------------------------------------
+
+`def(label)` is 1 if the label is defined and 0 if it is not.
+It never reports an undeclared label.
+A label counts as defined only if it is declared on the command line
+with <<new_deflabel,*-d*>> or on an earlier source line
+that was not skipped by a false condition.
+A label declared later in the source is not defined,
+consistently in both passes of the assembly.
+Labels with value zero are defined.
+`def(?local)` tests a <<new_locallabel,local label>>
+of the most recent global label.
+`def(label)` is most useful with <<new_eli,`IFT`>>.
+
+Default value of a label that can be overridden on the command line:
+-------------------------
+ ift !def(speed)
+speed equ 3
+ eif
+-------------------------
+
+Include guard, so that `lib.asx` can be included several times:
+-------------------------
+ ift !def(lib_included)
+lib_included equ 1
+; ...
+ eif
+-------------------------
 
 The following 'binary operators' are supported:
 
@@ -536,6 +564,8 @@ widescr equ 1
  sta $22f
 -------------
 +
+To test whether a label is defined, use <<new_def,`def(label)`>>, e.g. `ift def(debug)`.
++
 NOTE: Alternatively, the above example can be written using the 'repeat line' feature:
 +
 --------------------------
@@ -735,6 +765,8 @@ HISTORY
 Version 3.3.0 (2026-10-??)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 - built with LDC - supports macOS 15.4+
+- <<new_def,`def(label)`>> tests whether a label is defined
+  (https://github.com/pfusik/xasm/issues/26[requested] by Sebastian Igielski)
 - Fixed corrupted executable headers with `ORG` round-trip through an area with no emitted output (https://github.com/pfusik/xasm/issues/27[reported] by Sebastian Igielski)
 - <<new_aln,`ALN` directive>> for aligning the origin counter to the specified boundary
   (https://github.com/pfusik/xasm/issues/20[requested] by Sebastian Igielski)

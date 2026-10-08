@@ -708,7 +708,17 @@ private:
 				string label = readLabel();
 				if (label is null)
 					illegalCharacter();
-				if (Label* l = label in labelTable) {
+				if (label == "DEF" && !eol() && line[column] == '(') {
+					column++;
+					string defLabel = readLabel();
+					if (defLabel is null || readChar() != ')')
+						illegalCharacter();
+					if (Label* l = defLabel in labelTable)
+						operand = !pass2 || l.passed;
+					else
+						operand = false;
+				}
+				else if (Label* l = label in labelTable) {
 					operand = l.value;
 					l.unused = false;
 					if (pass2) {
@@ -1827,6 +1837,7 @@ private:
 	}
 
 	void assemblyDtaInteger(char letter) {
+		int functionColumn = column;
 		if (readFunction() == "SIN") {
 			readValue();
 			int sinCenter = value;
@@ -1863,6 +1874,7 @@ private:
 			}
 			return;
 		}
+		column = functionColumn;
 		readValue();
 		storeDtaNumber(value, letter);
 	}
@@ -3036,4 +3048,103 @@ unittest {
 		== [0xff, 0xff, 0x00, 0x80, 0x00, 0x80, 0x11, 0x00, 0x90, 0x00, 0x90, 0x22]);
 	assert(assemble(" org $8000\n dta $11\n org $c000\n org $4000\n org $8001\n dta $22\n org $9000\n org $8002\n dta $33\n")
 		== [0xff, 0xff, 0x00, 0x80, 0x02, 0x80, 0x11, 0x22, 0x33]);
+}
+
+// DEF(label) - test whether a label is defined (issue #26)
+unittest {
+	import std.functional : toDelegate;
+
+	string[] errors;
+
+	ubyte[] assemble(string[string] sources, string[] definitions = null) {
+		errors = null;
+		auto assembler = new Assembler(
+			(string path) => sources[path].representation,
+			null,
+			toDelegate((in Diagnostic diag) { errors ~= diag.message; }));
+		assembler.commandLineDefinitions = definitions;
+		assembler.assemble("main.asx");
+		return assembler.object.dup;
+	}
+
+	ubyte[] assembleOne(string source, string[] definitions = null) {
+		return assemble(["main.asx": source], definitions);
+	}
+
+	// defined and undefined labels, case-insensitive
+	assert(assembleOne("foo equ 5\n org $600\n dta def(foo),def(FOO),DEF(Foo),def(bar)\n")
+		== [0xff, 0xff, 0x00, 0x06, 0x03, 0x06, 1, 1, 1, 0]);
+	assert(errors.empty);
+
+	// DTA modes, SIN and instructions
+	assert(assembleOne("foo equ 5\n org $600\n dta b(def(foo)),a(def(foo)),sin(0,0,4),def(foo)\n lda #def(bar)\n")
+		== [0xff, 0xff, 0x00, 0x06, 0x09, 0x06, 1, 1, 0, 0, 0, 0, 0, 1, 0xa9, 0]);
+	assert(errors.empty);
+
+	// a label defined as zero is defined
+	assert(assembleOne("zero equ 0\n org $600\n dta def(zero),zero\n")
+		== [0xff, 0xff, 0x00, 0x06, 0x01, 0x06, 1, 0]);
+
+	// a label defined later is not defined, consistently in both passes
+	assert(assembleOne(" org $600\n dta def(later)\nlater equ 7\n")
+		== [0xff, 0xff, 0x00, 0x06, 0x00, 0x06, 0]);
+	assert(assembleOne(" org $600\n ift def(later)\n dta 1\n els\n dta 2\n eif\nlater equ 7\n dta later\n")
+		== [0xff, 0xff, 0x00, 0x06, 0x01, 0x06, 2, 7]);
+
+	// a label can test itself
+	assert(assembleOne(" org $600\nself equ def(self)\n dta self\n")
+		== [0xff, 0xff, 0x00, 0x06, 0x00, 0x06, 1]);
+
+	// labels declared in a false condition are not defined
+	assert(assembleOne(" org $600\n ift 0\nskipped equ 1\n eif\n dta def(skipped)\n")
+		== [0xff, 0xff, 0x00, 0x06, 0x00, 0x06, 0]);
+
+	// operators
+	assert(assembleOne("foo equ 1\n org $600\n dta !def(foo),!def(bar),def(foo)&&!def(bar),def(foo)+def(foo)*2\n")
+		== [0xff, 0xff, 0x00, 0x06, 0x03, 0x06, 0, 1, 1, 3]);
+
+	// local labels
+	assert(assembleOne("glob equ 1\n?loc equ 2\n org $600\n dta def(?loc),def(?other),def(glob?loc)\n")
+		== [0xff, 0xff, 0x00, 0x06, 0x02, 0x06, 1, 0, 1]);
+
+	// default value overridable from the command line
+	enum defaultSource = " ift !def(speed)\nspeed equ 3\n eif\n org $600\n dta speed\n";
+	assert(assembleOne(defaultSource) == [0xff, 0xff, 0x00, 0x06, 0x00, 0x06, 3]);
+	assert(errors.empty);
+	assert(assembleOne(defaultSource, ["speed=9"]) == [0xff, 0xff, 0x00, 0x06, 0x00, 0x06, 9]);
+	assert(errors.empty);
+	assert(assembleOne(defaultSource, ["speed=0"]) == [0xff, 0xff, 0x00, 0x06, 0x00, 0x06, 0]);
+	assert(errors.empty);
+
+	// ELI and nesting
+	enum chainSource = " org $600\n ift def(a)\n dta 1\n eli def(b)\n ift def(c)\n dta 2\n els\n dta 3\n eif\n els\n dta 4\n eif\n";
+	assert(assembleOne(chainSource, ["a=0"]) == [0xff, 0xff, 0x00, 0x06, 0x00, 0x06, 1]);
+	assert(assembleOne(chainSource, ["b=0", "c=0"]) == [0xff, 0xff, 0x00, 0x06, 0x00, 0x06, 2]);
+	assert(assembleOne(chainSource, ["b=0"]) == [0xff, 0xff, 0x00, 0x06, 0x00, 0x06, 3]);
+	assert(assembleOne(chainSource) == [0xff, 0xff, 0x00, 0x06, 0x00, 0x06, 4]);
+	assert(errors.empty);
+
+	// include guard
+	assert(assemble([
+		"main.asx": " org $600\n icl 'a.asx'\n icl 'b.asx'\n icl 'lib.asx'\n",
+		"a.asx": " icl 'lib.asx'\n dta $aa\n",
+		"b.asx": " icl 'lib.asx'\n dta $bb\n",
+		"lib.asx": " ift !def(lib_included)\nlib_included equ 1\n dta $11\n eif\n"
+	]) == [0xff, 0xff, 0x00, 0x06, 0x02, 0x06, 0x11, 0xaa, 0xbb]);
+	assert(errors.empty);
+
+	// DEF is still usable as a label name
+	assert(assembleOne("def equ 5\n org $600\n dta def,def+1,def(def)\n")
+		== [0xff, 0xff, 0x00, 0x06, 0x02, 0x06, 5, 6, 1]);
+	assert(errors.empty);
+
+	// syntax errors
+	assembleOne(" org $600\n dta def(1)\n");
+	assert(errors == ["Illegal character"]);
+	assembleOne(" org $600\n dta def(foo]\n");
+	assert(errors == ["Illegal character"]);
+	assembleOne(" org $600\n dta def(foo\n");
+	assert(errors == ["Unexpected end of line"]);
+	assembleOne(" org $600\n dta def()\n");
+	assert(errors == ["Illegal character"]);
 }
