@@ -220,8 +220,7 @@ private:
 	int loadingOrigin;
 	ushort[] blockEnds;
 	int blockIndex;
-	int blockCount;
-	int loadingBlockIndex;
+	bool newBlock; // pass 1 only
 
 	bool repeating; // line
 	int repeatCounter; // line
@@ -1296,15 +1295,17 @@ private:
 		if (optionHeaders) {
 			if (origin < 0)
 				throw new AssemblyError("No ORG specified");
-			assert(blockIndex >= 0);
 			if (!pass2) {
+				if (newBlock) {
+					blockIndex = cast(int) blockEnds.length - 1;
+					newBlock = false;
+				}
 				blockEnds[blockIndex] = cast(ushort) loadOrigin;
 			}
 		}
 		if (origin >= 0) {
 			origin++;
 			loadingOrigin = ++loadOrigin;
-			loadingBlockIndex = blockIndex;
 		}
 	}
 
@@ -2281,14 +2282,16 @@ private:
 
 	void setOrigin(int addr, OrgModifier modifier) {
 		origin = loadOrigin = addr;
+		if (!optionHeaders)
+			return;
 		bool requestedHeader = modifier != OrgModifier.NONE;
 		if (requestedHeader || loadingOrigin < 0 || (addr != loadingOrigin && !optionFill)) {
-			blockIndex = blockCount++;
 			if (!pass2) {
-				assert(blockIndex == blockEnds.length);
 				blockEnds ~= cast(ushort) (addr - 1);
+				newBlock = true;
 			}
-			if (pass2 && optionHeaders) {
+			else {
+				blockIndex++;
 				if (addr - 1 == blockEnds[blockIndex]) {
 					if (requestedHeader)
 						throw new AssemblyError("Cannot generate an empty block");
@@ -2307,10 +2310,8 @@ private:
 				}
 			}
 		}
-		else {
-			// continue the block where the last byte was emitted
-			blockIndex = loadingBlockIndex;
-		}
+		else
+			newBlock = false;
 	}
 
 	void checkHeadersOn() {
@@ -2930,8 +2931,7 @@ private:
 		loadOrigin = -1;
 		loadingOrigin = -1;
 		blockIndex = -1;
-		blockCount = 0;
-		loadingBlockIndex = -1;
+		newBlock = false;
 		optionFill = false;
 		option5200 = false;
 		optionHeaders = true;

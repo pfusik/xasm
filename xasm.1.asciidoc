@@ -732,9 +732,10 @@ and pseudo commands, except for `MWA`, `MWX` and `MWY`:
 HISTORY
 -------
 
-Version 3.3.0 (2026-09-??)
+Version 3.3.0 (2026-10-??)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 - built with LDC - supports macOS 15.4+
+- Fixed corrupted executable headers with `ORG` round-trip through an area with no emitted output (https://github.com/pfusik/xasm/issues/27[reported] by Sebastian Igielski)
 - <<new_aln,`ALN` directive>> for aligning the origin counter to the specified boundary
   (https://github.com/pfusik/xasm/issues/20[requested] by Sebastian Igielski)
 - <<new_dta,`DTA e(int24bit),f(int32bit)` modes>>
