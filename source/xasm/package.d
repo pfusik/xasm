@@ -220,6 +220,8 @@ private:
 	int loadingOrigin;
 	ushort[] blockEnds;
 	int blockIndex;
+	int blockCount;
+	int loadingBlockIndex;
 
 	bool repeating; // line
 	int repeatCounter; // line
@@ -1302,6 +1304,7 @@ private:
 		if (origin >= 0) {
 			origin++;
 			loadingOrigin = ++loadOrigin;
+			loadingBlockIndex = blockIndex;
 		}
 	}
 
@@ -2280,7 +2283,7 @@ private:
 		origin = loadOrigin = addr;
 		bool requestedHeader = modifier != OrgModifier.NONE;
 		if (requestedHeader || loadingOrigin < 0 || (addr != loadingOrigin && !optionFill)) {
-			blockIndex++;
+			blockIndex = blockCount++;
 			if (!pass2) {
 				assert(blockIndex == blockEnds.length);
 				blockEnds ~= cast(ushort) (addr - 1);
@@ -2303,6 +2306,10 @@ private:
 					loadingOrigin = -1;
 				}
 			}
+		}
+		else {
+			// continue the block where the last byte was emitted
+			blockIndex = loadingBlockIndex;
 		}
 	}
 
@@ -2923,6 +2930,8 @@ private:
 		loadOrigin = -1;
 		loadingOrigin = -1;
 		blockIndex = -1;
+		blockCount = 0;
+		loadingBlockIndex = -1;
 		optionFill = false;
 		option5200 = false;
 		optionHeaders = true;
@@ -3006,4 +3015,25 @@ unittest {
 	assert(!notListed.canFind("Source: inc.asx"));
 	assert(!notListed.canFind!(l => l.canFind("dta $37")));
 	assert(notListed.canFind!(l => l.canFind("dta $42")));
+}
+
+// ORG round-trip through an area with no emitted data (issue #27)
+unittest {
+	import std.functional : toDelegate;
+
+	ubyte[] assemble(string source) {
+		auto assembler = new Assembler(
+			(string path) => source.representation,
+			null,
+			toDelegate((in Diagnostic diag) => stderr.writeln(diag)));
+		assembler.assemble("src.asx");
+		return assembler.object.dup;
+	}
+
+	assert(assemble(" org $8000\n dta $11\n org $80\n org $8001\n dta $22\n")
+		== [0xff, 0xff, 0x00, 0x80, 0x01, 0x80, 0x11, 0x22]);
+	assert(assemble(" org $8000\n dta $11\n org $80\n org $9000\n dta $22\n")
+		== [0xff, 0xff, 0x00, 0x80, 0x00, 0x80, 0x11, 0x00, 0x90, 0x00, 0x90, 0x22]);
+	assert(assemble(" org $8000\n dta $11\n org $c000\n org $4000\n org $8001\n dta $22\n org $9000\n org $8002\n dta $33\n")
+		== [0xff, 0xff, 0x00, 0x80, 0x02, 0x80, 0x11, 0x22, 0x33]);
 }
