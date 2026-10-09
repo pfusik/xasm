@@ -153,12 +153,17 @@ private:
 
 	bool pass2 = false;
 
+	enum Hardware { ATARI800, ATARI5200, NONE }
+	enum Flag : bool { OFF = false, ON = true }
+	enum Output { OFF, RAW, ROM, ATARIDOS }
+
 	bool optionFill; // opt f
-	bool option5200; // opt g
+	Hardware optionHardware; // opt g, opt 'hardware=...'
 	bool optionHeaders; // opt h
 	bool optionListing; // opt l
 	bool optionObject; // opt o
 	bool optionUnusedLabels; // opt u
+	bool optionOutputSet;
 
 	string currentFilename;
 	int lineNo;
@@ -350,7 +355,7 @@ private:
 		}
 	}
 
-	string readLabel() {
+	string readIdentifier(bool nonEmpty = false) {
 		int firstColumn = column;
 		while (!eol()) {
 			char c = line[column++];
@@ -362,13 +367,34 @@ private:
 			column--;
 			break;
 		}
-		string label = line[firstColumn .. column].toUpper;
+		auto result = line[firstColumn .. column].toUpper;
+		if (nonEmpty && result.length == 0)
+			throw new AssemblyError(eol() ? "Unexpected end of line" : "Illegal character");
+		return result;
+	}
+
+	string readLabel() {
+		string label = readIdentifier();
 		if (label.startsWith('?')) {
 			if (lastGlobalLabel is null)
 				throw new AssemblyError("Global label must be declared first");
 			label = lastGlobalLabel ~ label;
 		}
 		return label >= "A" ? label : null;
+	}
+
+	unittest {
+		auto a = testAssembler();
+		with (a) {
+			line = "glob equ $1234";
+			assemblyLine();
+			line = "?loc equ 7";
+			assemblyLine();
+			assert(getLabel("GLOB").value == 0x1234);
+			assert(getLabel("GLOB?LOC").value == 7);
+			assert(testValue("?loc") == 7);
+			assert(testValue("glob") == 0x1234);
+		}
 	}
 
 	void readComma() {
@@ -646,19 +672,22 @@ private:
 					operand ^= 0x80;
 				}
 				break;
-			case '^':
+			case '^': {
+				if (optionHardware == Hardware.NONE)
+					throw new AssemblyError("Hardware registers are disabled");
+				immutable bool a5200 = optionHardware == Hardware.ATARI5200;
 				switch (readChar()) {
 				case '0':
-					operand = option5200 ? 0xc000 : 0xd000;
+					operand = a5200 ? 0xc000 : 0xd000;
 					break;
 				case '1':
-					operand = option5200 ? 0xc010 : 0xd010;
+					operand = a5200 ? 0xc010 : 0xd010;
 					break;
 				case '2':
-					operand = option5200 ? 0xe800 : 0xd200;
+					operand = a5200 ? 0xe800 : 0xd200;
 					break;
 				case '3':
-					if (option5200)
+					if (a5200)
 						throw new AssemblyError("There's no PIA chip in Atari 5200");
 					operand = 0xd300;
 					break;
@@ -673,6 +702,7 @@ private:
 					illegalCharacter();
 				operand += d;
 				break;
+			}
 			case '{':
 				if (inOpcode)
 					throw new AssemblyError("Nested opcodes not supported");
@@ -2221,21 +2251,90 @@ private:
 		assert(0);
 	}
 
+	E readEnumeratedOption(E)(string name) if (is(E == enum)) {
+		switch (readIdentifier(true)) {
+		static foreach (string v; __traits(allMembers, E)) {
+		case v:
+			return __traits(getMember, E, v);
+		}
+		default:
+			throw new AssemblyError("Invalid value of option " ~ name);
+		}
+	}
+
+	void setNamedOption(string name) {
+		switch (name) {
+		case "HARDWARE":
+			optionHardware = readEnumeratedOption!Hardware(name);
+			break;
+		case "LISTING":
+			optionListing = readEnumeratedOption!Flag(name) && pass2;
+			break;
+		case "OUTPUT": {
+			if (optionOutputSet)
+				throw new AssemblyError("OUTPUT already set");
+			if (objectBuffer.data.length)
+				throw new AssemblyError("OUTPUT must be set before object data is emitted");
+			Output output = readEnumeratedOption!Output(name);
+			optionFill = output == Output.ROM;
+			optionHeaders = output == Output.ATARIDOS;
+			optionObject = output != Output.OFF;
+			optionOutputSet = true;
+			break;
+		}
+		case "WARN_UNUSED_LABELS":
+			optionUnusedLabels = readEnumeratedOption!Flag(name);
+			break;
+		default:
+			throw new AssemblyError("Unknown option: " ~ name);
+		}
+	}
+
+	void assemblyOptSettings() {
+		char delimiter = readChar();
+		if (!eol() && line[column] == delimiter) {
+			column++;
+			return;
+		}
+		for (;;) {
+			string name = readIdentifier(true);
+			if (readChar() != '=')
+				illegalCharacter();
+			setNamedOption(name);
+			char c = readChar();
+			if (c == delimiter)
+				return;
+			if (c != ',')
+				illegalCharacter();
+		}
+	}
+
+	void checkNotAfterOptOutput(char option) {
+		if (optionOutputSet)
+			throw new AssemblyError("Can't switch " ~ option ~ " once OUTPUT is set");
+	}
+
 	void assemblyOpt() {
 		directive();
 		readSpaces();
+		if (!eol() && (line[column] == '\'' || line[column] == '"')) {
+			assemblyOptSettings();
+			return;
+		}
 		while (!eol()) {
 			switch (line[column++]) {
 			case 'F':
 			case 'f':
+				checkNotAfterOptOutput('F');
 				optionFill = readOption();
 				break;
 			case 'G':
 			case 'g':
-				option5200 = readOption();
+				optionHardware = readOption() ? Hardware.ATARI5200 : Hardware.ATARI800;
 				break;
 			case 'H':
 			case 'h':
+				checkNotAfterOptOutput('H');
 				optionHeaders = readOption();
 				break;
 			case 'L':
@@ -2244,6 +2343,7 @@ private:
 				break;
 			case 'O':
 			case 'o':
+				checkNotAfterOptOutput('O');
 				optionObject = readOption();
 				break;
 			case 'U':
@@ -2258,6 +2358,134 @@ private:
 				column--;
 				return;
 			}
+		}
+	}
+
+	unittest {
+		auto a = testAssembler();
+		with (a) {
+			pass2 = true;
+
+			testInstruction("opt f+g+h-l-o-u-");
+			assert(optionFill);
+			assert(optionHardware == Hardware.ATARI5200);
+			assert(!optionHeaders && !optionListing && !optionObject && !optionUnusedLabels);
+			testInstruction("opt f-g-h+l+o+u+");
+			assert(!optionFill);
+			assert(optionHardware == Hardware.ATARI800);
+			assert(optionHeaders && optionListing && optionObject && optionUnusedLabels);
+			testInstruction("opt ?+");
+			assert(testInstructionError("opt ?-") == "OPT ?- not supported");
+
+			testInstruction("opt 'hardware=atari5200,listing=off,warn_unused_labels=off'");
+			assert(optionHardware == Hardware.ATARI5200);
+			assert(!optionListing && !optionUnusedLabels);
+
+			testInstruction(`opt "Hardware=None,Listing=on,WARN_UNUSED_LABELS=on"`);
+			assert(optionHardware == Hardware.NONE);
+			assert(optionListing && optionUnusedLabels);
+
+			testInstruction("opt '' nothing to set");
+			checkNoExtraCharacters();
+			assert(optionHardware == Hardware.NONE);
+
+			testInstruction("opt 'hardware=none,hardware=atari800,hardware=atari5200'");
+			assert(optionHardware == Hardware.ATARI5200);
+
+			testInstruction("opt 'hardware=atari800'");
+			assert(testValue("^27") == 0xd207);
+			testInstruction("opt 'hardware=atari5200'");
+			assert(testValue("^27") == 0xe807);
+			assert(testInstructionError("dta ^31") == "There's no PIA chip in Atari 5200");
+			testInstruction("opt g-");
+			assert(testValue("^27") == 0xd207);
+			testInstruction("opt 'hardware=none'");
+			assert(testInstructionError("dta ^27") == "Hardware registers are disabled");
+			testInstruction("opt g+");
+			assert(optionHardware == Hardware.ATARI5200);
+
+			assert(testInstructionError("opt 'listin='") == "Unknown option: LISTIN");
+			assert(testInstructionError("opt 'listing=maybe'") == "Invalid value of option LISTING");
+			assert(testInstructionError("opt 'listing='") == "Illegal character");
+			assert(testInstructionError("opt 'hardware'") == "Illegal character");
+			assert(testInstructionError("opt 'hardware=AMIGA1200'") == "Invalid value of option HARDWARE");
+			assert(testInstructionError("opt 'listing,'") == "Illegal character");
+			assert(testInstructionError("opt 'listing hardware'") == "Illegal character");
+			assert(testInstructionError("opt ' '") == "Illegal character");
+			assert(testInstructionError("opt '=on'") == "Illegal character");
+			assert(testInstructionError("opt 'listing=on,'") == "Illegal character");
+			assert(testInstructionError("opt 'listing=on,,unused_labels=on'") == "Illegal character");
+			assert(testInstructionError("opt 'fill, object'") == "Illegal character");
+			assert(testInstructionError("opt 'fill ,object'") == "Illegal character");
+			assert(testInstructionError("opt 'hardware = atari800'") == "Illegal character");
+			assert(testInstructionError("opt 'hardware=atari800 '") == "Illegal character");
+			assert(testInstructionError("opt 'listing") == "Unexpected end of line");
+			assert(testInstructionError("opt 'listing=") == "Unexpected end of line");
+			assert(testInstructionError("opt '") == "Unexpected end of line");
+		}
+	}
+
+	unittest {
+		import std.exception : collectExceptionMsg;
+
+		static struct OutputCase {
+			string setting;
+			bool headers;
+			bool object;
+			bool fill;
+		}
+
+		foreach (c; [
+			OutputCase("opt 'output=off'", false, false, false),
+			OutputCase("opt 'output=raw'", false, true, false),
+			OutputCase("opt 'output=rom'", false, true, true),
+			OutputCase(`opt "Output=AtariDOS"`, true, true, false)
+		]) {
+			foreach (bool initially; [false, true]) {
+				auto a = testAssembler();
+				with (a) {
+					optionHeaders = optionObject = optionFill = initially;
+					testInstruction(c.setting);
+					assert(optionHeaders == c.headers);
+					assert(optionObject == c.object);
+					assert(optionFill == c.fill);
+					assert(testInstructionError(c.setting) == "OUTPUT already set");
+					assert(testInstructionError("opt f+") == "Can't switch F once OUTPUT is set");
+					assert(testInstructionError("opt h+") == "Can't switch H once OUTPUT is set");
+					assert(testInstructionError("opt o-") == "Can't switch O once OUTPUT is set");
+					assert(optionHeaders == c.headers);
+					assert(optionObject == c.object);
+					assert(optionFill == c.fill);
+				}
+			}
+		}
+
+		auto a = testAssembler();
+		with (a) {
+			assert(testInstructionError("opt 'output=xex'") == "Invalid value of option OUTPUT");
+			assert(testInstructionError("opt 'output='") == "Illegal character");
+			assert(testInstructionError("opt 'output") == "Unexpected end of line");
+			assert(testInstructionError("opt 'output=off,output=raw'") == "OUTPUT already set");
+			assert(!optionHeaders && !optionObject && !optionFill);
+			testInstruction("opt g+u-");
+			assert(optionHardware == Hardware.ATARI5200 && !optionUnusedLabels);
+		}
+
+		a = testAssembler();
+		with (a) {
+			testInstruction("opt f+h-o+");
+			assert(optionFill && !optionHeaders && optionObject);
+			testInstruction("opt 'output=ataridos'");
+			assert(!optionFill && optionHeaders && optionObject);
+		}
+
+		a = testAssembler();
+		with (a) {
+			testInstruction("nop");
+			line = "opt 'output=raw'";
+			column = 0;
+			assert(collectExceptionMsg(assemblyInstruction(readInstruction()))
+				== "OUTPUT must be set before object data is emitted");
 		}
 	}
 
@@ -2735,6 +2963,15 @@ private:
 		return objectBuffer.data;
 	}
 
+	version (unittest) string testInstructionError(string l) {
+		try {
+			testInstruction(l);
+		} catch (AssemblyError e) {
+			return e.msg;
+		}
+		return null;
+	}
+
 	unittest {
 		auto a = testAssembler();
 		with (a) {
@@ -2945,11 +3182,12 @@ private:
 		blockIndex = -1;
 		newBlock = false;
 		optionFill = false;
-		option5200 = false;
+		optionHardware = Hardware.ATARI800;
 		optionHeaders = true;
 		optionListing = pass2;
 		optionObject = true;
 		optionUnusedLabels = true;
+		optionOutputSet = false;
 		willSkip = false;
 		skipping = false;
 		repeatOffset = 0;
