@@ -714,7 +714,7 @@ private:
 					if (defLabel is null || readChar() != ')')
 						illegalCharacter();
 					if (Label* l = defLabel in labelTable)
-						operand = !pass2 || l.passed;
+						l.used |= operand = !pass2 || l.passed;
 					else
 						operand = false;
 				}
@@ -3056,19 +3056,20 @@ unittest {
 
 	string[] errors;
 
-	ubyte[] assemble(string[string] sources, string[] definitions = null) {
+	ubyte[] assemble(string[string] sources, string[] definitions = null, bool warnUnusedLabels = false) {
 		errors = null;
 		auto assembler = new Assembler(
 			(string path) => sources[path].representation,
 			null,
 			toDelegate((in Diagnostic diag) { errors ~= diag.message; }));
 		assembler.commandLineDefinitions = definitions;
+		assembler.warnUnusedLabels = warnUnusedLabels;
 		assembler.assemble("main.asx");
 		return assembler.object.dup;
 	}
 
-	ubyte[] assembleOne(string source, string[] definitions = null) {
-		return assemble(["main.asx": source], definitions);
+	ubyte[] assembleOne(string source, string[] definitions = null, bool warnUnusedLabels = false) {
+		return assemble(["main.asx": source], definitions, warnUnusedLabels);
 	}
 
 	// defined and undefined labels, case-insensitive
@@ -3137,6 +3138,20 @@ unittest {
 	assert(assembleOne("def equ 5\n org $600\n dta def,def+1,def(def)\n")
 		== [0xff, 0xff, 0x00, 0x06, 0x02, 0x06, 5, 6, 1]);
 	assert(errors.empty);
+
+	// def(label) marks the label as used, but only if it returns 1
+	bool isFooUsed(string source, string[] definitions = null) {
+		assembleOne(source, definitions, true);
+		bool used = errors.empty;
+		assert(used || errors == ["Unused label: FOO"]);
+		return used;
+	}
+	assert(isFooUsed(" org $600\nfoo equ 1\n ift def(foo)\n eif\n"));
+	assert(isFooUsed(" org $600\nfoo equ 1\n ift !def(foo)\n eif\n"));
+	assert(isFooUsed(" org $600\n ift def(foo)\n eif\n", ["foo=1"]));
+	assert(!isFooUsed(" org $600\nfoo equ 1\n ift 0\n ift def(foo)\n eif\n eif\n"));
+	assert(!isFooUsed(" org $600\n ift def(foo)\n eif\nfoo equ 1\n"));
+	assert(!isFooUsed(" org $600\nfoo equ 1\n"));
 
 	// syntax errors
 	assembleOne(" org $600\n dta def(1)\n");
