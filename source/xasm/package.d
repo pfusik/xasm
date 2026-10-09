@@ -61,7 +61,7 @@ private class AssemblyError : Exception {
 /// An entry in the assembler's symbol table.
 struct Label {
 	int value; /// The value assigned to the label.
-	bool unused = true; /// True until the label is referenced somewhere.
+	bool used = false; /// True if the label is referenced somewhere.
 	bool unknownInPass1 = false; /// True if the value was not yet known during pass 1.
 	bool passed = false; /// True once the label's definition was encountered in pass 2.
 }
@@ -132,7 +132,7 @@ class Assembler {
 			}
 			immutable fmt = (l.value & 0xffff0000) != 0 ? "%s%s %s%08X %s" : "%s%s     %s%04X %s";
 			sink(format(fmt,
-				l.unused ? 'n' : ' ',
+				l.used ? ' ' : 'n',
 				l.unknownInPass1 ? '2' : ' ',
 				sign, value, name));
 		}
@@ -720,7 +720,7 @@ private:
 				}
 				else if (Label* l = label in labelTable) {
 					operand = l.value;
-					l.unused = false;
+					l.used = true;
 					if (pass2) {
 						if (l.passed) {
 							if (l.unknownInPass1)
@@ -2799,7 +2799,7 @@ private:
 					assert(label in labelTable);
 					currentLabel = &labelTable[label];
 					currentLabel.passed = true;
-					if (currentLabel.unused && warnUnusedLabels && optionUnusedLabels)
+					if (!currentLabel.used && warnUnusedLabels && optionUnusedLabels)
 						warning("Unused label: " ~ label);
 				}
 			}
