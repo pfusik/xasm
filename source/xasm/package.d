@@ -157,7 +157,7 @@ private:
 	bool option5200; // opt g
 	bool optionHeaders; // opt h
 	bool optionListing; // opt l
-	bool optionObject; // opt o
+	bool optionObject = true; // opt o
 	bool optionUnusedLabels; // opt u
 
 	string currentFilename;
@@ -1244,9 +1244,9 @@ private:
 	void objectByte(ubyte b) {
 		version (unittest) {} else {
 			assert(pass2);
-			if (!optionObject) return;
 		}
-		objectBuffer.put(b);
+		if (optionObject)
+			objectBuffer.put(b);
 	}
 
 	void objectWord(ushort w) {
@@ -1302,7 +1302,7 @@ private:
 				listingColumn = 30;
 			}
 		}
-		if (optionHeaders) {
+		if (optionObject && optionHeaders) {
 			if (origin < 0)
 				throw new AssemblyError("No ORG specified");
 			if (!pass2) {
@@ -3048,6 +3048,9 @@ unittest {
 		== [0xff, 0xff, 0x00, 0x80, 0x00, 0x80, 0x11, 0x00, 0x90, 0x00, 0x90, 0x22]);
 	assert(assemble(" org $8000\n dta $11\n org $c000\n org $4000\n org $8001\n dta $22\n org $9000\n org $8002\n dta $33\n")
 		== [0xff, 0xff, 0x00, 0x80, 0x02, 0x80, 0x11, 0x22, 0x33]);
+
+	assert(assemble(" org $2000\n dta $11\n opt o-\n org $2001\n dta $22\n")
+		== [0xff, 0xff, 0x00, 0x20, 0x00, 0x20, 0x11]);
 }
 
 // DEF(label) - test whether a label is defined (issue #26)

@@ -767,7 +767,6 @@ Version 3.3.0 (2026-10-??)
 - built with LDC - supports macOS 15.4+
 - <<new_def,`def(label)`>> tests whether a label is defined
   (https://github.com/pfusik/xasm/issues/26[requested] by Sebastian Igielski)
-- Fixed corrupted executable headers with `ORG` round-trip through an area with no emitted output (https://github.com/pfusik/xasm/issues/27[reported] by Sebastian Igielski)
 - <<new_aln,`ALN` directive>> for aligning the origin counter to the specified boundary
   (https://github.com/pfusik/xasm/issues/20[requested] by Sebastian Igielski)
 - <<new_dta,`DTA e(int24bit),f(int32bit)` modes>>
@@ -775,6 +774,10 @@ Version 3.3.0 (2026-10-??)
 - avoid misinterpreting certain non-ASCII characters as Atari $9b EOL,
   by detecting EOL in the first line of each source file
   (https://github.com/pfusik/xasm/issues/21[reported] by Sebastian Igielski)
+- fixed corrupted executable headers with `ORG` round-trip through an area
+  with no emitted output
+  (https://github.com/pfusik/xasm/issues/27[reported] by Sebastian Igielski)
+- fixed corrupted executable headers with `OPT O-` (reported by Tomasz Biela)
 - *xasm* can now be used as a link:libxasm.html[library] in any D program
   (by Adrian Matoga)
 - fixed writing the */t* label table: it no longer closes standard output
