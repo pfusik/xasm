@@ -2508,8 +2508,8 @@ private:
 		return OrgModifier.NONE;
 	}
 
-	void setOrigin(int addr, OrgModifier modifier) {
-		origin = loadOrigin = addr;
+	void setLoadOrigin(int addr, OrgModifier modifier) {
+		loadOrigin = addr;
 		if (!optionHeaders)
 			return;
 		bool requestedHeader = modifier != OrgModifier.NONE;
@@ -2552,13 +2552,11 @@ private:
 		OrgModifier modifier = readOrgModifier();
 		readUnsignedWord();
 		mustBeKnownInPass1();
-		if (modifier == OrgModifier.RELOCATE) {
+		if (modifier == OrgModifier.RELOCATE)
 			checkOriginDefined();
-			origin = value;
-		}
-		else {
-			setOrigin(value, modifier);
-		}
+		else
+			setLoadOrigin(value, modifier);
+		origin = value;
 	}
 
 	void assemblyAln() {
@@ -2569,7 +2567,9 @@ private:
 		mustBeKnownInPass1();
 		if (value <= 0 || (value & (value - 1)) != 0)
 			throw new AssemblyError("Alignment boundary must be a power of two");
-		setOrigin((origin + value - 1) & ~(value - 1), OrgModifier.NONE);
+		int skip = -origin & (value - 1);
+		setLoadOrigin(loadOrigin + skip, OrgModifier.NONE);
+		origin += skip;
 	}
 
 	void assemblyRunIni(ushort addr) {
@@ -2579,7 +2579,8 @@ private:
 		OrgModifier modifier = readOrgModifier();
 		if (modifier == OrgModifier.RELOCATE)
 			throw new AssemblyError("r: invalid here");
-		setOrigin(addr, modifier);
+		setLoadOrigin(addr, modifier);
+		origin = addr;
 		readUnsignedWord();
 		putWord(cast(ushort) (value));
 		loadingOrigin = -1; // don't fill
@@ -3277,6 +3278,44 @@ unittest {
 
 	assert(assemble(" org $2000\n dta $11\n opt o-\n org $2001\n dta $22\n")
 		== [0xff, 0xff, 0x00, 0x20, 0x00, 0x20, 0x11]);
+}
+
+// ALN after ORG R: advances the load address by the alignment skip
+unittest {
+	import std.functional : toDelegate;
+
+	string[] errors;
+
+	ubyte[] assemble(string source, int here, int aligned) {
+		errors = null;
+		auto assembler = new Assembler(
+			(string path) => source.representation,
+			null,
+			toDelegate((in Diagnostic diag) { errors ~= diag.message; }));
+		assembler.assemble("src.asx");
+		assert(assembler.getLabel("here").value == here);
+		assert(assembler.getLabel("aligned").value == aligned);
+		return assembler.object.dup;
+	}
+
+	// origin moves $06 -> $08 -> $10; the load address moves $8003 -> $800b
+	enum gap = " org $8000\n dta $11\n org r:$06\nhere lda here\n aln $10\naligned dta $22\n";
+	assert(assemble(gap, 0x06, 0x10) == [
+		0xff, 0xff, 0x00, 0x80, 0x02, 0x80, 0x11, 0xa5, 0x06,
+		0x0b, 0x80, 0x0b, 0x80, 0x22]);
+	assert(errors.empty);
+	assert(assemble(" opt f+\n" ~ gap, 0x06, 0x10) == [
+		0xff, 0xff, 0x00, 0x80, 0x0b, 0x80, 0x11, 0xa5, 0x06,
+		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x22]);
+	assert(errors.empty);
+
+	// already aligned: the load address stays put
+	enum aligned = " org $8000\n dta $11\n org r:$10\nhere\n aln $10\naligned dta $22\n";
+	enum oneBlock = [0xff, 0xff, 0x00, 0x80, 0x01, 0x80, 0x11, 0x22];
+	assert(assemble(aligned, 0x10, 0x10) == oneBlock);
+	assert(errors.empty);
+	assert(assemble(" opt f+\n" ~ aligned, 0x10, 0x10) == oneBlock);
+	assert(errors.empty);
 }
 
 // DEF(label) - test whether a label is defined (issue #26)
