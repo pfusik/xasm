@@ -1,11 +1,17 @@
+%global ldc_version 1.43.0
+
 Name: xasm
 Version: 3.2.1
 Release: 1
 Summary: 6502 cross-assembler
 License: Poetic
-Source: http://pfusik.github.io/xasm/xasm-%{version}.tar.gz
+Source0: http://pfusik.github.io/xasm/xasm-%{version}.tar.gz
+# Official LDC release: links druntime/Phobos statically,
+# so the binary doesn't depend on the Fedora release's ldc-libs
+Source1: https://github.com/ldc-developers/ldc/releases/download/v%{ldc_version}/ldc2-%{ldc_version}-linux-%{_arch}.tar.xz
 URL: https://github.com/pfusik/xasm
-BuildRequires: ldc, asciidoctor
+ExclusiveArch: x86_64 aarch64
+BuildRequires: gcc, make, asciidoctor
 
 %description
 xasm is a 6502 cross-assembler with original syntax extensions.
@@ -13,10 +19,10 @@ xasm is a 6502 cross-assembler with original syntax extensions.
 %global debug_package %{nil}
 
 %prep
-%setup -q
+%setup -q -a 1
 
 %build
-make xasm xasm.1
+make LDC2=$PWD/ldc2-%{ldc_version}-linux-%{_arch}/bin/ldc2 xasm xasm.1
 
 %install
 make DESTDIR=%{buildroot} prefix=%{_prefix} install

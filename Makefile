@@ -7,6 +7,7 @@ ifeq ($(OS),Windows_NT)
 EXEEXT = .exe
 endif
 
+LDC2 = ldc2
 SEVENZIP = 'C:/Program Files/7-Zip/7z' a -mx=9 -bd -bso0
 
 SOURCES = source/app.d source/xasm/package.d
@@ -14,13 +15,13 @@ SOURCES = source/app.d source/xasm/package.d
 all: xasm$(EXEEXT) xasm.html libxasm.html
 
 xasm$(EXEEXT): $(SOURCES)
-	ldc2 -of=$@ -O -release $^
+	$(LDC2) -of=$@ -O -release $^
 
 xasm.html: xasm.1.asciidoc
 	asciidoctor -o - $< | sed -e "s/ba3925;/20a0a0;/" >$@
 
 libxasm.html: source/xasm/package.d
-	ldc2 -D --Df=$@ -o- $^
+	$(LDC2) -D --Df=$@ -o- $^
 
 xasm.1: xasm.1.asciidoc
 	asciidoctor -b manpage $<
@@ -69,10 +70,10 @@ osx/xasm: xasm-x86_64 xasm-arm64
 	mkdir -p $(@D) && lipo -create -output $@ $^
 
 xasm-x86_64: $(SOURCES)
-	ldc2 -of=$@ -O -release -mtriple=x86_64-apple-macos10.12 $^ && rm xasm-x86_64.o
+	$(LDC2) -of=$@ -O -release -mtriple=x86_64-apple-macos10.12 $^ && rm xasm-x86_64.o
 
 xasm-arm64: $(SOURCES)
-	ldc2 -of=$@ -O -release -mtriple=arm64-apple-macos11.0 $^ && rm xasm-arm64.o
+	$(LDC2) -of=$@ -O -release -mtriple=arm64-apple-macos11.0 $^ && rm xasm-arm64.o
 
 osx/bin:
 	mkdir -p osx && ln -s /usr/local/bin $@
