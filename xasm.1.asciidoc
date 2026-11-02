@@ -441,10 +441,23 @@ where_am_i equ *-code_zpage+code_loaded
 ---------------------------------------
 --
 
+[[new_ds]]*.DS* - define storage::
+
+Advances the origin counter by the given number of bytes.
+It's normally equivalent to `ORG *+x` where `x` is the `.DS` operand.
+It behaves differently in the scope of `org r:` where it advances
+both the code generation and load counters.
++
+Example:
++
+---------------
+ptr .ds 2
+---------------
+
 [[new_aln]]*ALN* - align the origin counter::
 
 Advances the origin counter to the specified boundary.
-It's equivalent to `ORG [*+b-1]&~[b-1]` where `b` is the `ALN` operand.
+It's equivalent to `.DS -*&[b-1]` where `b` is the `ALN` operand.
 +
 Example:
 +
@@ -452,7 +465,6 @@ Example:
  aln $400
 font ins 'panther.fnt'
 ---------------
-
 
 [[new_dta]]*DTA* - define data::
 
@@ -803,11 +815,13 @@ and pseudo commands, except for `MWA`, `MWX` and `MWY`:
 HISTORY
 -------
 
-Version 3.3.0 (2026-10-??)
+Version 3.3.0 (2026-11-??)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 - built with LDC - supports macOS 15.4+
 - <<new_def,`def(label)`>> tests whether a label is defined
   (https://github.com/pfusik/xasm/issues/26[requested] by Sebastian Igielski)
+- <<new_ds,`.DS` directive>> for defining uninitialized storage
+  (https://github.com/pfusik/xasm/issues/28[requested] by Sebastian Igielski)
 - <<new_aln,`ALN` directive>> for aligning the origin counter to the specified boundary
   (https://github.com/pfusik/xasm/issues/20[requested] by Sebastian Igielski)
 - <<new_dta,`DTA e(int24bit),f(int32bit)` modes>>

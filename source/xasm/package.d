@@ -402,9 +402,12 @@ private:
 	string readInstruction() {
 		string r;
 		for (int i = 0; i < 3; i++) {
-			char c = readChar() & 0xdf;
-			if (c < 'A' || c > 'Z')
-				throw new AssemblyError("Illegal instruction");
+			char c = readChar();
+			if (c != '.') {
+				c &= 0xdf;
+				if (c < 'A' || c > 'Z')
+					throw new AssemblyError("Illegal instruction");
+			}
 			r ~= c;
 		}
 		return r;
@@ -2559,17 +2562,19 @@ private:
 		origin = value;
 	}
 
-	void assemblyAln() {
+	void assemblyDsAln(bool aln) {
 		noRepeatSkipDirective();
 		checkOriginDefined();
 		readSpaces();
 		readUnsignedWord();
 		mustBeKnownInPass1();
-		if (value <= 0 || (value & (value - 1)) != 0)
-			throw new AssemblyError("Alignment boundary must be a power of two");
-		int skip = -origin & (value - 1);
-		setLoadOrigin(loadOrigin + skip, OrgModifier.NONE);
-		origin += skip;
+		if (aln) {
+			if (value <= 0 || (value & (value - 1)) != 0)
+				throw new AssemblyError("Alignment boundary must be a power of two");
+			value = -origin & (value - 1);
+		}
+		setLoadOrigin(loadOrigin + value, OrgModifier.NONE);
+		origin += value;
 	}
 
 	void assemblyRunIni(ushort addr) {
@@ -2626,6 +2631,9 @@ private:
 			throw new AssemblyError("No ORG specified");
 		instructionBegin = true;
 		switch (instruction) {
+		case ".DS":
+			assemblyDsAln(false);
+			break;
 		case "ADC":
 			assemblyAccumulator(0x60, 0, 0);
 			break;
@@ -2633,7 +2641,7 @@ private:
 			assemblyAccumulator(0x60, 0x18, 0);
 			break;
 		case "ALN":
-			assemblyAln();
+			assemblyDsAln(true);
 			break;
 		case "AND":
 			assemblyAccumulator(0x20, 0, 0);
@@ -3316,6 +3324,98 @@ unittest {
 	assert(errors.empty);
 	assert(assemble(" opt f+\n" ~ aligned, 0x10, 0x10) == oneBlock);
 	assert(errors.empty);
+}
+
+// .DS reserves uninitialized space, advancing the origin and the load address (issue #28)
+unittest {
+	import std.functional : toDelegate;
+
+	string[] errors;
+
+	ubyte[] ff(size_t n) {
+		ubyte[] bytes = new ubyte[n];
+		bytes[] = 0xff;
+		return bytes;
+	}
+
+	ubyte[] assemble(string source, int[string] labels = null) {
+		errors = null;
+		auto assembler = new Assembler(
+			(string path) => source.representation,
+			null,
+			toDelegate((in Diagnostic diag) { errors ~= diag.message; }));
+		assembler.assemble("src.asx");
+		foreach (name, value; labels) {
+			auto found = assembler.getLabel(name);
+			assert(found !is null, name);
+			assert(found.value == value, name);
+		}
+		return assembler.object.dup;
+	}
+
+	void assertError(string source, string message) {
+		assemble(source);
+		assert(errors == [message], errors.length ? errors[0] : "no error");
+	}
+
+	// a label on .DS is the start of the reserved area; the hole is omitted from the executable
+	enum storage = " org $2000\n dta $11\nptr1 .ds 2\nptr2 .ds 2\ncounter .ds 1\nbuffer .ds 256\ndone dta $42\n";
+	enum storageLabels = ["ptr1": 0x2001, "ptr2": 0x2003, "counter": 0x2005, "buffer": 0x2006, "done": 0x2106];
+	assert(assemble(storage, storageLabels)
+		== [0xff, 0xff, 0x00, 0x20, 0x00, 0x20, 0x11, 0x06, 0x21, 0x06, 0x21, 0x42]);
+	assert(errors.empty);
+	assert(assemble(" opt f+\n" ~ storage, storageLabels)
+		== cast(ubyte[])[0xff, 0xff, 0x00, 0x20, 0x06, 0x21, 0x11] ~ ff(261) ~ cast(ubyte[])[0x42]);
+	assert(errors.empty);
+
+	// after ORG R:, both addresses advance by the same amount, so their difference is preserved
+	enum relocated = " org $8000\n org r:$2000\n dta $11\nbuffer .ds 16\nafter dta $22\n";
+	enum relocatedLabels = ["buffer": 0x2001, "after": 0x2011];
+	assert(assemble(relocated, relocatedLabels)
+		== [0xff, 0xff, 0x00, 0x80, 0x00, 0x80, 0x11, 0x11, 0x80, 0x11, 0x80, 0x22]);
+	assert(errors.empty);
+	assert(assemble(" opt f+\n" ~ relocated, relocatedLabels)
+		== cast(ubyte[])[0xff, 0xff, 0x00, 0x80, 0x11, 0x80, 0x11] ~ ff(16) ~ cast(ubyte[])[0x22]);
+	assert(errors.empty);
+
+	// consecutive reservations are one hole; a zero count changes nothing
+	assert(assemble(" org $8000\n org r:$2000\n dta $11\n .ds 2\n .ds 3\nafter dta $22\n", ["after": 0x2006])
+		== [0xff, 0xff, 0x00, 0x80, 0x00, 0x80, 0x11, 0x06, 0x80, 0x06, 0x80, 0x22]);
+	assert(errors.empty);
+	assert(assemble(" org $8000\n org r:$2000\n dta $11\n .ds 0\nafter dta $22\n", ["after": 0x2001])
+		== [0xff, 0xff, 0x00, 0x80, 0x01, 0x80, 0x11, 0x22]);
+	assert(errors.empty);
+
+	// the count is an expression known in pass 1, and the mnemonic is case-insensitive
+	enum sized = "size equ 4\n org $1000\n dta $11\n .ds size\n dta $22\n";
+	enum sizedObject = [0xff, 0xff, 0x00, 0x10, 0x00, 0x10, 0x11, 0x05, 0x10, 0x05, 0x10, 0x22];
+	assert(assemble(sized) == sizedObject);
+	assert(errors.empty);
+	assert(assemble(" org $100\n dta $11\n .ds *-$100\n dta $22\n")
+		== [0xff, 0xff, 0x00, 0x01, 0x00, 0x01, 0x11, 0x02, 0x01, 0x02, 0x01, 0x22]);
+	assert(errors.empty);
+	foreach (directive; [".ds", ".DS", ".Ds"]) {
+		assert(assemble(" org $8000\n dta $11\n " ~ directive ~ " 4\n dta $22\n")
+			== [0xff, 0xff, 0x00, 0x80, 0x00, 0x80, 0x11, 0x05, 0x80, 0x05, 0x80, 0x22]);
+		assert(errors.empty);
+	}
+
+	// a reservation before any emitted byte moves the first block instead of filling it
+	assert(assemble(" opt f+\n org $4000\nbuf .ds 4\n dta $22\n", ["buf": 0x4000])
+		== [0xff, 0xff, 0x04, 0x40, 0x04, 0x40, 0x22]);
+	assert(errors.empty);
+
+	assertError(" .ds 4\n", "No ORG specified");
+	assertError(" org $600\n .ds later\nlater equ 4\n", "Label not defined before");
+	assertError(" org $600\n .ds -1\n", "Value out of range");
+	assertError(" org $600\n .ds $10000\n", "Value out of range");
+	assertError(" org $600\n .ds\n", "Unexpected end of line");
+	assertError(" org $600\n .ds 4,0\n", "Extra characters on line");
+	assertError(" org $600\n :2 .ds 1\n", "Can't repeat this directive");
+	assertError(" org $600\n nop:.ds 1\n", "Can't pair this directive");
+	assertError(" org $600\n sne\n .ds 1\n", "Can't skip over this");
+	assertError(" org $600\n ds 4\n", "Illegal instruction");
+	assertError(" org $600\n .dx 4\n", "Illegal instruction");
 }
 
 // DEF(label) - test whether a label is defined (issue #26)
