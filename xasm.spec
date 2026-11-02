@@ -1,7 +1,7 @@
 %global ldc_version 1.43.0
 
 Name: xasm
-Version: 3.2.1
+Version: 3.3.0
 Release: 1
 Summary: 6502 cross-assembler
 License: Poetic
@@ -32,6 +32,9 @@ make DESTDIR=%{buildroot} prefix=%{_prefix} install
 %{_mandir}/man1/xasm.1.gz
 
 %changelog
+* Mon Nov 2 2026 Piotr Fusik <fox@scene.pl>
+- 3.3.0-1
+
 * Thu Dec 8 2022 Piotr Fusik <fox@scene.pl>
 - 3.2.1-1
 

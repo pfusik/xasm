@@ -1,3 +1,9 @@
+xasm (3.3.0-1) UNRELEASED; urgency=low
+
+  * New release.
+
+ -- Piotr Fusik <fox@scene.pl>  Mon, 2 Nov 2026 18:32:28 +0100
+
 xasm (3.2.1-1) UNRELEASED; urgency=low
 
   * New release.

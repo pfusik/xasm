@@ -815,7 +815,7 @@ and pseudo commands, except for `MWA`, `MWX` and `MWY`:
 HISTORY
 -------
 
-Version 3.3.0 (2026-11-??)
+Version 3.3.0 (2026-11-02)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 - built with LDC - supports macOS 15.4+
 - <<new_def,`def(label)`>> tests whether a label is defined
