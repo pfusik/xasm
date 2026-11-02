@@ -39,7 +39,7 @@ Let's look at typical 6502 code (which is also valid in xasm):
         dex
         bne do_line
 
-Using xasm's features this code can be rewritten to:
+Using xasm's features, this code can be rewritten to:
 
         mwa     #dest ptr
         ldx     #192
@@ -51,8 +51,8 @@ Using xasm's features this code can be rewritten to:
         scc:inc ptr+1
         dex:bne do_line
 
-xasm syntax is an extension of Quick Assembler's (created in 1991 for Atari 8-bit).
-Accumulator shifts should be written as in `asl @`.
+xasm syntax is an extension of Quick Assembler (created in 1991 for Atari 8-bit).
+Accumulator shifts should be written as `asl @`.
 Whitespace is important: it is required before the instruction
 and disallowed in the operands, because it separates a comment from the operand, e.g.
 
@@ -71,7 +71,7 @@ I use [SciTE](http://www.scintilla.org/SciTE.html).
 To install xasm syntax highlighting and single-keystroke compilation,
 copy `xasm.properties` to the SciTE directory.
 
-For single source file programs, press Ctrl+F7 to compile.
+For programs with a single source file, press Ctrl+F7 to compile.
 You can double-click error messages to go to the incorrect line.
 Press F5 to run the program in the emulator.
 
