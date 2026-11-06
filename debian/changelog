@@ -1,3 +1,10 @@
+xasm (3.3.0-2) UNRELEASED; urgency=low
+
+  * Link druntime and Phobos statically, so that the package
+    doesn't depend on the Ubuntu release-specific libphobos2-ldc-sharedNN.
+
+ -- Piotr Fusik <fox@scene.pl>  Fri, 6 Nov 2026 12:53:43 +0100
+
 xasm (3.3.0-1) UNRELEASED; urgency=low
 
   * New release.

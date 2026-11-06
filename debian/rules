@@ -2,5 +2,10 @@
 %:
 	dh $@
 
+# Link druntime and Phobos statically, so the package doesn't depend
+# on libphobos2-ldc-sharedNN, which changes with every Ubuntu release
+override_dh_auto_build:
+	dh_auto_build -- LDC2="ldc2 -link-defaultlib-shared=false -defaultlib=phobos2-ldc,druntime-ldc,z"
+
 override_dh_auto_install:
 	$(MAKE) DESTDIR=$$(pwd)/debian/tmp prefix=/usr install install-scite
