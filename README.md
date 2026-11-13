@@ -5,7 +5,7 @@ xasm
 
 xasm is a 6502 cross-assembler with original syntax extensions.
 By default it generates binaries
-for [Atari 8-bit computers](http://en.wikipedia.org/wiki/Atari_8-bit_family).
+for [Atari 8-bit computers](https://en.wikipedia.org/wiki/Atari_8-bit_family).
 
 Syntax
 ------
@@ -67,7 +67,7 @@ Usage
 xasm is a command-line tool.
 Therefore you additionally need a programmer's text editor.
 
-I use [SciTE](http://www.scintilla.org/SciTE.html).
+I use [SciTE](https://www.scintilla.org/SciTE.html).
 To install xasm syntax highlighting and single-keystroke compilation,
 copy `xasm.properties` to the SciTE directory.
 
@@ -107,7 +107,7 @@ Links
 * [Atari800](https://atari800.github.io/) - portable emulator of Atari 8-bit computers
 * [Atari XL/XE Source Archive](http://sources.pigwa.net/) - source code of Atari demos, utilities and games
 * [cc65](https://cc65.github.io/) - C cross-compiler targeting 6502-based systems
-* [MADS](http://mads.atari8.info/) - another 6502/65816 cross-assembler, partially supporting xasm's syntax
+* [MADS](https://mads.atari8.info/) - another 6502/65816 cross-assembler, partially supporting xasm's syntax
 * [vim-xasm](https://github.com/lybrown/vim-xasm) - Vim syntax highlighting for xasm
-* [WUDSN IDE](http://wudsn.com/) - Eclipse plugin, front-end to several 6502 cross-assemblers, including xasm
+* [WUDSN IDE](https://www.wudsn.com/) - Eclipse plugin, front-end to several 6502 cross-assemblers, including xasm
 * [xasm VS Code Extension](https://github.com/seban-slt/vscode-xasm-syntax) - xasm syntax highlighting in Visual Studio Code
